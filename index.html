@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nelly RAC — Growth Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --orange:#E8610A;--orange-light:#F9A36A;--orange-pale:#FFF0E6;--orange-dark:#c04f00;
+  --dark:#3A3A3A;--darkbg:#1a1a1a;--darkbg2:#2d2d2d;
+  --bg:#f5f4f2;--surface:#fff;--surface2:#f0efed;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --border:#e0deda;--border2:#ccc;
+  --green:#27a663;--blue:#185fa5;--red:#e24b4a;
+  --ff:'Barlow',sans-serif;--ffc:'Barlow Condensed',sans-serif;
+  --radius:10px;--radius-sm:6px;
+}
+body{font-family:var(--ff);background:var(--bg);color:var(--text);min-height:100vh}
+a{color:inherit;text-decoration:none}
+
+/* LAYOUT */
+html,body{overflow-x:hidden;width:100%}
+.app{display:flex;min-height:100vh;width:100%}
+.sidebar{background:var(--darkbg);padding:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;width:220px;z-index:100;flex-shrink:0}
+.main{margin-left:220px;padding:24px;min-height:100vh;width:calc(100% - 220px);min-width:0;overflow-x:hidden;box-sizing:border-box}
+
+/* SIDEBAR */
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.07)}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-text{font-family:var(--ffc);font-size:22px;font-weight:800;color:var(--orange);letter-spacing:0.5px}
+.logo-sub{font-size:10px;color:#777;margin-top:2px;letter-spacing:0.5px;text-transform:uppercase}
+.sidebar-nav{padding:12px 10px;flex:1}
+.nav-label{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#555;padding:10px 10px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:#aaa;transition:all 0.15s;margin-bottom:2px}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:#ddd}
+.nav-item.active{background:rgba(232,97,10,0.15);color:var(--orange)}
+.nav-icon{width:16px;height:16px;opacity:0.7}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-footer{padding:14px 16px;border-top:1px solid rgba(255,255,255,0.07)}
+.sidebar-period{font-size:10px;color:#555;line-height:1.6}
+.sidebar-period strong{color:#888;display:block;margin-bottom:2px}
+
+/* HEADER */
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.page-title{font-family:var(--ffc);font-size:24px;font-weight:700;color:var(--text);letter-spacing:0.3px}
+.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.header-badge{background:var(--darkbg);color:var(--orange);font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;font-family:var(--ffc);letter-spacing:0.5px}
+
+/* PAGES */
+.page{display:none;min-width:0;width:100%}
+.page.active{display:block}
+
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.kpi-card{background:var(--surface);border-radius:var(--radius);padding:14px 16px;border:1px solid var(--border);position:relative;overflow:hidden;min-width:0}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--orange)}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:6px;font-weight:600}
+.kpi-value{font-family:var(--ffc);font-size:28px;font-weight:700;color:var(--text);line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.kpi-trend{font-size:11px;font-weight:600;margin-top:5px;display:flex;align-items:center;gap:4px}
+.trend-up{color:var(--green)}.trend-down{color:var(--red)}.trend-neutral{color:var(--text3)}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:18px 20px;min-width:0}
+.card-title{font-family:var(--ffc);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);margin-bottom:14px}
+
+/* GRIDS */
+.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:20px}
+.grid-65{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;margin-bottom:20px}
+
+/* SECTION LABEL */
+.section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text2);border-left:3px solid var(--orange);padding-left:10px;margin-bottom:14px}
+
+/* ALERT BANNER */
+.alert-banner{background:var(--darkbg);border-radius:var(--radius);padding:14px 20px;margin-bottom:22px;display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap;min-width:0;width:100%}
+.alert-icon{font-size:22px}
+.alert-title{font-family:var(--ffc);font-size:13px;font-weight:700;color:var(--orange);margin-bottom:4px}
+.alert-metrics{display:flex;gap:24px;flex-wrap:wrap}
+.am-val{font-family:var(--ffc);font-size:20px;font-weight:700;color:#fff}
+.am-label{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:0.5px}
+
+/* OPP CARDS */
+.opp-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.opp-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px}
+.opp-tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px}
+.tag-high{background:#fff0e6;color:var(--orange)}
+.tag-med{background:#eaf3de;color:#3b6d11}
+.tag-quick{background:#e6f1fb;color:var(--blue)}
+.opp-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.35}
+.opp-desc{font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:10px}
+.opp-impact{font-size:12px;display:flex;align-items:center;gap:5px}
+.oi-label{color:var(--text3)}.oi-val{font-weight:600;color:var(--green)}
+
+/* FUNNEL */
+.funnel-step{display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid var(--border)}
+.funnel-step:last-child{border-bottom:none}
+.funnel-num{font-family:var(--ffc);font-size:20px;font-weight:700;color:var(--orange);min-width:80px}
+.funnel-name{font-size:13px;font-weight:500;color:var(--text)}
+.funnel-sub{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* PROGRESS */
+.progress-wrap{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden;margin:5px 0 3px}
+.progress-bar{height:100%;background:var(--orange);border-radius:4px;transition:width 1s ease}
+.progress-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.target-item{margin-bottom:14px}
+.target-item:last-child{margin-bottom:0}
+.target-name{font-size:12px;font-weight:500;color:var(--text);margin-bottom:1px}
+
+/* DEVICES */
+.device-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.device-card{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.device-name{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
+.device-val{font-family:var(--ffc);font-size:22px;font-weight:700;color:var(--text)}
+.device-ctr{font-size:11px;color:var(--orange);font-weight:600;margin-top:2px}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{text-align:left;font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);padding:7px 10px;border-bottom:2px solid var(--border)}
+.data-table td{padding:8px 10px;color:var(--text);border-bottom:1px solid var(--border)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--surface2)}
+.data-table td:not(:first-child){text-align:right}
+.data-table th:not(:first-child){text-align:right}
+.cell-trunc{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left!important}
+
+/* PILLS */
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.3px}
+.pill-orange{background:#fff0e6;color:var(--orange)}
+.pill-green{background:#eaf3de;color:#3b6d11}
+.pill-blue{background:#e6f1fb;color:var(--blue)}
+.pill-gray{background:var(--surface2);color:var(--text2)}
+.pill-red{background:#fcebeb;color:var(--red)}
+
+/* PLAN */
+.plan-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:22px}
+.plan-quarter{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden}
+.plan-header{padding:12px 16px;color:#fff}
+.ph-q1{background:var(--orange)}
+.ph-q2{background:var(--orange-dark)}
+.ph-q3{background:var(--dark)}
+.ph-q4{background:var(--blue)}
+.plan-qlabel{font-family:var(--ffc);font-size:18px;font-weight:700;letter-spacing:0.5px}
+.plan-qmonths{font-size:10px;opacity:0.8;margin-top:2px}
+.plan-body{padding:14px 16px}
+.plan-focus{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--orange);margin-bottom:8px}
+.plan-item{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text);line-height:1.45}
+.plan-item:last-of-type{border-bottom:none}
+.plan-dot{width:5px;height:5px;border-radius:50%;background:var(--orange);flex-shrink:0;margin-top:5px}
+.plan-kpis{background:var(--surface2);border-radius:var(--radius-sm);padding:9px 11px;margin-top:10px}
+.plan-kpi-row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0}
+.pkr-label{color:var(--text3)}.pkr-val{font-weight:600;color:var(--text)}
+
+/* EXPERIMENTS */
+.exp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:20px}
+
+/* UPDATE FORM */
+.form-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.form-group label{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2);margin-bottom:5px}
+.form-group input{width:100%;padding:8px 11px;font-size:13px;font-family:var(--ff);border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);outline:none}
+.form-group input:focus{border-color:var(--orange)}
+.btn-primary{background:var(--orange);color:#fff;border:none;padding:9px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);letter-spacing:0.3px;transition:background 0.15s}
+.btn-primary:hover{background:var(--orange-dark)}
+.btn-danger{background:#fcebeb;color:var(--red);border:1px solid #f7c1c1;padding:6px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--ff)}
+.empty-state{text-align:center;padding:30px;color:var(--text3);font-size:12px}
+
+/* MONTH SELECTOR */
+.month-nav{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.month-nav select{padding:7px 12px;font-size:13px;font-family:var(--ff);border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);cursor:pointer}
+
+/* CHART CONTAINERS */
+.chart-wrap{position:relative;width:100%}
+
+/* SCROLLABLE TABLE */
+.table-scroll{overflow-x:auto}
+
+/* STATUS DOT */
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
+.dot-green{background:var(--green)}.dot-orange{background:var(--orange)}.dot-red{background:var(--red)}
+
+/* GMB REVIEWS */
+.review-item{padding:12px 0;border-bottom:1px solid var(--border)}
+.review-item:last-child{border-bottom:none}
+.review-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.review-author{font-size:12px;font-weight:600;color:var(--text)}
+.review-date{font-size:11px;color:var(--text3)}
+.review-stars{color:#f59e0b;font-size:14px;letter-spacing:1px;margin-bottom:4px}
+.review-comment{font-size:12px;color:var(--text2);line-height:1.55;max-height:60px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.review-replied{font-size:10px;color:var(--green);margin-top:4px;font-weight:600}
+.star-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:12px}
+.star-label{min-width:14px;color:var(--text3);text-align:right}
+.star-bar-wrap{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.star-bar{height:100%;background:#f59e0b;border-radius:3px;transition:width 0.8s ease}
+.star-count{min-width:28px;color:var(--text3);text-align:right}
+/* Loading spinner */
+.loading-dots::after{content:'…';animation:dots 1.2s steps(3) infinite}
+@keyframes dots{0%{content:'.'}33%{content:'..'}66%{content:'...'}}
+
+@media(max-width:1200px){
+  .kpi-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .sidebar{display:none}
+  .main{margin-left:0;padding:16px;width:100%}
+  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .plan-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .opp-grid{grid-template-columns:minmax(0,1fr)}
+  .grid-2,.grid-3,.grid-65{grid-template-columns:minmax(0,1fr)}
+  .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:500px){
+  .kpi-grid{grid-template-columns:minmax(0,1fr)}
+  .plan-grid{grid-template-columns:minmax(0,1fr)}
+  .form-grid{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-wrap">
+      <svg width="36" height="36" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 62 C12 62 4 45 22 30 C34 20 44 28 46 38 C48 48 40 56 34 50 C28 44 34 34 42 36 C50 38 54 48 50 56 C46 64 36 68 24 64" stroke="#E8610A" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <path d="M46 38 C48 28 58 18 72 20 C84 22 88 34 84 44 C80 54 70 56 64 50 C58 44 64 34 72 36 C80 38 82 48 78 56" stroke="#E8610A" stroke-width="6" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div>
+        <div class="logo-text">nelly</div>
+        <div class="logo-sub">Growth Dashboard</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Análisis</div>
+    <div class="nav-item active" onclick="showPage('overview',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Panorama General
+    </div>
+    <div class="nav-item" onclick="showPage('seo',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 10 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      SEO & Queries
+    </div>
+    <div class="nav-item" onclick="showPage('geo',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="8" cy="8" rx="3" ry="6.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 8 h13" stroke="currentColor" stroke-width="1.2"/></svg>
+      Geografía
+    </div>
+    <div class="nav-item" onclick="showPage('gmb',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2C5.24 2 3 4.24 3 7c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>
+      Google Mi Negocio
+    </div>
+    <div class="nav-label">Estrategia</div>
+    <div class="nav-item" onclick="showPage('plan',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 12 L5 8 L8 10 L11 5 L14 7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 14 h12" stroke="currentColor" stroke-width="1.2"/></svg>
+      Plan 12 Meses
+    </div>
+    <div class="nav-item" onclick="showPage('experiments',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2v5L3 12a1 1 0 001 1h8a1 1 0 001-1L10 7V2"/><path d="M5 2h6"/></svg>
+      Experimentos A/B
+    </div>
+    <div class="nav-label">Datos</div>
+    <div class="nav-item" onclick="showPage('update',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1v6M5 4l3-3 3 3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Actualizar Datos
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-period">
+      <strong>Período base activo</strong>
+      Oct 2025 – Abr 2026<br>
+      GSC · Tipo: Web<br>
+      182 días · 8,160 clics
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<!-- =========== PAGE: OVERVIEW =========== -->
+<div id="page-overview" class="page active">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Panorama General</div>
+      <div class="page-sub">Google Search Console · Oct 2025 – Abr 2026 · Período base de 6 meses</div>
+    </div>
+    <div class="header-badge">Meta 2026: +45% ventas web</div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Clics Totales</div>
+      <div class="kpi-value" id="kpi-clicks">—</div>
+      <div class="kpi-sub">últimos 6 meses</div>
+      <div class="kpi-trend trend-up">▲ Meta: +45%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Impresiones</div>
+      <div class="kpi-value" id="kpi-imp">—</div>
+      <div class="kpi-sub">Total orgánico período</div>
+      <div class="kpi-trend trend-neutral">→ Meta: +45%</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CTR Promedio</div>
+      <div class="kpi-value" id="kpi-ctr">—</div>
+      <div class="kpi-sub">Orgánico web</div>
+      <div class="kpi-trend trend-down">▼ Meta: 3.0%+</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Posición Media</div>
+      <div class="kpi-value" id="kpi-pos">—</div>
+      <div class="kpi-sub">Búsqueda orgánica</div>
+      <div class="kpi-trend trend-down">▼ Meta: 4.0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Clics Promedio/Día</div>
+      <div class="kpi-value" id="kpi-cpd">—</div>
+      <div class="kpi-sub">Promedio diario base</div>
+      <div class="kpi-trend trend-up">▲ Meta: 65+ por día</div>
+    </div>
+  </div>
+
+  <div class="alert-banner">
+    <span class="alert-icon">🎯</span>
+    <div style="flex:1">
+      <div class="alert-title">Diagnóstico Estratégico — Nelly Rent a Car</div>
+      <div class="alert-metrics">
+        <div><div class="am-val">66%</div><div class="am-label">Tráfico Mobile</div></div>
+        <div><div class="am-val">~60%</div><div class="am-label">Queries Branded</div></div>
+        <div><div class="am-val">1.76%</div><div class="am-label">CTR actual</div></div>
+        <div><div class="am-val">3%+</div><div class="am-label">CTR objetivo</div></div>
+        <div><div class="am-val">USA #1</div><div class="am-label">Mercado Top</div></div>
+        <div><div class="am-val">9,275</div><div class="am-label">Impr "car rental DR"</div></div>
+        <div><div class="am-val">175K</div><div class="am-label">Impr páginas CTR&lt;0.1%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-65">
+    <div class="card">
+      <div class="card-title">Tendencia de Clics — Mensual</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Dispositivos</div>
+      <div class="device-grid">
+        <div class="device-card">
+          <div style="font-size:22px;margin-bottom:4px">📱</div>
+          <div class="device-name">Mobile</div>
+          <div class="device-val" id="dev-clicks-MOBILE">—</div>
+          <div class="device-ctr" id="dev-ctr-MOBILE">CTR —</div>
+        </div>
+        <div class="device-card">
+          <div style="font-size:22px;margin-bottom:4px">💻</div>
+          <div class="device-name">Desktop</div>
+          <div class="device-val" id="dev-clicks-DESKTOP">—</div>
+          <div class="device-ctr" id="dev-ctr-DESKTOP">CTR —</div>
+        </div>
+        <div class="device-card">
+          <div style="font-size:22px;margin-bottom:4px">📲</div>
+          <div class="device-name">Tablet</div>
+          <div class="device-val" id="dev-clicks-TABLET">—</div>
+          <div class="device-ctr" id="dev-ctr-TABLET">CTR —</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:120px"><canvas id="deviceChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label" style="margin-bottom:14px">Oportunidades de Crecimiento — Priorizadas por Impacto</div>
+  <div class="opp-grid">
+    <div class="opp-card">
+      <span class="opp-tag tag-high">Alta Prioridad</span>
+      <div class="opp-title">CTR Orgánico: 1.76% → 3%+</div>
+      <div class="opp-desc">9,275 impresiones para "car rental DR" con solo 150 clics. Titles y meta descriptions sin optimizar para búsquedas comerciales no-branded.</div>
+      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+1,400 clics/mes</span></div>
+    </div>
+    <div class="opp-card">
+      <span class="opp-tag tag-high">Alta Prioridad</span>
+      <div class="opp-title">Mobile-First Funnel: 66% del tráfico</div>
+      <div class="opp-desc">5,407 clics mobile con CTR 2.29% pero el checkout móvil tiene alta fricción estimada. Optimizar UX de reserva en mobile es la mayor palanca de conversión.</div>
+      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+25-35% CVR mobile</span></div>
+    </div>
+    <div class="opp-card">
+      <span class="opp-tag tag-quick">Quick Win</span>
+      <div class="opp-title">USA: 238K impr. con solo 1.25% CTR</div>
+      <div class="opp-desc">EE.UU. es el #1 mercado con 238,839 impresiones pero CTR bajo. Paid media dirigido a viajeros americanos + landing en inglés puede ser la palanca más rápida.</div>
+      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+800 clics USA/mes</span></div>
+    </div>
+    <div class="opp-card">
+      <span class="opp-tag tag-high">Alta Prioridad</span>
+      <div class="opp-title">175K impresiones con CTR menor a 0.1%</div>
+      <div class="opp-desc">Contact-us (52K/0.05%), about-us (63K/0.02%), faq (60K/0.02%). Páginas con alta visibilidad sin conversión. Rediseño de snippets puede multiplicar clics inmediatamente.</div>
+      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+2,000 clics/mes</span></div>
+    </div>
+    <div class="opp-card">
+      <span class="opp-tag tag-quick">Quick Win</span>
+      <div class="opp-title">Posición 6.8 → Meta 4.0</div>
+      <div class="opp-desc">"car rental DR" (pos 4.32) y "rent a car Santo Domingo" (pos 4.33) están a un empujón de la posición 1-3. Pasar de pos 6 a pos 4 puede duplicar el CTR.</div>
+      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+90% visibilidad orgánica</span></div>
+    </div>
+    <div class="opp-card">
+      <span class="opp-tag tag-med">Medio Plazo</span>
+      <div class="opp-title">España + LATAM sub-explotados</div>
+      <div class="opp-desc">Argentina (4.31% CTR), Puerto Rico (4.63%), Martinique (7.71%), Suiza (5.43%). Mercados con alta intención. Contenido localizado y campañas geo-específicas.</div>
+      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+400 clics/mes</span></div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Metas Anuales — Progreso Base</div>
+      <div class="target-item">
+        <div class="target-name">Clics Orgánicos (+45%)</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:55%"></div></div>
+        <div class="progress-labels"><span>Base: 8,160</span><span>Meta: 11,832</span></div>
+      </div>
+      <div class="target-item">
+        <div class="target-name">CTR Orgánico (→ 3%)</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:59%"></div></div>
+        <div class="progress-labels"><span>Actual: 1.76%</span><span>Meta: 3.0%</span></div>
+      </div>
+      <div class="target-item">
+        <div class="target-name">Posición Media (→ 4.0)</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:41%"></div></div>
+        <div class="progress-labels"><span>Actual: 6.8</span><span>Meta: 4.0</span></div>
+      </div>
+      <div class="target-item">
+        <div class="target-name">Impresiones (+45%)</div>
+        <div class="progress-wrap"><div class="progress-bar" style="width:55%"></div></div>
+        <div class="progress-labels"><span>Base: 463K</span><span>Meta: 671K</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Funnel Estimado de Conversión</div>
+      <div class="funnel-step">
+        <div class="funnel-num">463K</div>
+        <div><div class="funnel-name">Impresiones</div><div class="funnel-sub">Visibilidad orgánica total</div></div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-num">8,160</div>
+        <div><div class="funnel-name">Clics web</div><div class="funnel-sub">CTR 1.76% → meta 3%+</div></div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-num">~490</div>
+        <div><div class="funnel-name">Inicios de reserva</div><div class="funnel-sub">Est. ~6% de sesiones</div></div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-num">~165</div>
+        <div><div class="funnel-name">Reservas completadas</div><div class="funnel-sub">Est. ~34% completación</div></div>
+      </div>
+      <div class="funnel-step">
+        <div class="funnel-num">+45%</div>
+        <div><div class="funnel-name">Meta: ~240 reservas/mes</div><div class="funnel-sub">Target anual de crecimiento</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Países por CTR</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="ctrCountriesChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== PAGE: SEO =========== -->
+<div id="page-seo" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">SEO & Queries</div>
+      <div class="page-sub">Top 1,000 queries · 242 páginas indexadas · Google Search Console</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Branded Clicks</div>
+      <div class="kpi-value" id="kpi-branded-clicks">—</div>
+      <div class="kpi-sub">nelly + variantes</div>
+      <div class="kpi-trend trend-neutral">~16% del total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Comercial (no-branded)</div>
+      <div class="kpi-value" id="kpi-commercial-clicks">—</div>
+      <div class="kpi-sub">rent a car / car rental</div>
+      <div class="kpi-trend trend-up">▲ Mayor oportunidad</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CTR Branded Promedio</div>
+      <div class="kpi-value" id="kpi-branded-ctr">—</div>
+      <div class="kpi-sub">nelly rent a car</div>
+      <div class="kpi-trend trend-up">▲ Saludable</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CTR Comercial Promedio</div>
+      <div class="kpi-value" id="kpi-commercial-ctr">—</div>
+      <div class="kpi-sub">keywords genéricas</div>
+      <div class="kpi-trend trend-down">▼ Bajo — Meta: 4%+</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Páginas Indexadas</div>
+      <div class="kpi-value">242</div>
+      <div class="kpi-sub">páginas con tráfico</div>
+      <div class="kpi-trend trend-neutral">Top 10 = 92% clics</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Top Queries — Análisis de Intención</div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Query</th><th>Clics</th><th>Impr.</th><th>CTR</th><th>Pos.</th><th>Tipo</th></tr></thead>
+          <tbody id="queries-table"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Páginas — Oportunidades de CTR</div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Página</th><th>Impr.</th><th>CTR</th><th>Prioridad</th></tr></thead>
+          <tbody id="pages-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">CTR por Query — Top 12</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="queryCTRChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Clics por Query — Top 12</div>
+      <div class="chart-wrap" style="height:300px"><canvas id="queryClicksChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== PAGE: GEO =========== -->
+<div id="page-geo" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Geografía</div>
+      <div class="page-sub">194 países con tráfico registrado</div>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">País #1</div><div class="kpi-value" id="kpi-top-country">—</div><div class="kpi-sub" id="kpi-top-country-clicks">— clics</div><div class="kpi-trend trend-neutral">Mercado líder</div></div>
+    <div class="kpi-card"><div class="kpi-label">República Dominicana</div><div class="kpi-value">2,589</div><div class="kpi-sub">mercado local</div><div class="kpi-trend trend-up">CTR 2.37%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Mayor CTR</div><div class="kpi-value" id="kpi-top-ctr-country">—</div><div class="kpi-sub" id="kpi-top-ctr-name">—</div><div class="kpi-trend trend-up">▲ Alta intención</div></div>
+    <div class="kpi-card"><div class="kpi-label">Europa</div><div class="kpi-value" id="kpi-europe-clicks">—</div><div class="kpi-sub">ES+IT+FR+CH+DE+NL</div><div class="kpi-trend trend-neutral">Creciente</div></div>
+    <div class="kpi-card"><div class="kpi-label">LATAM (excl. DR)</div><div class="kpi-value" id="kpi-latam-clicks">—</div><div class="kpi-sub">CO+AR+PR+MX</div><div class="kpi-trend trend-up">▲ Alta CTR promedio</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Top 15 Países — Clics</div>
+      <div class="chart-wrap" style="height:350px"><canvas id="countriesClicksChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Países — CTR (%)</div>
+      <div class="chart-wrap" style="height:350px"><canvas id="countriesCTRChart"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Tabla Detallada — Top 20 Países</div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>#</th><th>País</th><th>Clics</th><th>Impresiones</th><th>CTR</th><th>Posición</th><th>Oportunidad</th></tr></thead>
+        <tbody id="countries-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- =========== PAGE: PLAN =========== -->
+<div id="page-plan" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Plan de Crecimiento — 12 Meses</div>
+      <div class="page-sub">Abr 2026 – Mar 2027 · Objetivo: +45% ventas web y tráfico orgánico</div>
+    </div>
+  </div>
+
+  <div class="plan-grid">
+    <div class="plan-quarter">
+      <div class="plan-header ph-q1">
+        <div class="plan-qlabel">Q2 2026</div>
+        <div class="plan-qmonths">Abr · May · Jun</div>
+      </div>
+      <div class="plan-body">
+        <div class="plan-focus">Fase: Fundamentos</div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Auditoría técnica SEO y corrección de errores críticos (Core Web Vitals, mobile)</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Reescribir title tags y meta descriptions de todas las páginas clave</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Optimizar funnel de reserva mobile — reducir pasos, mejorar UX checkout</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Activar Google Ads: keywords comerciales no-branded (car rental SDQ)</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Instalar Hotjar / MS Clarity — heatmaps y grabación de sesiones</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Crear páginas landing por aeropuerto/zona: SDQ, PUJ, STI</div></div>
+        <div class="plan-kpis">
+          <div class="plan-kpi-row"><span class="pkr-label">Meta CTR</span><span class="pkr-val">2.2%</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">Meta clics/día</span><span class="pkr-val">50+</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">KPI focus</span><span class="pkr-val">CVR mobile</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="plan-quarter">
+      <div class="plan-header ph-q2">
+        <div class="plan-qlabel">Q3 2026</div>
+        <div class="plan-qmonths">Jul · Ago · Sep</div>
+      </div>
+      <div class="plan-body">
+        <div class="plan-focus">Fase: Contenido & Paid</div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Lanzar blog SEO: guías de viaje RD + recomendaciones de alquiler de autos</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Crear FAQ estructuradas con schema markup para AI Overviews de Google</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Remarketing Meta/Google para visitantes que no completaron reserva</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Email marketing para clientes anteriores (upsell temporada alta)</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Link building: directorios de turismo, blogs de viaje, medios RD</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>A/B test: homepage — hero CTA y formulario de búsqueda</div></div>
+        <div class="plan-kpis">
+          <div class="plan-kpi-row"><span class="pkr-label">Meta CTR</span><span class="pkr-val">2.6%</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">Meta clics/día</span><span class="pkr-val">58+</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">KPI focus</span><span class="pkr-val">ROAS paid</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="plan-quarter">
+      <div class="plan-header ph-q3">
+        <div class="plan-qlabel">Q4 2026</div>
+        <div class="plan-qmonths">Oct · Nov · Dic</div>
+      </div>
+      <div class="plan-body">
+        <div class="plan-focus">Fase: Escala & Retención</div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Temporada alta: +40% presupuesto paid en picos de demanda (Navidad, Año Nuevo)</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Programa de fidelidad: descuentos y beneficios para clientes recurrentes</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Expansión contenido en francés e italiano (mercados con alta CTR)</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>WhatsApp remarketing para carritos y reservas abandonadas</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Afiliados: acuerdos con agencias OTA y hoteles de la isla</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Optimizar Google Business Profile: fotos, reseñas, Q&A activo</div></div>
+        <div class="plan-kpis">
+          <div class="plan-kpi-row"><span class="pkr-label">Meta CTR</span><span class="pkr-val">2.9%</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">Meta clics/día</span><span class="pkr-val">63+</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">KPI focus</span><span class="pkr-val">LTV & retención</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="plan-quarter">
+      <div class="plan-header ph-q4">
+        <div class="plan-qlabel">Q1 2027</div>
+        <div class="plan-qmonths">Ene · Feb · Mar</div>
+      </div>
+      <div class="plan-body">
+        <div class="plan-focus">Fase: Dominio de Mercado</div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Target posición media 4.0 — sprint final de SEO técnico y autoridad</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>AI Visibility: optimizar presencia en Google AI Overview y SGE</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Expansión a nuevos mercados: Canadá, Suiza, Países Bajos (alta CTR)</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Lanzar programa de referidos con incentivos para clientes actuales</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Review completa de CAC por canal y rebalanceo de inversión</div></div>
+        <div class="plan-item"><div class="plan-dot"></div><div>Implementar atribución multi-touch completa en el dashboard</div></div>
+        <div class="plan-kpis">
+          <div class="plan-kpi-row"><span class="pkr-label">Meta CTR</span><span class="pkr-val">3.2%</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">Meta clics/día</span><span class="pkr-val">70+</span></div>
+          <div class="plan-kpi-row"><span class="pkr-label">KPI focus</span><span class="pkr-val">AI visibility</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Proyección de Clics Mensuales — Base vs Plan Optimizado</div>
+    <div class="chart-wrap" style="height:240px"><canvas id="projectionChart"></canvas></div>
+    <div style="display:flex;gap:20px;margin-top:10px;font-size:11px;color:var(--text2)">
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:var(--orange);display:inline-block;border-radius:2px"></span>Plan optimizado (+45%)</span>
+      <span style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:3px;background:#ccc;display:inline-block;border-radius:2px;border-top:2px dashed #999"></span>Tendencia base (sin cambios)</span>
+    </div>
+  </div>
+</div>
+
+<!-- =========== PAGE: EXPERIMENTS =========== -->
+<div id="page-experiments" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Experimentos A/B</div>
+      <div class="page-sub">Plan de testing priorizado por impacto en reservas y CTR</div>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Tests Planificados</div><div class="kpi-value">8</div><div class="kpi-sub">próximos 12 meses</div></div>
+    <div class="kpi-card"><div class="kpi-label">Tests Q2 (urgentes)</div><div class="kpi-value">3</div><div class="kpi-sub">quick wins</div></div>
+    <div class="kpi-card"><div class="kpi-label">Impacto CVR estimado</div><div class="kpi-value">+35%</div><div class="kpi-sub">si todos exitosos</div></div>
+    <div class="kpi-card"><div class="kpi-label">Impacto CTR estimado</div><div class="kpi-value">+1.2%</div><div class="kpi-sub">sobre el actual 1.76%</div></div>
+    <div class="kpi-card"><div class="kpi-label">Reducción abandono</div><div class="kpi-value">-30%</div><div class="kpi-sub">funnel checkout</div></div>
+  </div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Tests Priorizados</div>
+    <table class="data-table">
+      <thead><tr><th>Test</th><th>Hipótesis</th><th>Variable</th><th>KPI Éxito</th><th>Duración</th><th>Trimestre</th></tr></thead>
+      <tbody>
+        <tr><td><strong>CTA Homepage</strong></td><td>"Reservar Ahora" vs "Ver Flota" vs "Cotizar"</td><td>Texto y color del CTA principal</td><td>CVR +15%</td><td>3 semanas</td><td><span class="pill pill-orange">Q2 2026</span></td></tr>
+        <tr><td><strong>Checkout mobile</strong></td><td>Proceso en 3 pasos vs 1 scroll continuo</td><td>Estructura del formulario reserva</td><td>Abandono -30%</td><td>4 semanas</td><td><span class="pill pill-orange">Q2 2026</span></td></tr>
+        <tr><td><strong>Meta descriptions</strong></td><td>Precio visible en snippet vs beneficio emocional</td><td>Copy del meta description</td><td>CTR +0.8%</td><td>6 semanas</td><td><span class="pill pill-orange">Q2 2026</span></td></tr>
+        <tr><td><strong>Remarketing timing</strong></td><td>Retargeting 1h vs 24h post-abandono</td><td>Tiempo de disparo del anuncio</td><td>Recuperación +20%</td><td>4 semanas</td><td><span class="pill pill-green">Q3 2026</span></td></tr>
+        <tr><td><strong>Landing SDQ</strong></td><td>Página específica aeropuerto vs homepage</td><td>URL destino de campañas</td><td>CVR +25%</td><td>3 semanas</td><td><span class="pill pill-green">Q3 2026</span></td></tr>
+        <tr><td><strong>Trust signals</strong></td><td>Reseñas prominentes en homepage vs sin reseñas</td><td>Presencia de social proof</td><td>CVR +12%</td><td>4 semanas</td><td><span class="pill pill-blue">Q4 2026</span></td></tr>
+        <tr><td><strong>Precios en listings</strong></td><td>Mostrar precio desde X$ vs sin precio en SERP</td><td>Schema markup de precio</td><td>CTR +0.5%</td><td>8 semanas</td><td><span class="pill pill-blue">Q4 2026</span></td></tr>
+        <tr><td><strong>WhatsApp vs Email</strong></td><td>Recuperación carrito por WhatsApp vs email</td><td>Canal de remarketing</td><td>Recuperación +35%</td><td>4 semanas</td><td><span class="pill pill-gray">Q1 2027</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- =========== PAGE: GMB =========== -->
+<div id="page-gmb" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Google Mi Negocio</div>
+      <div class="page-sub" id="gmb-subtitle">Business Profile · Visibilidad, reseñas y acciones</div>
+    </div>
+    <div id="gmb-status-badge" class="header-badge" style="display:none"></div>
+  </div>
+
+  <!-- Not configured banner -->
+  <div id="gmb-not-configured" style="display:none">
+    <div class="alert-banner" style="border:1px solid rgba(232,97,10,0.3)">
+      <span class="alert-icon">⚙️</span>
+      <div style="flex:1">
+        <div class="alert-title">Google My Business no está configurado</div>
+        <div style="font-size:12px;color:#aaa;margin-top:6px;line-height:1.7">
+          Para ver datos en vivo ve a <strong style="color:#E8610A">/api/auth</strong> para autorizar con tu cuenta Google,
+          luego agrega las variables de entorno <code style="background:#333;padding:1px 5px;border-radius:3px">GOOGLE_REFRESH_TOKEN</code> y
+          <code style="background:#333;padding:1px 5px;border-radius:3px">GMB_LOCATION_NAME</code> en Vercel.
+          Consulta el <strong>SETUP.md</strong> para el paso a paso.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    <div class="kpi-card">
+      <div class="kpi-label">Calificación Promedio</div>
+      <div class="kpi-value" id="gmb-kpi-rating">—</div>
+      <div class="kpi-sub" id="gmb-kpi-stars">— estrellas</div>
+      <div class="kpi-trend trend-up" id="gmb-kpi-rating-trend">▲ Meta: 4.8+</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Reseñas</div>
+      <div class="kpi-value" id="gmb-kpi-reviews">—</div>
+      <div class="kpi-sub">acumuladas</div>
+      <div class="kpi-trend trend-up">▲ Crecimiento activo</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Vistas del Perfil</div>
+      <div class="kpi-value" id="gmb-kpi-views">—</div>
+      <div class="kpi-sub">Maps + Search · 30 días</div>
+      <div class="kpi-trend trend-neutral" id="gmb-views-split">Maps: — · Search: —</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Acciones del Perfil</div>
+      <div class="kpi-value" id="gmb-kpi-actions">—</div>
+      <div class="kpi-sub">llamadas + clics + dirs · 30d</div>
+      <div class="kpi-trend trend-up" id="gmb-actions-split">— llamadas · — clics · — dirs</div>
+    </div>
+  </div>
+
+  <div class="grid-65">
+    <div class="card">
+      <div class="card-title">Vistas del Perfil — Últimos 90 Días</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="gmbViewsChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Acciones por Tipo — 30 Días</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="gmbActionsChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Últimas Reseñas</div>
+      <div id="gmb-reviews-list">
+        <div class="empty-state">Cargando reseñas…</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Distribución de Calificaciones</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="gmbRatingChart"></canvas></div>
+      <div id="gmb-reply-rate" style="margin-top:14px;font-size:12px;color:var(--text2);text-align:center"></div>
+    </div>
+  </div>
+</div>
+
+<!-- =========== PAGE: UPDATE =========== -->
+<div id="page-update" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Actualizar Datos Mensuales</div>
+      <div class="page-sub">Registra los KPIs de cada mes para hacer seguimiento del plan de crecimiento</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Registrar Nuevo Mes</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Mes / Año</label><input type="text" id="in-month" placeholder="Ej: Abr 2026"></div>
+      <div class="form-group"><label>Clics Totales</label><input type="number" id="in-clicks" placeholder="Ej: 1200"></div>
+      <div class="form-group"><label>Impresiones</label><input type="number" id="in-impressions" placeholder="Ej: 68000"></div>
+      <div class="form-group"><label>CTR (%)</label><input type="number" id="in-ctr" step="0.01" placeholder="Ej: 1.76"></div>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Posición Media</label><input type="number" id="in-position" step="0.1" placeholder="Ej: 6.8"></div>
+      <div class="form-group"><label>Reservas Completadas</label><input type="number" id="in-bookings" placeholder="Ej: 165"></div>
+      <div class="form-group"><label>Ingresos (USD)</label><input type="number" id="in-revenue" placeholder="Ej: 12500"></div>
+      <div class="form-group"><label>CAC Promedio (USD)</label><input type="number" id="in-cac" placeholder="Ej: 35"></div>
+    </div>
+    <button class="btn-primary" onclick="addMonthlyData()">Registrar Mes →</button>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-title">Historial Mensual</div>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead><tr><th>Mes</th><th>Clics</th><th>Impresiones</th><th>CTR</th><th>Posición</th><th>Reservas</th><th>Ingresos</th><th>CAC</th><th></th></tr></thead>
+        <tbody id="history-rows"><tr><td colspan="9"><div class="empty-state">No hay datos registrados. Ingresa el primer mes para comenzar el seguimiento.</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Evolución de Clics — Registrados</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="historyClicksChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">CTR & Posición — Evolución</div>
+      <div class="chart-wrap" style="height:200px"><canvas id="historyCTRChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+const O='#E8610A',OL='#F9A36A',DK='#3A3A3A',BL='#378ADD',GR='#27a663',MU='#999',BG='rgba(232,97,10,0.08)';
+
+// ── Fallback static data (used when data.json is not yet available) ──────────
+const FALLBACK = {
+  meta:{ updated_at:'2026-04-05', date_start:'2025-10-06', date_end:'2026-04-05' },
+  summary_6m:{ total_clicks:8160, total_impressions:463159, avg_ctr:1.76, avg_position:6.8, avg_clicks_per_day:45, days:182 },
+  summary_28d:{ total_clicks:1560, total_impressions:65000, avg_ctr:2.40, avg_position:6.1 },
+  summary_7d:{ total_clicks:380, total_impressions:14000, avg_ctr:2.71, avg_position:5.9 },
+  chart:[
+    {date:'2025-10',clicks:1064,impressions:80000,ctr:1.33,position:7.4},
+    {date:'2025-11',clicks:1285,impressions:78000,ctr:1.65,position:7.1},
+    {date:'2025-12',clicks:1390,impressions:82000,ctr:1.70,position:6.9},
+    {date:'2026-01',clicks:1302,impressions:79000,ctr:1.65,position:6.8},
+    {date:'2026-02',clicks:1455,impressions:75000,ctr:1.94,position:6.4},
+    {date:'2026-03',clicks:1560,impressions:74000,ctr:2.11,position:6.1},
+  ],
+  queries:[
+    {query:'nelly rent a car',clicks:648,impressions:4141,ctr:15.65,position:2.02},
+    {query:'nelly rent car',clicks:341,impressions:2787,ctr:12.24,position:1.41},
+    {query:'rent a car santo domingo',clicks:279,impressions:8433,ctr:3.31,position:4.33},
+    {query:'car rental santo domingo',clicks:195,impressions:8044,ctr:2.42,position:5.27},
+    {query:'rent car santo domingo',clicks:173,impressions:4893,ctr:3.54,position:4.12},
+    {query:'car rental dominican republic',clicks:150,impressions:9275,ctr:1.62,position:4.32},
+    {query:'rent a car',clicks:135,impressions:6300,ctr:2.14,position:5.47},
+    {query:'nelly car rental',clicks:135,impressions:789,ctr:17.11,position:5.25},
+    {query:'nelly rent a car santo domingo',clicks:110,impressions:472,ctr:23.31,position:1.14},
+    {query:'santo domingo car rental',clicks:91,impressions:3110,ctr:2.93,position:4.31},
+    {query:'dominican republic car rental',clicks:75,impressions:2602,ctr:2.88,position:3.09},
+    {query:'location voiture saint domingue',clicks:48,impressions:2587,ctr:1.86,position:7.33},
+    {query:'alquiler coche santo domingo',clicks:47,impressions:4125,ctr:1.14,position:7.99},
+    {query:'car rental in dominican republic',clicks:49,impressions:1648,ctr:2.97,position:3.06},
+    {query:'rent a car republica dominicana',clicks:47,impressions:1234,ctr:3.81,position:4.10},
+  ],
+  pages:[
+    {page:'https://nellyrac.do/',clicks:6899,impressions:404731,ctr:1.70,position:6.22},
+    {page:'https://nellyrac.do/es/',clicks:1035,impressions:93089,ctr:1.11,position:7.58},
+    {page:'https://nellyrac.do/contact-us/',clicks:26,impressions:52652,ctr:0.05,position:9.49},
+    {page:'https://nellyrac.do/about-us/',clicks:10,impressions:63321,ctr:0.02,position:9.98},
+    {page:'https://nellyrac.do/faq/',clicks:9,impressions:59827,ctr:0.02,position:9.93},
+    {page:'https://nellyrac.do/our-services/',clicks:7,impressions:48838,ctr:0.01,position:10.19},
+    {page:'https://nellyrac.do/select-vehicle/',clicks:52,impressions:7245,ctr:0.72,position:2.76},
+    {page:'https://nellyrac.do/en/fleet/',clicks:29,impressions:4105,ctr:0.71,position:11.92},
+    {page:'https://nellyrac.do/rental-options/',clicks:17,impressions:2649,ctr:0.64,position:3.05},
+    {page:'https://nellyrac.do/es/our-services/',clicks:9,impressions:604,ctr:1.49,position:5.55},
+  ],
+  countries:[
+    {country:'United States',clicks:2993,impressions:238839,ctr:1.25,position:6.51},
+    {country:'Dominican Republic',clicks:2589,impressions:109024,ctr:2.37,position:5.85},
+    {country:'Spain',clicks:624,impressions:27140,ctr:2.30,position:6.36},
+    {country:'Italy',clicks:187,impressions:7246,ctr:2.58,position:4.61},
+    {country:'France',clicks:176,impressions:12797,ctr:1.38,position:11.43},
+    {country:'Canada',clicks:171,impressions:8213,ctr:2.08,position:5.68},
+    {country:'Colombia',clicks:159,impressions:5988,ctr:2.66,position:4.07},
+    {country:'Argentina',clicks:131,impressions:3037,ctr:4.31,position:3.95},
+    {country:'Puerto Rico',clicks:124,impressions:2680,ctr:4.63,position:3.47},
+    {country:'Mexico',clicks:106,impressions:11554,ctr:0.92,position:4.21},
+    {country:'United Kingdom',clicks:89,impressions:8587,ctr:1.04,position:5.96},
+    {country:'Switzerland',clicks:79,impressions:1454,ctr:5.43,position:3.94},
+    {country:'Germany',clicks:77,impressions:2421,ctr:3.18,position:6.74},
+    {country:'Netherlands',clicks:74,impressions:1676,ctr:4.42,position:5.99},
+    {country:'Martinique',clicks:28,impressions:363,ctr:7.71,position:3.07},
+  ],
+  devices:[
+    {device:'MOBILE',clicks:5407,impressions:236319,ctr:2.29,position:5.86},
+    {device:'DESKTOP',clicks:2679,impressions:224245,ctr:1.19,position:6.81},
+    {device:'TABLET',clicks:74,impressions:2595,ctr:2.85,position:5.92},
+  ],
+};
+
+// ── Load data from /api/data (Vercel) or fall back to FALLBACK ───────────────
+async function loadData() {
+  // Show loading state in sidebar
+  document.querySelector('.sidebar-period').innerHTML =
+    `<strong>Cargando datos…</strong><span class="loading-dots"></span>`;
+
+  try {
+    const r = await fetch('/api/data?t=' + Date.now());
+    if (!r.ok) throw new Error('API error ' + r.status);
+    const data = await r.json();
+    if (!data.summary_6m) throw new Error('datos incompletos');
+    return data;
+  } catch(e) {
+    console.warn('API /api/data no disponible — usando datos de demostración:', e.message);
+    return { ...FALLBACK, gmb: { configured: false, rating: null, reviewCount: null, reviews: [], performance: { views: { maps: null, search: null, total: null }, actions: { calls: null, websiteClicks: null, directions: null, total: null }, daily: [] } } };
+  }
+}
+
+// ── Helper: classify query type ───────────────────────────────────────────────
+function queryType(q) {
+  const ql = q.toLowerCase();
+  if (ql.includes('nelly')) return 'branded';
+  if (ql.includes('rent') || ql.includes('alquiler') || ql.includes('location') || ql.includes('voiture')) return 'commercial';
+  return 'generic';
+}
+
+// ── Helper: aggregate daily chart to monthly ──────────────────────────────────
+function toMonthly(chartRows) {
+  const map = {};
+  chartRows.forEach(r => {
+    const m = r.date.slice(0,7); // "2025-10"
+    if (!map[m]) map[m] = {clicks:0, impressions:0, days:0};
+    map[m].clicks      += r.clicks;
+    map[m].impressions += r.impressions;
+    map[m].days        += 1;
+  });
+  return Object.entries(map).sort().map(([k,v]) => ({
+    label: new Date(k+'-15').toLocaleDateString('es-ES',{month:'short',year:'2-digit'}),
+    clicks: v.clicks,
+    impressions: v.impressions,
+    ctr: v.impressions ? +(v.clicks/v.impressions*100).toFixed(2) : 0,
+  }));
+}
+
+// ── Helper: shorten page URLs ─────────────────────────────────────────────────
+function shortPage(url) {
+  try { return new URL(url).pathname || '/'; } catch { return url; }
+}
+
+// ── Badge priority for pages ──────────────────────────────────────────────────
+function pagePriority(ctr) {
+  if (ctr < 0.1) return ['Crítica','pill-orange'];
+  if (ctr < 1.0) return ['Media','pill-gray'];
+  if (ctr < 2.0) return ['Alta','pill-red'];
+  return ['Buena','pill-green'];
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(name,el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Chart registry (for destroy on re-render) ─────────────────────────────────
+const charts = {};
+function mkChart(id, config) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), config);
+}
+
+// ── Render all charts & tables from D ────────────────────────────────────────
+function render(D) {
+  const s = D.summary_6m;
+  const s28 = D.summary_28d;
+  const s7  = D.summary_7d;
+
+  // Update status badge in sidebar
+  const upd = D.meta?.updated_at || '—';
+  document.querySelector('.sidebar-period').innerHTML =
+    `<strong>Última actualización</strong>${upd}<br>
+     GSC · Últimos 6 meses<br>
+     ${s.days} días · ${s.total_clicks.toLocaleString()} clics`;
+
+  // KPI cards — overview
+  document.getElementById('kpi-clicks').textContent  = s.total_clicks.toLocaleString();
+  document.getElementById('kpi-imp').textContent     = s.total_impressions > 1000000
+    ? (s.total_impressions/1000000).toFixed(1)+'M'
+    : Math.round(s.total_impressions/1000)+'K';
+  document.getElementById('kpi-ctr').textContent     = s.avg_ctr.toFixed(2)+'%';
+  document.getElementById('kpi-pos').textContent     = s.avg_position.toFixed(1);
+  document.getElementById('kpi-cpd').textContent     = s.avg_clicks_per_day.toFixed(0);
+
+  // KPI cards — SEO page
+  const brandedClicks = D.queries.filter(q=>queryType(q.query)==='branded').reduce((a,q)=>a+q.clicks,0);
+  const commercialClicks = D.queries.filter(q=>queryType(q.query)==='commercial').reduce((a,q)=>a+q.clicks,0);
+  const brandedCTR = D.queries.filter(q=>queryType(q.query)==='branded');
+  const avgBrandedCTR = brandedCTR.length ? (brandedCTR.reduce((a,q)=>a+q.ctr,0)/brandedCTR.length).toFixed(1) : 0;
+  const commCTR = D.queries.filter(q=>queryType(q.query)==='commercial');
+  const avgCommCTR = commCTR.length ? (commCTR.reduce((a,q)=>a+q.ctr,0)/commCTR.length).toFixed(1) : 0;
+
+  el('kpi-branded-clicks', brandedClicks.toLocaleString());
+  el('kpi-commercial-clicks', commercialClicks.toLocaleString());
+  el('kpi-branded-ctr', avgBrandedCTR+'%');
+  el('kpi-commercial-ctr', avgCommCTR+'%');
+  el('kpi-pages-count', D.pages.length.toLocaleString());
+
+  // Geo KPIs
+  const top = D.countries[0] || {};
+  const topCTR = [...D.countries].sort((a,b)=>b.ctr-a.ctr)[0] || {};
+  const europe = D.countries.filter(c=>['Spain','Italy','France','Canada','Switzerland','Germany','Netherlands','United Kingdom'].includes(c.country)).reduce((a,c)=>a+c.clicks,0);
+  const latam  = D.countries.filter(c=>['Colombia','Argentina','Puerto Rico','Mexico'].includes(c.country)).reduce((a,c)=>a+c.clicks,0);
+  el('kpi-top-country', top.country||'—');
+  el('kpi-top-country-clicks', (top.clicks||0).toLocaleString());
+  el('kpi-top-ctr-country', topCTR.ctr ? topCTR.ctr.toFixed(2)+'%' : '—');
+  el('kpi-top-ctr-name', topCTR.country||'—');
+  el('kpi-europe-clicks', europe.toLocaleString());
+  el('kpi-latam-clicks', latam.toLocaleString());
+
+  // ── TREND CHART (monthly aggregated) ─────────────────────────────────────
+  const monthly = toMonthly(D.chart);
+  mkChart('trendChart',{
+    type:'line',
+    data:{
+      labels: monthly.map(m=>m.label),
+      datasets:[{label:'Clics',data:monthly.map(m=>m.clicks),borderColor:O,backgroundColor:BG,fill:true,tension:0.4,pointRadius:4,borderWidth:2.5}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11},color:MU},grid:{display:false}},y:{ticks:{font:{size:11},color:MU},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+
+  // ── DEVICE DOUGHNUT ───────────────────────────────────────────────────────
+  const devs = D.devices.slice(0,3);
+  const totalDevClicks = devs.reduce((a,d)=>a+d.clicks,0);
+  const devLabels = devs.map(d=>{
+    const pct = totalDevClicks ? Math.round(d.clicks/totalDevClicks*100) : 0;
+    return d.device.charAt(0)+d.device.slice(1).toLowerCase()+' '+pct+'%';
+  });
+  mkChart('deviceChart',{
+    type:'doughnut',
+    data:{labels:devLabels,datasets:[{data:devs.map(d=>d.clicks),backgroundColor:[O,DK,OL],borderWidth:0,cutout:'65%'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},color:MU,padding:10,boxWidth:10}}}}
+  });
+
+  // Update device cards
+  devs.forEach(d=>{
+    const key = d.device.toUpperCase();
+    el('dev-clicks-'+key, d.clicks.toLocaleString());
+    el('dev-ctr-'+key, 'CTR '+d.ctr.toFixed(2)+'%');
+  });
+
+  // ── CTR COUNTRIES chart ───────────────────────────────────────────────────
+  const ctrTop10 = [...D.countries].sort((a,b)=>b.ctr-a.ctr).slice(0,10);
+  mkChart('ctrCountriesChart',{
+    type:'bar',
+    data:{
+      labels: ctrTop10.map(c=>c.country.replace('Dominican Republic','Dom. Rep.').replace('United States','USA').replace('United Kingdom','UK').replace('Puerto Rico','P.Rico')),
+      datasets:[{data:ctrTop10.map(c=>c.ctr),backgroundColor:ctrTop10.map((_,i)=>i<3?O:i<6?OL:'#bbb'),borderRadius:4}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10},color:MU,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:10},color:MU},grid:{display:false}}}}
+  });
+
+  // ── QUERIES TABLE & CHARTS ────────────────────────────────────────────────
+  const top15q = D.queries.slice(0,15);
+  const qt = document.getElementById('queries-table');
+  qt.innerHTML = '';
+  top15q.forEach(q=>{
+    const t = queryType(q.query);
+    const tp = t==='branded'?'pill-orange':t==='commercial'?'pill-green':'pill-blue';
+    const tl = t==='branded'?'Branded':t==='commercial'?'Comercial':'Genérico';
+    qt.innerHTML += `<tr><td class="cell-trunc" title="${q.query}">${q.query}</td><td>${q.clicks.toLocaleString()}</td><td>${q.impressions.toLocaleString()}</td><td>${q.ctr.toFixed(2)}%</td><td>${q.position.toFixed(1)}</td><td><span class="pill ${tp}">${tl}</span></td></tr>`;
+  });
+
+  const top10p = D.pages.slice(0,10);
+  const pt = document.getElementById('pages-table');
+  pt.innerHTML = '';
+  top10p.forEach(p=>{
+    const [lbl,cls] = pagePriority(p.ctr);
+    const sp = shortPage(p.page);
+    pt.innerHTML += `<tr><td class="cell-trunc" title="${p.page}">${sp}</td><td>${p.impressions.toLocaleString()}</td><td>${p.ctr.toFixed(2)}%</td><td><span class="pill ${cls}">${lbl}</span></td></tr>`;
+  });
+
+  mkChart('queryCTRChart',{
+    type:'bar',
+    data:{
+      labels: top15q.map(q=>q.query.length>22?q.query.slice(0,22)+'…':q.query),
+      datasets:[{data:top15q.map(q=>q.ctr),backgroundColor:top15q.map(q=>queryType(q.query)==='branded'?O:queryType(q.query)==='commercial'?GR:BL),borderRadius:3}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:9},color:MU,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:9},color:MU},grid:{display:false}}}}
+  });
+
+  mkChart('queryClicksChart',{
+    type:'bar',
+    data:{
+      labels: top15q.map(q=>q.query.length>22?q.query.slice(0,22)+'…':q.query),
+      datasets:[{data:top15q.map(q=>q.clicks),backgroundColor:O,borderRadius:3}]
+    },
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:9},color:MU},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:9},color:MU},grid:{display:false}}}}
+  });
+
+  // ── GEO CHARTS ────────────────────────────────────────────────────────────
+  const top15c = D.countries.slice(0,15);
+  const shortName = n => n.replace('Dominican Republic','Dom. Rep.').replace('United States','USA').replace('United Kingdom','UK').replace('Puerto Rico','P.Rico');
+
+  mkChart('countriesClicksChart',{
+    type:'bar',data:{labels:top15c.map(d=>shortName(d.country)),datasets:[{data:top15c.map(d=>d.clicks),backgroundColor:O,borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:9},color:MU},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:9},color:MU},grid:{display:false}}}}
+  });
+
+  const ctrSorted=[...D.countries].sort((a,b)=>b.ctr-a.ctr).slice(0,15);
+  mkChart('countriesCTRChart',{
+    type:'bar',data:{labels:ctrSorted.map(d=>shortName(d.country)),datasets:[{data:ctrSorted.map(d=>d.ctr),backgroundColor:ctrSorted.map((_,i)=>i<5?O:OL),borderRadius:4}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:9},color:MU,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:9},color:MU},grid:{display:false}}}}
+  });
+
+  const ct=document.getElementById('countries-table');
+  ct.innerHTML='';
+  D.countries.slice(0,20).forEach((d,i)=>{
+    const opp=d.ctr>4?'<span class="pill pill-green">Alto CTR</span>':d.impressions>50000?'<span class="pill pill-orange">Gran volumen</span>':'<span class="pill pill-gray">Normal</span>';
+    ct.innerHTML+=`<tr><td>${i+1}</td><td>${d.country}</td><td>${d.clicks.toLocaleString()}</td><td>${d.impressions.toLocaleString()}</td><td>${d.ctr.toFixed(2)}%</td><td>${d.position.toFixed(1)}</td><td>${opp}</td></tr>`;
+  });
+
+  // ── PROJECTION (static plan) ───────────────────────────────────────────────
+  const base = s.avg_clicks_per_day * 30;
+  const projBase = Array.from({length:12},(_,i)=>Math.round(base*(1+i*0.01)));
+  const projOpt  = Array.from({length:12},(_,i)=>Math.round(base*(1+i*0.045+0.05)));
+  mkChart('projectionChart',{
+    type:'line',
+    data:{
+      labels:['Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic','Ene','Feb','Mar'],
+      datasets:[
+        {label:'Plan optimizado',data:projOpt,borderColor:O,borderWidth:2.5,fill:false,tension:0.4,pointRadius:4,pointBackgroundColor:O},
+        {label:'Tendencia base',data:projBase,borderColor:'#ccc',borderWidth:1.5,borderDash:[5,4],fill:false,tension:0.3,pointRadius:2}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:11},color:MU},grid:{display:false}},y:{ticks:{font:{size:11},color:MU,callback:v=>v.toLocaleString()},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+// ── Helper: safe textContent setter ──────────────────────────────────────────
+function el(id, val) {
+  const e = document.getElementById(id);
+  if (e) e.textContent = val;
+}
+
+// ── Update / History (localStorage) ──────────────────────────────────────────
+let monthlyData = JSON.parse(localStorage.getItem('nellyDashData')||'[]');
+let hClickChart=null, hCTRChart=null;
+
+function saveData(){localStorage.setItem('nellyDashData',JSON.stringify(monthlyData));}
+
+function addMonthlyData(){
+  const m=document.getElementById('in-month').value.trim();
+  const cl=parseInt(document.getElementById('in-clicks').value)||0;
+  if(!m||!cl){alert('Ingresa al menos el mes y los clics.');return;}
+  monthlyData.push({
+    month:m, clicks:cl,
+    impressions:parseInt(document.getElementById('in-impressions').value)||0,
+    ctr:parseFloat(document.getElementById('in-ctr').value)||0,
+    position:parseFloat(document.getElementById('in-position').value)||0,
+    bookings:parseInt(document.getElementById('in-bookings').value)||0,
+    revenue:parseInt(document.getElementById('in-revenue').value)||0,
+    cac:parseInt(document.getElementById('in-cac').value)||0
+  });
+  saveData();
+  ['in-month','in-clicks','in-impressions','in-ctr','in-position','in-bookings','in-revenue','in-cac'].forEach(id=>document.getElementById(id).value='');
+  renderHistory();
+}
+
+function deleteRow(i){monthlyData.splice(i,1);saveData();renderHistory();}
+
+function renderHistory(){
+  const tb=document.getElementById('history-rows');
+  if(!monthlyData.length){
+    tb.innerHTML='<tr><td colspan="9"><div class="empty-state">No hay datos registrados. El webhook de GSC los llenará automáticamente cada día, o puedes ingresar el primer mes manualmente.</div></td></tr>';
+    return;
+  }
+  tb.innerHTML=monthlyData.map((r,i)=>`<tr>
+    <td>${r.month}</td><td>${r.clicks.toLocaleString()}</td><td>${r.impressions.toLocaleString()}</td>
+    <td>${r.ctr.toFixed(2)}%</td><td>${r.position.toFixed(1)}</td><td>${r.bookings}</td>
+    <td>$${r.revenue.toLocaleString()}</td><td>$${r.cac}</td>
+    <td><button class="btn-danger" onclick="deleteRow(${i})">✕</button></td>
+  </tr>`).join('');
+  renderHistoryCharts();
+}
+
+function renderHistoryCharts(){
+  const labels=monthlyData.map(r=>r.month);
+  const ctx1=document.getElementById('historyClicksChart').getContext('2d');
+  if(hClickChart)hClickChart.destroy();
+  hClickChart=new Chart(ctx1,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Clics',data:monthlyData.map(r=>r.clicks),backgroundColor:O,borderRadius:4},
+      {label:'Reservas',data:monthlyData.map(r=>r.bookings),backgroundColor:DK,borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:MU,boxWidth:10}}},
+      scales:{x:{ticks:{font:{size:10},color:MU},grid:{display:false}},y:{ticks:{font:{size:10},color:MU},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+  const ctx2=document.getElementById('historyCTRChart').getContext('2d');
+  if(hCTRChart)hCTRChart.destroy();
+  hCTRChart=new Chart(ctx2,{
+    type:'line',
+    data:{labels,datasets:[
+      {label:'CTR %',data:monthlyData.map(r=>r.ctr),borderColor:O,backgroundColor:BG,fill:true,tension:0.4,pointRadius:4,yAxisID:'y'},
+      {label:'Posición',data:monthlyData.map(r=>r.position),borderColor:BL,fill:false,tension:0.4,pointRadius:4,borderDash:[4,3],yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},color:MU,boxWidth:10}}},
+      scales:{
+        x:{ticks:{font:{size:10},color:MU},grid:{display:false}},
+        y:{ticks:{font:{size:10},color:MU,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
+        y2:{position:'right',ticks:{font:{size:10},color:MU},grid:{display:false},reverse:true}
+      }}
+  });
+}
+
+// ── Render GMB ────────────────────────────────────────────────────────────────
+function renderGMB(G) {
+  if (!G) return;
+
+  // Show/hide not-configured banner
+  const notConf = document.getElementById('gmb-not-configured');
+  if (notConf) notConf.style.display = G.configured ? 'none' : 'block';
+
+  // Status badge
+  const badge = document.getElementById('gmb-status-badge');
+  if (badge) {
+    badge.textContent = G.configured ? '● En vivo' : '● Demo';
+    badge.style.display = 'block';
+    badge.style.color   = G.configured ? '#27a663' : '#999';
+  }
+
+  // Rating
+  if (G.rating !== null) {
+    const stars = '★'.repeat(Math.round(G.rating)) + '☆'.repeat(5 - Math.round(G.rating));
+    el('gmb-kpi-rating', G.rating.toFixed(1));
+    el('gmb-kpi-stars', stars);
+  }
+  if (G.reviewCount !== null) el('gmb-kpi-reviews', G.reviewCount.toLocaleString());
+
+  // Views
+  const P = G.performance;
+  if (P.views.total !== null) {
+    el('gmb-kpi-views', P.views.total.toLocaleString());
+    el('gmb-views-split', `Maps: ${P.views.maps.toLocaleString()} · Search: ${P.views.search.toLocaleString()}`);
+  }
+
+  // Actions
+  if (P.actions.total !== null) {
+    el('gmb-kpi-actions', P.actions.total.toLocaleString());
+    el('gmb-actions-split',
+      `${P.actions.calls} llamadas · ${P.actions.websiteClicks} clics · ${P.actions.directions} dirs`);
+  }
+
+  // ── Views trend chart ─────────────────────────────────────────────────
+  if (P.daily.length > 0) {
+    mkChart('gmbViewsChart', {
+      type: 'line',
+      data: {
+        labels: P.daily.map(d => d.date.slice(5)), // MM-DD
+        datasets: [{
+          label: 'Vistas', data: P.daily.map(d => d.views),
+          borderColor: O, backgroundColor: BG, fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { font: { size: 10 }, color: MU, maxTicksLimit: 10 }, grid: { display: false } },
+          y: { ticks: { font: { size: 10 }, color: MU }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        },
+      },
+    });
+  } else {
+    // Placeholder chart
+    mkChart('gmbViewsChart', {
+      type: 'line',
+      data: { labels: ['No hay datos'], datasets: [{ data: [0], borderColor: '#ccc' }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    });
+  }
+
+  // ── Actions donut chart ───────────────────────────────────────────────
+  if (P.actions.total !== null && P.actions.total > 0) {
+    mkChart('gmbActionsChart', {
+      type: 'doughnut',
+      data: {
+        labels: ['Llamadas', 'Clics a web', 'Cómo llegar'],
+        datasets: [{
+          data: [P.actions.calls, P.actions.websiteClicks, P.actions.directions],
+          backgroundColor: [O, DK, OL], borderWidth: 0, cutout: '60%',
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, color: MU, padding: 12, boxWidth: 10 } } },
+      },
+    });
+  } else {
+    mkChart('gmbActionsChart', {
+      type: 'doughnut',
+      data: { labels: ['Sin datos'], datasets: [{ data: [1], backgroundColor: ['#eee'], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    });
+  }
+
+  // ── Rating distribution chart ─────────────────────────────────────────
+  const reviews = G.reviews || [];
+  const dist = [5,4,3,2,1].map(s => reviews.filter(r => r.stars === s).length);
+  const maxDist = Math.max(...dist, 1);
+  mkChart('gmbRatingChart', {
+    type: 'bar',
+    data: {
+      labels: ['⭐⭐⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐', '⭐⭐', '⭐'],
+      datasets: [{
+        data: dist,
+        backgroundColor: [GR, '#6fcf97', OL, O, '#e24b4a'], borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { font: { size: 10 }, color: MU }, grid: { color: 'rgba(0,0,0,0.05)' } },
+        y: { ticks: { font: { size: 12 }, color: MU }, grid: { display: false } },
+      },
+    },
+  });
+
+  // Reply rate
+  const replied   = reviews.filter(r => r.replied).length;
+  const replyRate = reviews.length ? Math.round(replied / reviews.length * 100) : 0;
+  el('gmb-reply-rate', `Tasa de respuesta: ${replyRate}% (${replied}/${reviews.length} reseñas respondidas)`);
+
+  // ── Reviews list ──────────────────────────────────────────────────────
+  const list = document.getElementById('gmb-reviews-list');
+  if (!list) return;
+  if (!reviews.length) {
+    list.innerHTML = `<div class="empty-state">${G.configured ? 'No se encontraron reseñas.' : 'Conecta tu cuenta para ver reseñas reales.'}</div>`;
+    return;
+  }
+  list.innerHTML = reviews.slice(0, 8).map(r => {
+    const stars    = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
+    const colorMap = { 5: '#f59e0b', 4: '#f59e0b', 3: '#E8610A', 2: '#e24b4a', 1: '#e24b4a' };
+    const comment  = r.comment
+      ? (r.comment.length > 140 ? r.comment.slice(0, 137) + '…' : r.comment)
+      : '<em style="color:var(--text3)">Sin comentario escrito</em>';
+    return `<div class="review-item">
+      <div class="review-header">
+        <span class="review-author">${r.reviewer || 'Anónimo'}</span>
+        <span class="review-date">${r.date || ''}</span>
+      </div>
+      <div class="review-stars" style="color:${colorMap[r.stars]||'#f59e0b'}">${stars}</div>
+      <div class="review-comment">${comment}</div>
+      ${r.replied ? '<div class="review-replied">✓ Respondida</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadData().then(D => {
+  render(D);
+  renderGMB(D.gmb || null);
+  renderHistory();
+});
+</script>
+</body>
+</html>

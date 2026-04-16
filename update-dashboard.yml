@@ -1,0 +1,43 @@
+name: Update Dashboard Data
+
+on:
+  schedule:
+    # Runs every day at 6:00 AM UTC (2:00 AM Santo Domingo)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    # Also allows manual trigger from GitHub Actions tab
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install google-auth google-auth-httplib2 google-api-python-client
+
+      - name: Write GSC credentials
+        run: |
+          echo '${{ secrets.GSC_CREDENTIALS }}' > credentials.json
+
+      - name: Fetch GSC data and update dashboard
+        env:
+          GSC_PROPERTY: ${{ secrets.GSC_PROPERTY }}
+        run: python scripts/fetch_gsc_data.py
+
+      - name: Commit and push updated data
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data.json
+          git diff --staged --quiet || git commit -m "Auto-update dashboard data $(date +'%Y-%m-%d')"
+          git push
