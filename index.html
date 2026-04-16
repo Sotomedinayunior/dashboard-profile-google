@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nelly RAC — Growth Dashboard</title>
+<title id="page-title">Growth Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
@@ -231,7 +231,7 @@ html,body{overflow-x:hidden;width:100%}
         <path d="M46 38 C48 28 58 18 72 20 C84 22 88 34 84 44 C80 54 70 56 64 50 C58 44 64 34 72 36 C80 38 82 48 78 56" stroke="#E8610A" stroke-width="6" fill="none" stroke-linecap="round"/>
       </svg>
       <div>
-        <div class="logo-text">nelly</div>
+        <div class="logo-text" id="logo-site-name">—</div>
         <div class="logo-sub">Growth Dashboard</div>
       </div>
     </div>
@@ -270,11 +270,8 @@ html,body{overflow-x:hidden;width:100%}
     </div>
   </nav>
   <div class="sidebar-footer">
-    <div class="sidebar-period">
-      <strong>Período base activo</strong>
-      Oct 2025 – Abr 2026<br>
-      GSC · Tipo: Web<br>
-      182 días · 8,160 clics
+    <div class="sidebar-period" id="sidebar-status">
+      <strong>Cargando…</strong>
     </div>
   </div>
 </aside>
@@ -287,9 +284,9 @@ html,body{overflow-x:hidden;width:100%}
   <div class="page-header">
     <div>
       <div class="page-title">Panorama General</div>
-      <div class="page-sub">Google Search Console · Oct 2025 – Abr 2026 · Período base de 6 meses</div>
+      <div class="page-sub" id="overview-sub">Google Search Console · Últimos 6 meses</div>
     </div>
-    <div class="header-badge">Meta 2026: +45% ventas web</div>
+    <div class="header-badge" id="overview-badge">● Cargando datos…</div>
   </div>
 
   <div class="kpi-grid">
@@ -325,18 +322,17 @@ html,body{overflow-x:hidden;width:100%}
     </div>
   </div>
 
-  <div class="alert-banner">
+  <div class="alert-banner" id="diagnostic-banner">
     <span class="alert-icon">🎯</span>
     <div style="flex:1">
-      <div class="alert-title">Diagnóstico Estratégico — Nelly Rent a Car</div>
-      <div class="alert-metrics">
-        <div><div class="am-val">66%</div><div class="am-label">Tráfico Mobile</div></div>
-        <div><div class="am-val">~60%</div><div class="am-label">Queries Branded</div></div>
-        <div><div class="am-val">1.76%</div><div class="am-label">CTR actual</div></div>
-        <div><div class="am-val">3%+</div><div class="am-label">CTR objetivo</div></div>
-        <div><div class="am-val">USA #1</div><div class="am-label">Mercado Top</div></div>
-        <div><div class="am-val">9,275</div><div class="am-label">Impr "car rental DR"</div></div>
-        <div><div class="am-val">175K</div><div class="am-label">Impr páginas CTR&lt;0.1%</div></div>
+      <div class="alert-title" id="diag-title">Diagnóstico Estratégico</div>
+      <div class="alert-metrics" id="diag-metrics">
+        <div><div class="am-val" id="diag-mobile">—</div><div class="am-label">Tráfico Mobile</div></div>
+        <div><div class="am-val" id="diag-branded">—</div><div class="am-label">Queries Branded</div></div>
+        <div><div class="am-val" id="diag-ctr">—</div><div class="am-label">CTR actual</div></div>
+        <div><div class="am-val" id="diag-ctr-target">3%+</div><div class="am-label">CTR objetivo</div></div>
+        <div><div class="am-val" id="diag-top-country">—</div><div class="am-label">Mercado Top</div></div>
+        <div><div class="am-val" id="diag-low-ctr-impr">—</div><div class="am-label">Impr. páginas CTR&lt;0.1%</div></div>
       </div>
     </div>
   </div>
@@ -372,44 +368,9 @@ html,body{overflow-x:hidden;width:100%}
     </div>
   </div>
 
-  <div class="section-label" style="margin-bottom:14px">Oportunidades de Crecimiento — Priorizadas por Impacto</div>
-  <div class="opp-grid">
-    <div class="opp-card">
-      <span class="opp-tag tag-high">Alta Prioridad</span>
-      <div class="opp-title">CTR Orgánico: 1.76% → 3%+</div>
-      <div class="opp-desc">9,275 impresiones para "car rental DR" con solo 150 clics. Titles y meta descriptions sin optimizar para búsquedas comerciales no-branded.</div>
-      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+1,400 clics/mes</span></div>
-    </div>
-    <div class="opp-card">
-      <span class="opp-tag tag-high">Alta Prioridad</span>
-      <div class="opp-title">Mobile-First Funnel: 66% del tráfico</div>
-      <div class="opp-desc">5,407 clics mobile con CTR 2.29% pero el checkout móvil tiene alta fricción estimada. Optimizar UX de reserva en mobile es la mayor palanca de conversión.</div>
-      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+25-35% CVR mobile</span></div>
-    </div>
-    <div class="opp-card">
-      <span class="opp-tag tag-quick">Quick Win</span>
-      <div class="opp-title">USA: 238K impr. con solo 1.25% CTR</div>
-      <div class="opp-desc">EE.UU. es el #1 mercado con 238,839 impresiones pero CTR bajo. Paid media dirigido a viajeros americanos + landing en inglés puede ser la palanca más rápida.</div>
-      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+800 clics USA/mes</span></div>
-    </div>
-    <div class="opp-card">
-      <span class="opp-tag tag-high">Alta Prioridad</span>
-      <div class="opp-title">175K impresiones con CTR menor a 0.1%</div>
-      <div class="opp-desc">Contact-us (52K/0.05%), about-us (63K/0.02%), faq (60K/0.02%). Páginas con alta visibilidad sin conversión. Rediseño de snippets puede multiplicar clics inmediatamente.</div>
-      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+2,000 clics/mes</span></div>
-    </div>
-    <div class="opp-card">
-      <span class="opp-tag tag-quick">Quick Win</span>
-      <div class="opp-title">Posición 6.8 → Meta 4.0</div>
-      <div class="opp-desc">"car rental DR" (pos 4.32) y "rent a car Santo Domingo" (pos 4.33) están a un empujón de la posición 1-3. Pasar de pos 6 a pos 4 puede duplicar el CTR.</div>
-      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+90% visibilidad orgánica</span></div>
-    </div>
-    <div class="opp-card">
-      <span class="opp-tag tag-med">Medio Plazo</span>
-      <div class="opp-title">España + LATAM sub-explotados</div>
-      <div class="opp-desc">Argentina (4.31% CTR), Puerto Rico (4.63%), Martinique (7.71%), Suiza (5.43%). Mercados con alta intención. Contenido localizado y campañas geo-específicas.</div>
-      <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">+400 clics/mes</span></div>
-    </div>
+  <div class="section-label" style="margin-bottom:14px">Oportunidades de Crecimiento — Generadas de tus datos reales</div>
+  <div class="opp-grid" id="opportunities-grid">
+    <div class="opp-card"><div class="empty-state">Cargando oportunidades…</div></div>
   </div>
 
   <div class="grid-3">
@@ -417,46 +378,46 @@ html,body{overflow-x:hidden;width:100%}
       <div class="card-title">Metas Anuales — Progreso Base</div>
       <div class="target-item">
         <div class="target-name">Clics Orgánicos (+45%)</div>
-        <div class="progress-wrap"><div class="progress-bar" style="width:55%"></div></div>
-        <div class="progress-labels"><span>Base: 8,160</span><span>Meta: 11,832</span></div>
+        <div class="progress-wrap"><div class="progress-bar" id="prog-clicks" style="width:0%"></div></div>
+        <div class="progress-labels"><span id="prog-clicks-base">Base: —</span><span id="prog-clicks-meta">Meta: —</span></div>
       </div>
       <div class="target-item">
         <div class="target-name">CTR Orgánico (→ 3%)</div>
-        <div class="progress-wrap"><div class="progress-bar" style="width:59%"></div></div>
-        <div class="progress-labels"><span>Actual: 1.76%</span><span>Meta: 3.0%</span></div>
+        <div class="progress-wrap"><div class="progress-bar" id="prog-ctr" style="width:0%"></div></div>
+        <div class="progress-labels"><span id="prog-ctr-base">Actual: —</span><span>Meta: 3.0%</span></div>
       </div>
       <div class="target-item">
         <div class="target-name">Posición Media (→ 4.0)</div>
-        <div class="progress-wrap"><div class="progress-bar" style="width:41%"></div></div>
-        <div class="progress-labels"><span>Actual: 6.8</span><span>Meta: 4.0</span></div>
+        <div class="progress-wrap"><div class="progress-bar" id="prog-pos" style="width:0%"></div></div>
+        <div class="progress-labels"><span id="prog-pos-base">Actual: —</span><span>Meta: 4.0</span></div>
       </div>
       <div class="target-item">
         <div class="target-name">Impresiones (+45%)</div>
-        <div class="progress-wrap"><div class="progress-bar" style="width:55%"></div></div>
-        <div class="progress-labels"><span>Base: 463K</span><span>Meta: 671K</span></div>
+        <div class="progress-wrap"><div class="progress-bar" id="prog-impr" style="width:0%"></div></div>
+        <div class="progress-labels"><span id="prog-impr-base">Base: —</span><span id="prog-impr-meta">Meta: —</span></div>
       </div>
     </div>
     <div class="card">
       <div class="card-title">Funnel Estimado de Conversión</div>
       <div class="funnel-step">
-        <div class="funnel-num">463K</div>
-        <div><div class="funnel-name">Impresiones</div><div class="funnel-sub">Visibilidad orgánica total</div></div>
+        <div class="funnel-num" id="funnel-impr">—</div>
+        <div><div class="funnel-name">Impresiones</div><div class="funnel-sub">Visibilidad orgánica total (6 meses)</div></div>
       </div>
       <div class="funnel-step">
-        <div class="funnel-num">8,160</div>
-        <div><div class="funnel-name">Clics web</div><div class="funnel-sub">CTR 1.76% → meta 3%+</div></div>
+        <div class="funnel-num" id="funnel-clicks">—</div>
+        <div><div class="funnel-name">Clics web</div><div class="funnel-sub" id="funnel-ctr-sub">CTR actual → meta 3%+</div></div>
       </div>
       <div class="funnel-step">
-        <div class="funnel-num">~490</div>
-        <div><div class="funnel-name">Inicios de reserva</div><div class="funnel-sub">Est. ~6% de sesiones</div></div>
+        <div class="funnel-num" id="funnel-starts">—</div>
+        <div><div class="funnel-name">Inicios de acción</div><div class="funnel-sub">Est. ~6% de sesiones</div></div>
       </div>
       <div class="funnel-step">
-        <div class="funnel-num">~165</div>
-        <div><div class="funnel-name">Reservas completadas</div><div class="funnel-sub">Est. ~34% completación</div></div>
+        <div class="funnel-num" id="funnel-conv">—</div>
+        <div><div class="funnel-name">Conversiones estimadas</div><div class="funnel-sub">Est. ~34% de completación</div></div>
       </div>
       <div class="funnel-step">
         <div class="funnel-num">+45%</div>
-        <div><div class="funnel-name">Meta: ~240 reservas/mes</div><div class="funnel-sub">Target anual de crecimiento</div></div>
+        <div><div class="funnel-name">Meta anual de crecimiento</div><div class="funnel-sub">Clics, conversiones e ingresos</div></div>
       </div>
     </div>
     <div class="card">
@@ -471,7 +432,7 @@ html,body{overflow-x:hidden;width:100%}
   <div class="page-header">
     <div>
       <div class="page-title">SEO & Queries</div>
-      <div class="page-sub">Top 1,000 queries · 242 páginas indexadas · Google Search Console</div>
+      <div class="page-sub" id="seo-sub">Top queries · páginas indexadas · Google Search Console</div>
     </div>
   </div>
 
@@ -491,7 +452,7 @@ html,body{overflow-x:hidden;width:100%}
     <div class="kpi-card">
       <div class="kpi-label">CTR Branded Promedio</div>
       <div class="kpi-value" id="kpi-branded-ctr">—</div>
-      <div class="kpi-sub">nelly rent a car</div>
+      <div class="kpi-sub" id="kpi-branded-sub">queries de marca</div>
       <div class="kpi-trend trend-up">▲ Saludable</div>
     </div>
     <div class="kpi-card">
@@ -504,7 +465,7 @@ html,body{overflow-x:hidden;width:100%}
       <div class="kpi-label">Páginas Indexadas</div>
       <div class="kpi-value">242</div>
       <div class="kpi-sub">páginas con tráfico</div>
-      <div class="kpi-trend trend-neutral">Top 10 = 92% clics</div>
+      <div class="kpi-trend trend-neutral" id="kpi-pages-note">—</div>
     </div>
   </div>
 
@@ -546,15 +507,15 @@ html,body{overflow-x:hidden;width:100%}
   <div class="page-header">
     <div>
       <div class="page-title">Geografía</div>
-      <div class="page-sub">194 países con tráfico registrado</div>
+      <div class="page-sub" id="geo-sub">Países con tráfico registrado</div>
     </div>
   </div>
   <div class="kpi-grid">
     <div class="kpi-card"><div class="kpi-label">País #1</div><div class="kpi-value" id="kpi-top-country">—</div><div class="kpi-sub" id="kpi-top-country-clicks">— clics</div><div class="kpi-trend trend-neutral">Mercado líder</div></div>
-    <div class="kpi-card"><div class="kpi-label">República Dominicana</div><div class="kpi-value">2,589</div><div class="kpi-sub">mercado local</div><div class="kpi-trend trend-up">CTR 2.37%</div></div>
+    <div class="kpi-card"><div class="kpi-label">País #2</div><div class="kpi-value" id="kpi-second-country">—</div><div class="kpi-sub" id="kpi-second-country-clicks">— clics</div><div class="kpi-trend trend-up" id="kpi-second-country-ctr">—</div></div>
     <div class="kpi-card"><div class="kpi-label">Mayor CTR</div><div class="kpi-value" id="kpi-top-ctr-country">—</div><div class="kpi-sub" id="kpi-top-ctr-name">—</div><div class="kpi-trend trend-up">▲ Alta intención</div></div>
-    <div class="kpi-card"><div class="kpi-label">Europa</div><div class="kpi-value" id="kpi-europe-clicks">—</div><div class="kpi-sub">ES+IT+FR+CH+DE+NL</div><div class="kpi-trend trend-neutral">Creciente</div></div>
-    <div class="kpi-card"><div class="kpi-label">LATAM (excl. DR)</div><div class="kpi-value" id="kpi-latam-clicks">—</div><div class="kpi-sub">CO+AR+PR+MX</div><div class="kpi-trend trend-up">▲ Alta CTR promedio</div></div>
+    <div class="kpi-card"><div class="kpi-label">País #3</div><div class="kpi-value" id="kpi-third-country">—</div><div class="kpi-sub" id="kpi-third-country-clicks">— clics</div><div class="kpi-trend trend-neutral" id="kpi-third-country-ctr">—</div></div>
+    <div class="kpi-card"><div class="kpi-label">Mayor CTR (región)</div><div class="kpi-value" id="kpi-europe-clicks">—</div><div class="kpi-sub" id="kpi-eu-sub">Top países CTR 4%+</div><div class="kpi-trend trend-up" id="kpi-latam-clicks">▲ Alta intención</div></div>
   </div>
   <div class="grid-2">
     <div class="card">
@@ -846,79 +807,56 @@ html,body{overflow-x:hidden;width:100%}
 <script>
 const O='#E8610A',OL='#F9A36A',DK='#3A3A3A',BL='#378ADD',GR='#27a663',MU='#999',BG='rgba(232,97,10,0.08)';
 
-// ── Fallback static data (used when data.json is not yet available) ──────────
+// ── Site config (loaded from /api/config) ─────────────────────────────────────
+let SITE_CONFIG = { siteName: '—', siteUrl: '', gscProperty: '', configured: false, gmbConfigured: false };
+
+// ── Fallback static data (shown while API is not yet configured) ──────────────
 const FALLBACK = {
-  meta:{ updated_at:'2026-04-05', date_start:'2025-10-06', date_end:'2026-04-05' },
-  summary_6m:{ total_clicks:8160, total_impressions:463159, avg_ctr:1.76, avg_position:6.8, avg_clicks_per_day:45, days:182 },
-  summary_28d:{ total_clicks:1560, total_impressions:65000, avg_ctr:2.40, avg_position:6.1 },
-  summary_7d:{ total_clicks:380, total_impressions:14000, avg_ctr:2.71, avg_position:5.9 },
-  chart:[
-    {date:'2025-10',clicks:1064,impressions:80000,ctr:1.33,position:7.4},
-    {date:'2025-11',clicks:1285,impressions:78000,ctr:1.65,position:7.1},
-    {date:'2025-12',clicks:1390,impressions:82000,ctr:1.70,position:6.9},
-    {date:'2026-01',clicks:1302,impressions:79000,ctr:1.65,position:6.8},
-    {date:'2026-02',clicks:1455,impressions:75000,ctr:1.94,position:6.4},
-    {date:'2026-03',clicks:1560,impressions:74000,ctr:2.11,position:6.1},
-  ],
-  queries:[
-    {query:'nelly rent a car',clicks:648,impressions:4141,ctr:15.65,position:2.02},
-    {query:'nelly rent car',clicks:341,impressions:2787,ctr:12.24,position:1.41},
-    {query:'rent a car santo domingo',clicks:279,impressions:8433,ctr:3.31,position:4.33},
-    {query:'car rental santo domingo',clicks:195,impressions:8044,ctr:2.42,position:5.27},
-    {query:'rent car santo domingo',clicks:173,impressions:4893,ctr:3.54,position:4.12},
-    {query:'car rental dominican republic',clicks:150,impressions:9275,ctr:1.62,position:4.32},
-    {query:'rent a car',clicks:135,impressions:6300,ctr:2.14,position:5.47},
-    {query:'nelly car rental',clicks:135,impressions:789,ctr:17.11,position:5.25},
-    {query:'nelly rent a car santo domingo',clicks:110,impressions:472,ctr:23.31,position:1.14},
-    {query:'santo domingo car rental',clicks:91,impressions:3110,ctr:2.93,position:4.31},
-    {query:'dominican republic car rental',clicks:75,impressions:2602,ctr:2.88,position:3.09},
-    {query:'location voiture saint domingue',clicks:48,impressions:2587,ctr:1.86,position:7.33},
-    {query:'alquiler coche santo domingo',clicks:47,impressions:4125,ctr:1.14,position:7.99},
-    {query:'car rental in dominican republic',clicks:49,impressions:1648,ctr:2.97,position:3.06},
-    {query:'rent a car republica dominicana',clicks:47,impressions:1234,ctr:3.81,position:4.10},
-  ],
-  pages:[
-    {page:'https://nellyrac.do/',clicks:6899,impressions:404731,ctr:1.70,position:6.22},
-    {page:'https://nellyrac.do/es/',clicks:1035,impressions:93089,ctr:1.11,position:7.58},
-    {page:'https://nellyrac.do/contact-us/',clicks:26,impressions:52652,ctr:0.05,position:9.49},
-    {page:'https://nellyrac.do/about-us/',clicks:10,impressions:63321,ctr:0.02,position:9.98},
-    {page:'https://nellyrac.do/faq/',clicks:9,impressions:59827,ctr:0.02,position:9.93},
-    {page:'https://nellyrac.do/our-services/',clicks:7,impressions:48838,ctr:0.01,position:10.19},
-    {page:'https://nellyrac.do/select-vehicle/',clicks:52,impressions:7245,ctr:0.72,position:2.76},
-    {page:'https://nellyrac.do/en/fleet/',clicks:29,impressions:4105,ctr:0.71,position:11.92},
-    {page:'https://nellyrac.do/rental-options/',clicks:17,impressions:2649,ctr:0.64,position:3.05},
-    {page:'https://nellyrac.do/es/our-services/',clicks:9,impressions:604,ctr:1.49,position:5.55},
-  ],
-  countries:[
-    {country:'United States',clicks:2993,impressions:238839,ctr:1.25,position:6.51},
-    {country:'Dominican Republic',clicks:2589,impressions:109024,ctr:2.37,position:5.85},
-    {country:'Spain',clicks:624,impressions:27140,ctr:2.30,position:6.36},
-    {country:'Italy',clicks:187,impressions:7246,ctr:2.58,position:4.61},
-    {country:'France',clicks:176,impressions:12797,ctr:1.38,position:11.43},
-    {country:'Canada',clicks:171,impressions:8213,ctr:2.08,position:5.68},
-    {country:'Colombia',clicks:159,impressions:5988,ctr:2.66,position:4.07},
-    {country:'Argentina',clicks:131,impressions:3037,ctr:4.31,position:3.95},
-    {country:'Puerto Rico',clicks:124,impressions:2680,ctr:4.63,position:3.47},
-    {country:'Mexico',clicks:106,impressions:11554,ctr:0.92,position:4.21},
-    {country:'United Kingdom',clicks:89,impressions:8587,ctr:1.04,position:5.96},
-    {country:'Switzerland',clicks:79,impressions:1454,ctr:5.43,position:3.94},
-    {country:'Germany',clicks:77,impressions:2421,ctr:3.18,position:6.74},
-    {country:'Netherlands',clicks:74,impressions:1676,ctr:4.42,position:5.99},
-    {country:'Martinique',clicks:28,impressions:363,ctr:7.71,position:3.07},
-  ],
-  devices:[
-    {device:'MOBILE',clicks:5407,impressions:236319,ctr:2.29,position:5.86},
-    {device:'DESKTOP',clicks:2679,impressions:224245,ctr:1.19,position:6.81},
-    {device:'TABLET',clicks:74,impressions:2595,ctr:2.85,position:5.92},
-  ],
+  // Empty fallback — real data comes from /api/data once tokens are configured
+  meta:{ updated_at:'—', date_start:'—', date_end:'—', source:'fallback' },
+  summary_6m:{ total_clicks:0, total_impressions:0, avg_ctr:0, avg_position:0, avg_clicks_per_day:0, days:0 },
+  summary_28d:{ total_clicks:0, total_impressions:0, avg_ctr:0, avg_position:0 },
+  summary_7d:{ total_clicks:0, total_impressions:0, avg_ctr:0, avg_position:0 },
+  chart:[], queries:[], pages:[], countries:[], devices:[],
 };
+
+// ── Load site config from /api/config ────────────────────────────────────────
+async function loadConfig() {
+  try {
+    const r = await fetch('/api/config');
+    if (!r.ok) throw new Error('no config');
+    return await r.json();
+  } catch {
+    return { siteName: 'Mi Sitio', siteUrl: '', gscProperty: '', configured: false, gmbConfigured: false };
+  }
+}
+
+// ── Apply config to the UI ────────────────────────────────────────────────────
+function applyConfig(cfg) {
+  SITE_CONFIG = cfg;
+  const name = cfg.siteName || 'Mi Sitio';
+  const url  = cfg.siteUrl  || cfg.gscProperty || '';
+
+  // Logo + title
+  el('logo-site-name', name.length > 10 ? name.slice(0,10) : name);
+  document.getElementById('page-title').textContent = name + ' — Growth Dashboard';
+
+  // Overview badge
+  const badge = document.getElementById('overview-badge');
+  if (badge) {
+    badge.textContent = cfg.configured ? '● Datos en vivo' : '● Modo demo — configura tus tokens';
+    badge.style.color = cfg.configured ? '#27a663' : '#999';
+  }
+
+  // Sidebar
+  const sb = document.getElementById('sidebar-status');
+  if (sb) {
+    sb.innerHTML = `<strong>${name}</strong>${url ? url.replace(/^https?:\/\//,'') : ''}`;
+  }
+}
 
 // ── Load data from /api/data (Vercel) or fall back to FALLBACK ───────────────
 async function loadData() {
-  // Show loading state in sidebar
-  document.querySelector('.sidebar-period').innerHTML =
-    `<strong>Cargando datos…</strong><span class="loading-dots"></span>`;
-
   try {
     const r = await fetch('/api/data?t=' + Date.now());
     if (!r.ok) throw new Error('API error ' + r.status);
@@ -926,16 +864,24 @@ async function loadData() {
     if (!data.summary_6m) throw new Error('datos incompletos');
     return data;
   } catch(e) {
-    console.warn('API /api/data no disponible — usando datos de demostración:', e.message);
-    return { ...FALLBACK, gmb: { configured: false, rating: null, reviewCount: null, reviews: [], performance: { views: { maps: null, search: null, total: null }, actions: { calls: null, websiteClicks: null, directions: null, total: null }, daily: [] } } };
+    console.warn('/api/data no disponible — mostrando estado vacío:', e.message);
+    return {
+      ...FALLBACK,
+      gmb: { configured: false, rating: null, reviewCount: null, reviews: [],
+             performance: { views: { maps: null, search: null, total: null },
+                            actions: { calls: null, websiteClicks: null, directions: null, total: null }, daily: [] } }
+    };
   }
 }
 
 // ── Helper: classify query type ───────────────────────────────────────────────
 function queryType(q) {
   const ql = q.toLowerCase();
-  if (ql.includes('nelly')) return 'branded';
-  if (ql.includes('rent') || ql.includes('alquiler') || ql.includes('location') || ql.includes('voiture')) return 'commercial';
+  // Use configured site name as brand term (first word, lowercased)
+  const brand = (SITE_CONFIG.siteName || '').toLowerCase().split(' ')[0];
+  if (brand && brand.length > 2 && ql.includes(brand)) return 'branded';
+  // Generic commercial intent signals
+  if (/buy|shop|price|order|rent|alquiler|reserv|book|hire|service|comprar|precio/.test(ql)) return 'commercial';
   return 'generic';
 }
 
@@ -985,53 +931,228 @@ function mkChart(id, config) {
   charts[id] = new Chart(document.getElementById(id), config);
 }
 
+// ── Generate opportunities from real data ─────────────────────────────────────
+function computeOpportunities(D) {
+  const s = D.summary_6m;
+  const opps = [];
+
+  // 1. CTR below target
+  if (s.avg_ctr > 0 && s.avg_ctr < 3) {
+    const potentialClicks = Math.round(s.total_impressions * 0.03 - s.total_clicks);
+    opps.push({
+      tag: 'Alta Prioridad', cls: 'tag-high',
+      title: `CTR orgánico: ${s.avg_ctr.toFixed(2)}% → meta 3%+`,
+      desc: `Con ${Math.round(s.total_impressions/1000)}K impresiones, mejorar titles y meta descriptions puede generar hasta ${potentialClicks.toLocaleString()} clics adicionales por período.`,
+      impact: `+${potentialClicks.toLocaleString()} clics potenciales`,
+    });
+  }
+
+  // 2. Pages with very low CTR but high impressions
+  const lowCTRPages = D.pages.filter(p => p.ctr < 0.1 && p.impressions > 5000);
+  if (lowCTRPages.length > 0) {
+    const totalLowImpr = lowCTRPages.reduce((a,p) => a+p.impressions, 0);
+    opps.push({
+      tag: 'Alta Prioridad', cls: 'tag-high',
+      title: `${lowCTRPages.length} páginas con CTR menor a 0.1%`,
+      desc: `${(totalLowImpr/1000).toFixed(0)}K impresiones desperdiciadas. ${lowCTRPages.slice(0,2).map(p=>shortPage(p.page)).join(', ')} tienen alta visibilidad sin clics. Optimizar snippets puede multiplicar clics inmediatamente.`,
+      impact: `+${Math.round(totalLowImpr*0.01).toLocaleString()} clics potenciales`,
+    });
+  }
+
+  // 3. Mobile opportunity
+  const mobile = D.devices.find(d => d.device === 'MOBILE' || d.device === 'mobile');
+  if (mobile && s.total_clicks > 0) {
+    const mobilePct = Math.round(mobile.clicks / s.total_clicks * 100);
+    if (mobilePct > 50) {
+      opps.push({
+        tag: 'Alta Prioridad', cls: 'tag-high',
+        title: `Mobile-First: ${mobilePct}% del tráfico orgánico`,
+        desc: `${mobile.clicks.toLocaleString()} clics desde móvil. Asegurar que el funnel de conversión esté optimizado para mobile es la palanca de mayor impacto en CVR.`,
+        impact: `+20-35% tasa de conversión mobile`,
+      });
+    }
+  }
+
+  // 4. Position improvement (queries near top 3)
+  const nearTop = D.queries.filter(q => q.position > 3 && q.position <= 8 && q.impressions > 500);
+  if (nearTop.length > 0) {
+    const topQ = nearTop[0];
+    opps.push({
+      tag: 'Quick Win', cls: 'tag-quick',
+      title: `${nearTop.length} queries entre posición 3-8 listos para subir`,
+      desc: `"${topQ.query}" (pos ${topQ.position.toFixed(1)}, ${topQ.impressions.toLocaleString()} impr.) está cerca del top 3. Mejorar el contenido y CTR en esas páginas puede duplicar los clics.`,
+      impact: `+${Math.round(nearTop.reduce((a,q)=>a+q.impressions*0.02,0)).toLocaleString()} clics adicionales`,
+    });
+  }
+
+  // 5. Top country with low CTR
+  const topCountry = [...D.countries].sort((a,b) => b.impressions-a.impressions)[0];
+  if (topCountry && topCountry.ctr < 2) {
+    const potClicks = Math.round(topCountry.impressions * 0.03 - topCountry.clicks);
+    opps.push({
+      tag: 'Quick Win', cls: 'tag-quick',
+      title: `${topCountry.country}: ${Math.round(topCountry.impressions/1000)}K impr. con solo ${topCountry.ctr.toFixed(2)}% CTR`,
+      desc: `Tu mercado #1 tiene enorme potencial sin explotar. Landing pages dedicadas y ads en ese mercado pueden ser la palanca más rápida de crecimiento.`,
+      impact: potClicks > 0 ? `+${potClicks.toLocaleString()} clics de ${topCountry.country}` : 'Alto potencial de crecimiento',
+    });
+  }
+
+  // 6. High CTR countries (underutilized)
+  const highCTRCountries = D.countries.filter(c => c.ctr > 4 && c.impressions < 5000).slice(0,4);
+  if (highCTRCountries.length > 0) {
+    opps.push({
+      tag: 'Medio Plazo', cls: 'tag-med',
+      title: `${highCTRCountries.length} mercados con CTR alto y poca inversión`,
+      desc: `${highCTRCountries.map(c=>`${c.country} (${c.ctr.toFixed(1)}%)`).join(', ')}. Alta intención de compra con poco volumen — contenido localizado y campañas geo-específicas pueden escalarlo.`,
+      impact: `+30-50% clics en esos mercados`,
+    });
+  }
+
+  // Ensure we always have at least one card
+  if (opps.length === 0) {
+    opps.push({
+      tag: 'Info', cls: 'tag-med',
+      title: 'Conecta tu cuenta para ver oportunidades reales',
+      desc: 'Ve a /api/auth para autorizar con Google y obtener análisis personalizados basados en los datos reales de tu sitio.',
+      impact: 'Datos reales de GSC',
+    });
+  }
+
+  return opps;
+}
+
 // ── Render all charts & tables from D ────────────────────────────────────────
 function render(D) {
-  const s = D.summary_6m;
+  const s   = D.summary_6m;
   const s28 = D.summary_28d;
   const s7  = D.summary_7d;
 
-  // Update status badge in sidebar
+  // Sidebar status
   const upd = D.meta?.updated_at || '—';
-  document.querySelector('.sidebar-period').innerHTML =
-    `<strong>Última actualización</strong>${upd}<br>
-     GSC · Últimos 6 meses<br>
-     ${s.days} días · ${s.total_clicks.toLocaleString()} clics`;
+  const src = D.meta?.source === 'live' ? '● En vivo' : '● Demo';
+  const sb  = document.getElementById('sidebar-status');
+  if (sb) sb.innerHTML =
+    `<strong>${src} · ${upd}</strong>` +
+    (SITE_CONFIG.siteUrl ? SITE_CONFIG.siteUrl.replace(/^https?:\/\//,'')+'<br>' : '') +
+    `GSC · ${s.days || 0} días · ${(s.total_clicks||0).toLocaleString()} clics`;
+
+  // Overview sub-header
+  el('overview-sub', `Google Search Console · ${D.meta?.date_start||'—'} → ${D.meta?.date_end||'—'}`);
 
   // KPI cards — overview
-  document.getElementById('kpi-clicks').textContent  = s.total_clicks.toLocaleString();
-  document.getElementById('kpi-imp').textContent     = s.total_impressions > 1000000
+  el('kpi-clicks', s.total_clicks > 0 ? s.total_clicks.toLocaleString() : '—');
+  el('kpi-imp', s.total_impressions > 1000000
     ? (s.total_impressions/1000000).toFixed(1)+'M'
-    : Math.round(s.total_impressions/1000)+'K';
-  document.getElementById('kpi-ctr').textContent     = s.avg_ctr.toFixed(2)+'%';
-  document.getElementById('kpi-pos').textContent     = s.avg_position.toFixed(1);
-  document.getElementById('kpi-cpd').textContent     = s.avg_clicks_per_day.toFixed(0);
+    : s.total_impressions > 0 ? Math.round(s.total_impressions/1000)+'K' : '—');
+  el('kpi-ctr',  s.avg_ctr   > 0 ? s.avg_ctr.toFixed(2)+'%'    : '—');
+  el('kpi-pos',  s.avg_position > 0 ? s.avg_position.toFixed(1) : '—');
+  el('kpi-cpd',  s.avg_clicks_per_day > 0 ? s.avg_clicks_per_day.toFixed(0) : '—');
+
+  // ── Diagnostic banner ─────────────────────────────────────────────────
+  const siteName = SITE_CONFIG.siteName || D.meta?.site_name || 'Tu Sitio';
+  el('diag-title', `Diagnóstico Estratégico — ${siteName}`);
+  const mobile = D.devices.find(d => (d.device||'').toUpperCase() === 'MOBILE');
+  const mobilePct = mobile && s.total_clicks > 0 ? Math.round(mobile.clicks/s.total_clicks*100)+'%' : '—';
+  const branded = D.queries.filter(q=>queryType(q.query)==='branded');
+  const brandedPct = D.queries.length > 0 ? Math.round(branded.length/D.queries.length*100)+'%' : '—';
+  const topC = D.countries[0]?.country || '—';
+  const lowCTRImpr = D.pages.filter(p=>p.ctr<0.1).reduce((a,p)=>a+p.impressions,0);
+  el('diag-mobile', mobilePct);
+  el('diag-branded', brandedPct);
+  el('diag-ctr', s.avg_ctr > 0 ? s.avg_ctr.toFixed(2)+'%' : '—');
+  el('diag-top-country', topC !== '—' ? topC.split(' ')[0]+' #1' : '—');
+  el('diag-low-ctr-impr', lowCTRImpr > 1000 ? Math.round(lowCTRImpr/1000)+'K' : lowCTRImpr > 0 ? lowCTRImpr : '—');
+
+  // ── Opportunities ─────────────────────────────────────────────────────
+  const oppGrid = document.getElementById('opportunities-grid');
+  if (oppGrid) {
+    const opps = computeOpportunities(D);
+    oppGrid.innerHTML = opps.map(o => `
+      <div class="opp-card">
+        <span class="opp-tag ${o.cls}">${o.tag}</span>
+        <div class="opp-title">${o.title}</div>
+        <div class="opp-desc">${o.desc}</div>
+        <div class="opp-impact"><span class="oi-label">Impacto:</span><span class="oi-val">${o.impact}</span></div>
+      </div>`).join('');
+  }
+
+  // ── Progress bars ─────────────────────────────────────────────────────
+  if (s.total_clicks > 0) {
+    const clicksMeta = Math.round(s.total_clicks * 1.45);
+    const imprMeta   = Math.round(s.total_impressions * 1.45);
+    // Progress: current vs target — show as % of target reached
+    const pClicks = Math.min(100, Math.round(s.total_clicks / clicksMeta * 100));
+    const pCtr    = Math.min(100, Math.round(s.avg_ctr / 3.0 * 100));
+    // Position: inverted (lower = better). 10 → 4 is the range
+    const pPos    = s.avg_position > 0 ? Math.min(100, Math.max(0, Math.round((10 - s.avg_position) / (10 - 4) * 100))) : 0;
+    const pImpr   = Math.min(100, Math.round(s.total_impressions / imprMeta * 100));
+
+    const pb = (id, w) => { const e = document.getElementById(id); if(e) e.style.width = w+'%'; };
+    pb('prog-clicks', pClicks); pb('prog-ctr', pCtr); pb('prog-pos', pPos); pb('prog-impr', pImpr);
+
+    const fmtK = n => n > 999999 ? (n/1000000).toFixed(1)+'M' : n > 999 ? Math.round(n/1000)+'K' : n;
+    el('prog-clicks-base', `Base: ${s.total_clicks.toLocaleString()}`);
+    el('prog-clicks-meta', `Meta: ${clicksMeta.toLocaleString()}`);
+    el('prog-ctr-base', `Actual: ${s.avg_ctr.toFixed(2)}%`);
+    el('prog-pos-base', `Actual: ${s.avg_position.toFixed(1)}`);
+    el('prog-impr-base', `Base: ${fmtK(s.total_impressions)}`);
+    el('prog-impr-meta', `Meta: ${fmtK(imprMeta)}`);
+  }
+
+  // ── Funnel ────────────────────────────────────────────────────────────
+  if (s.total_impressions > 0) {
+    const fmtK = n => n > 999 ? Math.round(n/1000)+'K' : n;
+    const starts = Math.round(s.total_clicks * 0.06);
+    const conv   = Math.round(starts * 0.34);
+    el('funnel-impr',   fmtK(s.total_impressions));
+    el('funnel-clicks', s.total_clicks.toLocaleString());
+    el('funnel-ctr-sub', `CTR ${s.avg_ctr.toFixed(2)}% → meta 3%+`);
+    el('funnel-starts', '~' + starts.toLocaleString());
+    el('funnel-conv',   '~' + conv.toLocaleString());
+  }
+
+  // SEO sub-header + pages note
+  el('seo-sub', `Top ${D.queries.length} queries · ${D.pages.length} páginas · Google Search Console`);
+  const top10clicks = D.pages.slice(0,10).reduce((a,p)=>a+p.clicks,0);
+  const top10pct = s.total_clicks > 0 ? Math.round(top10clicks/s.total_clicks*100) : 0;
+  el('kpi-pages-note', top10pct > 0 ? `Top 10 = ${top10pct}% clics` : '—');
+
+  // Geo sub-header + #2 country
+  el('geo-sub', `${D.countries.length} países con tráfico registrado`);
+  const second = D.countries[1] || {};
+  el('kpi-second-country', second.country || '—');
+  el('kpi-second-country-clicks', second.clicks ? second.clicks.toLocaleString()+' clics' : '— clics');
+  el('kpi-second-country-ctr', second.ctr ? 'CTR '+second.ctr.toFixed(2)+'%' : '—');
 
   // KPI cards — SEO page
-  const brandedClicks = D.queries.filter(q=>queryType(q.query)==='branded').reduce((a,q)=>a+q.clicks,0);
+  const brandedClicks    = D.queries.filter(q=>queryType(q.query)==='branded').reduce((a,q)=>a+q.clicks,0);
   const commercialClicks = D.queries.filter(q=>queryType(q.query)==='commercial').reduce((a,q)=>a+q.clicks,0);
-  const brandedCTR = D.queries.filter(q=>queryType(q.query)==='branded');
-  const avgBrandedCTR = brandedCTR.length ? (brandedCTR.reduce((a,q)=>a+q.ctr,0)/brandedCTR.length).toFixed(1) : 0;
-  const commCTR = D.queries.filter(q=>queryType(q.query)==='commercial');
-  const avgCommCTR = commCTR.length ? (commCTR.reduce((a,q)=>a+q.ctr,0)/commCTR.length).toFixed(1) : 0;
+  const brandedRows = D.queries.filter(q=>queryType(q.query)==='branded');
+  const avgBrandedCTR = brandedRows.length ? (brandedRows.reduce((a,q)=>a+q.ctr,0)/brandedRows.length).toFixed(1) : 0;
+  const commRows = D.queries.filter(q=>queryType(q.query)==='commercial');
+  const avgCommCTR = commRows.length ? (commRows.reduce((a,q)=>a+q.ctr,0)/commRows.length).toFixed(1) : 0;
 
-  el('kpi-branded-clicks', brandedClicks.toLocaleString());
-  el('kpi-commercial-clicks', commercialClicks.toLocaleString());
-  el('kpi-branded-ctr', avgBrandedCTR+'%');
-  el('kpi-commercial-ctr', avgCommCTR+'%');
-  el('kpi-pages-count', D.pages.length.toLocaleString());
+  el('kpi-branded-clicks',    brandedClicks > 0 ? brandedClicks.toLocaleString() : '—');
+  el('kpi-commercial-clicks', commercialClicks > 0 ? commercialClicks.toLocaleString() : '—');
+  el('kpi-branded-ctr',       avgBrandedCTR > 0 ? avgBrandedCTR+'%' : '—');
+  el('kpi-commercial-ctr',    avgCommCTR > 0 ? avgCommCTR+'%' : '—');
+  el('kpi-pages-count', D.pages.length > 0 ? D.pages.length.toLocaleString() : '—');
 
   // Geo KPIs
   const top = D.countries[0] || {};
   const topCTR = [...D.countries].sort((a,b)=>b.ctr-a.ctr)[0] || {};
-  const europe = D.countries.filter(c=>['Spain','Italy','France','Canada','Switzerland','Germany','Netherlands','United Kingdom'].includes(c.country)).reduce((a,c)=>a+c.clicks,0);
-  const latam  = D.countries.filter(c=>['Colombia','Argentina','Puerto Rico','Mexico'].includes(c.country)).reduce((a,c)=>a+c.clicks,0);
+  const highCTR = D.countries.filter(c=>c.ctr>4);
   el('kpi-top-country', top.country||'—');
-  el('kpi-top-country-clicks', (top.clicks||0).toLocaleString());
+  el('kpi-top-country-clicks', top.clicks ? top.clicks.toLocaleString() : '—');
   el('kpi-top-ctr-country', topCTR.ctr ? topCTR.ctr.toFixed(2)+'%' : '—');
   el('kpi-top-ctr-name', topCTR.country||'—');
-  el('kpi-europe-clicks', europe.toLocaleString());
-  el('kpi-latam-clicks', latam.toLocaleString());
+  const third = D.countries[2] || {};
+  el('kpi-third-country', third.country||'—');
+  el('kpi-third-country-clicks', third.clicks ? third.clicks.toLocaleString()+' clics' : '—');
+  el('kpi-third-country-ctr', third.ctr ? 'CTR '+third.ctr.toFixed(2)+'%' : '—');
+  el('kpi-europe-clicks', highCTR.length > 0 ? highCTR.length+' países' : '—');
+  el('kpi-eu-sub', highCTR.length > 0 ? highCTR.slice(0,3).map(c=>c.country.split(' ')[0]).join(', ') : 'Alta intención de compra');
+  el('kpi-latam-clicks', highCTR.length > 0 ? '▲ '+highCTR.slice(0,1).map(c=>c.ctr.toFixed(1)+'% CTR').join() : '—');
 
   // ── TREND CHART (monthly aggregated) ─────────────────────────────────────
   const monthly = toMonthly(D.chart);
@@ -1381,7 +1502,8 @@ function renderGMB(G) {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
-loadData().then(D => {
+Promise.all([loadConfig(), loadData()]).then(([cfg, D]) => {
+  applyConfig(cfg);
   render(D);
   renderGMB(D.gmb || null);
   renderHistory();

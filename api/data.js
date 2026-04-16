@@ -1,68 +1,34 @@
 /**
  * api/data.js — Vercel Serverless Function
- * Fetches Google Search Console + Google My Business data
- * and returns a combined JSON for the Nelly RAC dashboard.
+ * Fetches Google Search Console + Google My Business data.
+ * Works for any site — configure via SITE_URL / GSC_PROPERTY env vars.
  *
  * GET /api/data
  */
 
 const { google } = require('googleapis');
 
+// Resolve the active site URL from env vars
+const ACTIVE_SITE = process.env.GSC_PROPERTY || process.env.SITE_URL || '';
+
 // ── Fallback (when API is not configured) ────────────────────────────────────
+// Uses generic placeholder data — replaced by real data once tokens are set
 const FALLBACK_GSC = {
-  meta: { updated_at: '2026-04-05', date_start: '2025-10-06', date_end: '2026-04-05', source: 'fallback' },
-  summary_6m: { total_clicks: 8160, total_impressions: 463159, avg_ctr: 1.76, avg_position: 6.8, avg_clicks_per_day: 45, days: 182 },
-  summary_28d: { total_clicks: 1560, total_impressions: 65000, avg_ctr: 2.40, avg_position: 6.1 },
-  summary_7d:  { total_clicks: 380,  total_impressions: 14000, avg_ctr: 2.71, avg_position: 5.9 },
-  chart: [
-    { date: '2025-10', clicks: 1064, impressions: 80000, ctr: 1.33, position: 7.4 },
-    { date: '2025-11', clicks: 1285, impressions: 78000, ctr: 1.65, position: 7.1 },
-    { date: '2025-12', clicks: 1390, impressions: 82000, ctr: 1.70, position: 6.9 },
-    { date: '2026-01', clicks: 1302, impressions: 79000, ctr: 1.65, position: 6.8 },
-    { date: '2026-02', clicks: 1455, impressions: 75000, ctr: 1.94, position: 6.4 },
-    { date: '2026-03', clicks: 1560, impressions: 74000, ctr: 2.11, position: 6.1 },
-  ],
-  queries: [
-    { query: 'nelly rent a car',             clicks: 648, impressions: 4141,  ctr: 15.65, position: 2.02 },
-    { query: 'nelly rent car',               clicks: 341, impressions: 2787,  ctr: 12.24, position: 1.41 },
-    { query: 'rent a car santo domingo',     clicks: 279, impressions: 8433,  ctr: 3.31,  position: 4.33 },
-    { query: 'car rental santo domingo',     clicks: 195, impressions: 8044,  ctr: 2.42,  position: 5.27 },
-    { query: 'rent car santo domingo',       clicks: 173, impressions: 4893,  ctr: 3.54,  position: 4.12 },
-    { query: 'car rental dominican republic',clicks: 150, impressions: 9275,  ctr: 1.62,  position: 4.32 },
-    { query: 'rent a car',                   clicks: 135, impressions: 6300,  ctr: 2.14,  position: 5.47 },
-    { query: 'nelly car rental',             clicks: 135, impressions: 789,   ctr: 17.11, position: 5.25 },
-    { query: 'nelly rent a car santo domingo', clicks: 110, impressions: 472, ctr: 23.31, position: 1.14 },
-    { query: 'santo domingo car rental',     clicks: 91,  impressions: 3110,  ctr: 2.93,  position: 4.31 },
-  ],
-  pages: [
-    { page: 'https://nellyrac.do/',             clicks: 6899, impressions: 404731, ctr: 1.70, position: 6.22 },
-    { page: 'https://nellyrac.do/es/',          clicks: 1035, impressions: 93089,  ctr: 1.11, position: 7.58 },
-    { page: 'https://nellyrac.do/contact-us/',  clicks: 26,   impressions: 52652,  ctr: 0.05, position: 9.49 },
-    { page: 'https://nellyrac.do/about-us/',    clicks: 10,   impressions: 63321,  ctr: 0.02, position: 9.98 },
-    { page: 'https://nellyrac.do/faq/',         clicks: 9,    impressions: 59827,  ctr: 0.02, position: 9.93 },
-  ],
+  meta: { updated_at: '—', date_start: '—', date_end: '—', source: 'fallback' },
+  summary_6m: { total_clicks: 0, total_impressions: 0, avg_ctr: 0, avg_position: 0, avg_clicks_per_day: 0, days: 0 },
+  summary_28d: { total_clicks: 0, total_impressions: 0, avg_ctr: 0, avg_position: 0 },
+  summary_7d:  { total_clicks: 0, total_impressions: 0, avg_ctr: 0, avg_position: 0 },
+  chart: [],
+  queries: [],
+  pages: [],
   countries: [
     { country: 'United States',      clicks: 2993, impressions: 238839, ctr: 1.25, position: 6.51 },
     { country: 'Dominican Republic', clicks: 2589, impressions: 109024, ctr: 2.37, position: 5.85 },
     { country: 'Spain',              clicks: 624,  impressions: 27140,  ctr: 2.30, position: 6.36 },
     { country: 'Italy',              clicks: 187,  impressions: 7246,   ctr: 2.58, position: 4.61 },
     { country: 'France',             clicks: 176,  impressions: 12797,  ctr: 1.38, position: 11.43 },
-    { country: 'Canada',             clicks: 171,  impressions: 8213,   ctr: 2.08, position: 5.68 },
-    { country: 'Colombia',           clicks: 159,  impressions: 5988,   ctr: 2.66, position: 4.07 },
-    { country: 'Argentina',          clicks: 131,  impressions: 3037,   ctr: 4.31, position: 3.95 },
-    { country: 'Puerto Rico',        clicks: 124,  impressions: 2680,   ctr: 4.63, position: 3.47 },
-    { country: 'Mexico',             clicks: 106,  impressions: 11554,  ctr: 0.92, position: 4.21 },
-    { country: 'United Kingdom',     clicks: 89,   impressions: 8587,   ctr: 1.04, position: 5.96 },
-    { country: 'Switzerland',        clicks: 79,   impressions: 1454,   ctr: 5.43, position: 3.94 },
-    { country: 'Germany',            clicks: 77,   impressions: 2421,   ctr: 3.18, position: 6.74 },
-    { country: 'Netherlands',        clicks: 74,   impressions: 1676,   ctr: 4.42, position: 5.99 },
-    { country: 'Martinique',         clicks: 28,   impressions: 363,    ctr: 7.71, position: 3.07 },
   ],
-  devices: [
-    { device: 'MOBILE',  clicks: 5407, impressions: 236319, ctr: 2.29, position: 5.86 },
-    { device: 'DESKTOP', clicks: 2679, impressions: 224245, ctr: 1.19, position: 6.81 },
-    { device: 'TABLET',  clicks: 74,   impressions: 2595,   ctr: 2.85, position: 5.92 },
-  ],
+  devices: [],
 };
 
 const FALLBACK_GMB = {
@@ -98,7 +64,7 @@ function daysAgo(n) {
 // ── Fetch GSC data ────────────────────────────────────────────────────────────
 async function fetchGSC(auth) {
   const sc = google.searchconsole({ version: 'v1', auth });
-  const property = process.env.GSC_PROPERTY || 'https://nellyrac.do/';
+  const property = process.env.GSC_PROPERTY || process.env.SITE_URL || '';
 
   const dateEnd    = daysAgo(2);   // GSC lags ~2 days
   const start6M    = daysAgo(182);
@@ -154,6 +120,8 @@ async function fetchGSC(auth) {
       date_start:   start6M,
       date_end:     dateEnd,
       gsc_property: property,
+      site_name:    process.env.SITE_NAME || '',
+      site_url:     process.env.SITE_URL  || property,
       source:       'live',
     },
     summary_6m: {
