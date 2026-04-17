@@ -2144,7 +2144,15 @@ function renderGMB(G) {
   // ── Reviews list (uses global renderReviewsList) ──────────────────────
   if (!reviews.length) {
     const list = document.getElementById('gmb-reviews-list');
-    if (list) list.innerHTML = `<div class="empty-state">${G.configured ? 'No se encontraron reseñas en esta cuenta.' : 'Conecta Google My Business para ver reseñas reales.'}</div>`;
+    if (list) {
+      const errMsg = G.reviewsApiError
+        ? `<div style="padding:14px;background:#2a1515;border:1px solid #5c1a1a;border-radius:8px;font-size:12px;color:#f87171;line-height:1.6">
+            ⚠️ <strong>Error al cargar reseñas:</strong> ${G.reviewsApiError}<br>
+            <span style="color:#888;font-size:11px;margin-top:4px;display:block">Verifica que el scope <code>business.manage</code> esté autorizado y reconecta tu cuenta con el botón "Cambiar sitio / reconectar".</span>
+           </div>`
+        : `<div class="empty-state">${G.configured ? 'No se encontraron reseñas en esta cuenta.' : 'Conecta Google My Business para ver reseñas reales.'}</div>`;
+      list.innerHTML = errMsg;
+    }
     return;
   }
   renderReviewsList(reviews);

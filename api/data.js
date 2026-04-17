@@ -122,14 +122,36 @@ const EMPTY_GMB = {
 };
 
 async function fetchGMB(auth, locationName) {
+  console.log('[GMB] locationName:', locationName);
   const { token } = await auth.getAccessToken();
   const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  // locationName format: "accounts/{accountId}/locations/{locationId}"
   const parts = locationName.split('/');
   const locationId = parts[3] || parts[1];
+  console.log('[GMB] locationId:', locationId);
+
+  // Try new Reviews API first (mybusinessreviews.googleapis.com/v1), fallback to v4
+  const fetchReviews = async () => {
+    // New API (post-2022)
+    const r1 = await fetch(
+      `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews?pageSize=50`,
+      { headers: hdrs }
+    );
+    if (r1.ok) return r1.json();
+    // Fallback: old v4 API
+    const r2 = await fetch(
+      `https://mybusiness.googleapis.com/v4/${locationName}/reviews?pageSize=50`,
+      { headers: hdrs }
+    );
+    if (r2.ok) return r2.json();
+    // Return error details for debugging
+    const errText = await r1.text().catch(() => r1.status);
+    console.error('Reviews API error:', r1.status, errText);
+    return null;
+  };
 
   const [reviewsRes, perfRes] = await Promise.all([
-    fetch(`https://mybusiness.googleapis.com/v4/${locationName}/reviews?pageSize=10`, { headers: hdrs })
-      .then(r => r.ok ? r.json() : null).catch(() => null),
+    fetchReviews().catch(() => null),
     (() => {
       const end = new Date(), start = new Date();
       start.setDate(start.getDate() - 90);
@@ -177,9 +199,16 @@ async function fetchGMB(auth, locationName) {
    'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH','BUSINESS_IMPRESSIONS_MOBILE_SEARCH'].forEach(k => addMetric(k,'views'));
   ['CALL_CLICKS','WEBSITE_CLICKS','BUSINESS_DIRECTION_REQUESTS'].forEach(k => addMetric(k,'actions'));
 
+  // averageRating can be a string ("4.5") or number depending on API version
+  const avgRating = reviewsRes?.averageRating != null ? parseFloat(reviewsRes.averageRating) : null;
+  const totalCount = reviewsRes?.totalReviewCount != null ? parseInt(reviewsRes.totalReviewCount) : (reviews.length || null);
+
   return {
-    configured: true, rating: reviewsRes?.averageRating ?? null,
-    reviewCount: reviewsRes?.totalReviewCount ?? null, reviews,
+    configured: true,
+    rating:      isNaN(avgRating) ? null : avgRating,
+    reviewCount: isNaN(totalCount) ? null : totalCount,
+    reviews,
+    reviewsApiError: reviewsRes === null ? 'No se pudo obtener reseñas de la API' : null,
     performance: {
       views:   { maps: mapsViews, search: searchViews, total: mapsViews+searchViews },
       actions: { calls, websiteClicks: webClicks, directions: dirs, total: calls+webClicks+dirs },
