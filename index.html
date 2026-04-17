@@ -264,6 +264,49 @@ html,body{overflow-x:hidden;width:100%}
   .plan-grid{grid-template-columns:minmax(0,1fr)}
   .form-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* ── REVIEW FILTER TABS ───────────────────────────────────────── */
+.review-filter-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.rf-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.15s;font-family:var(--ff)}
+.rf-tab:hover{border-color:var(--orange);color:var(--orange)}
+.rf-tab.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+.rf-count{font-size:10px;opacity:0.8;margin-left:3px;font-weight:600}
+.rf-tab.active .rf-count{opacity:1}
+
+/* ── PERIOD COMPARISON TABLE ──────────────────────────────────── */
+.comparison-table{width:100%;border-collapse:collapse;font-size:12px}
+.comparison-table th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);padding:7px 10px;border-bottom:2px solid var(--border);text-align:right;white-space:nowrap}
+.comparison-table th:first-child{text-align:left}
+.comparison-table td{padding:9px 10px;border-bottom:1px solid var(--border)}
+.comparison-table tr:last-child td{border-bottom:none}
+.comparison-table tr:hover td{background:var(--surface2)}
+.ct-metric{font-size:11px;font-weight:600;color:var(--text2)}
+.ct-val{font-family:var(--ffc);font-size:16px;font-weight:700;color:var(--text);text-align:right;display:block}
+.delta-up{color:var(--green);font-size:10px;font-weight:700}
+.delta-down{color:var(--red);font-size:10px;font-weight:700}
+.delta-flat{color:var(--text3);font-size:10px;font-weight:600}
+
+/* ── POSITION DISTRIBUTION ────────────────────────────────────── */
+.pos-dist-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.pos-bucket{background:var(--surface2);border-radius:var(--radius-sm);padding:11px;text-align:center;border:1px solid var(--border)}
+.pos-bucket-val{font-family:var(--ffc);font-size:26px;font-weight:700;line-height:1}
+.pos-bucket-label{font-size:10px;color:var(--text3);margin-top:2px;font-weight:600}
+.pos-bucket-pct{font-size:10px;color:var(--orange);font-weight:700;margin-top:3px}
+.pos-bucket-clicks{font-size:9px;color:var(--text3);margin-top:1px}
+
+/* ── INSIGHTS CARDS ────────────────────────────────────────────── */
+.insights-action-card{background:var(--orange-pale);border-radius:var(--radius);border:1px solid var(--orange-light);padding:14px 16px;margin-bottom:8px}
+.iac-title{font-size:13px;font-weight:700;color:var(--orange-dark);margin-bottom:4px}
+.iac-desc{font-size:12px;color:var(--dark);line-height:1.55}
+.iac-impact{font-size:11px;font-weight:700;color:var(--green);margin-top:6px}
+
+/* ── GMB CARD HEADER FLEX ─────────────────────────────────────── */
+.card-header-flex{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-header-flex .card-title{margin-bottom:0}
+.gmb-metric-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.gmb-metric{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+.gmb-metric-val{font-family:var(--ffc);font-size:20px;font-weight:700;color:var(--text)}
+.gmb-metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
 </style>
 </head>
 <body>
@@ -390,8 +433,8 @@ html,body{overflow-x:hidden;width:100%}
       Plan 12 Meses
     </div>
     <div class="nav-item" onclick="showPage('experiments',this)">
-      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2v5L3 12a1 1 0 001 1h8a1 1 0 001-1L10 7V2"/><path d="M5 2h6"/></svg>
-      Experimentos A/B
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/><path d="M4.22 4.22l1.42 1.42M10.36 10.36l1.42 1.42M4.22 11.78l1.42-1.42M10.36 5.64l1.42-1.42"/></svg>
+      Insights & Acciones
     </div>
     <div class="nav-label">Datos</div>
     <div class="nav-item" onclick="showPage('update',this)">
@@ -451,6 +494,25 @@ html,body{overflow-x:hidden;width:100%}
       <div class="kpi-sub">Promedio diario base</div>
       <div class="kpi-trend trend-up">▲ Meta: 65+ por día</div>
     </div>
+  </div>
+
+  <!-- Period comparison table -->
+  <div class="card" style="margin-bottom:22px;padding:16px 20px">
+    <div class="card-title" style="margin-bottom:12px">Comparativa de Períodos</div>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th style="text-align:left">Métrica</th>
+          <th>Últimos 7 días</th>
+          <th>Últimos 28 días</th>
+          <th>Últimos 6 meses</th>
+          <th>Tendencia 7d vs 28d</th>
+        </tr>
+      </thead>
+      <tbody id="period-comparison">
+        <tr><td colspan="5"><div class="empty-state" style="padding:12px">Cargando comparativa…</div></td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="alert-banner" id="diagnostic-banner">
@@ -593,10 +655,28 @@ html,body{overflow-x:hidden;width:100%}
       <div class="kpi-trend trend-down">▼ Bajo — Meta: 4%+</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Páginas Indexadas</div>
-      <div class="kpi-value">242</div>
-      <div class="kpi-sub">páginas con tráfico</div>
+      <div class="kpi-label">Páginas con Tráfico</div>
+      <div class="kpi-value" id="kpi-pages-count">—</div>
+      <div class="kpi-sub">páginas con al menos 1 clic</div>
       <div class="kpi-trend trend-neutral" id="kpi-pages-note">—</div>
+    </div>
+  </div>
+
+  <!-- Intent + Position distribution -->
+  <div class="grid-65" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">Distribución de Posición en Resultados</div>
+      <div class="pos-dist-grid" id="pos-dist-grid">
+        <div class="pos-bucket"><div class="pos-bucket-val" style="color:var(--green)">—</div><div class="pos-bucket-label">Top 3</div><div class="pos-bucket-pct">—%</div></div>
+        <div class="pos-bucket"><div class="pos-bucket-val" style="color:var(--orange)">—</div><div class="pos-bucket-label">4 – 10</div><div class="pos-bucket-pct">—%</div></div>
+        <div class="pos-bucket"><div class="pos-bucket-val" style="color:var(--orange-light)">—</div><div class="pos-bucket-label">11 – 20</div><div class="pos-bucket-pct">—%</div></div>
+        <div class="pos-bucket"><div class="pos-bucket-val" style="color:var(--text3)">—</div><div class="pos-bucket-label">21 +</div><div class="pos-bucket-pct">—%</div></div>
+      </div>
+      <div class="chart-wrap" style="height:90px"><canvas id="posDistChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Intención de Búsqueda</div>
+      <div class="chart-wrap" style="height:190px"><canvas id="intentChart"></canvas></div>
     </div>
   </div>
 
@@ -771,36 +851,84 @@ html,body{overflow-x:hidden;width:100%}
   </div>
 </div>
 
-<!-- =========== PAGE: EXPERIMENTS =========== -->
+<!-- =========== PAGE: INSIGHTS =========== -->
 <div id="page-experiments" class="page">
   <div class="page-header">
     <div>
-      <div class="page-title">Experimentos A/B</div>
-      <div class="page-sub">Plan de testing priorizado por impacto en reservas y CTR</div>
+      <div class="page-title">Insights & Acciones</div>
+      <div class="page-sub">Oportunidades detectadas automáticamente en tus datos reales de Google Search Console</div>
     </div>
   </div>
+
   <div class="kpi-grid">
-    <div class="kpi-card"><div class="kpi-label">Tests Planificados</div><div class="kpi-value">8</div><div class="kpi-sub">próximos 12 meses</div></div>
-    <div class="kpi-card"><div class="kpi-label">Tests Q2 (urgentes)</div><div class="kpi-value">3</div><div class="kpi-sub">quick wins</div></div>
-    <div class="kpi-card"><div class="kpi-label">Impacto CVR estimado</div><div class="kpi-value">+35%</div><div class="kpi-sub">si todos exitosos</div></div>
-    <div class="kpi-card"><div class="kpi-label">Impacto CTR estimado</div><div class="kpi-value">+1.2%</div><div class="kpi-sub">sobre el actual 1.76%</div></div>
-    <div class="kpi-card"><div class="kpi-label">Reducción abandono</div><div class="kpi-value">-30%</div><div class="kpi-sub">funnel checkout</div></div>
+    <div class="kpi-card">
+      <div class="kpi-label">Páginas — Baja CTR</div>
+      <div class="kpi-value" id="ins-kpi-ctr-pages">—</div>
+      <div class="kpi-sub">CTR &lt; 1% con &gt;1K impresiones</div>
+      <div class="kpi-trend trend-down">▼ Optimizar snippets</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Clics Potenciales</div>
+      <div class="kpi-value" id="ins-kpi-ctr-potential">—</div>
+      <div class="kpi-sub">si CTR sube a 3% en esas páginas</div>
+      <div class="kpi-trend trend-up">▲ Alta oportunidad</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Queries Posición 4-10</div>
+      <div class="kpi-value" id="ins-kpi-neartop">—</div>
+      <div class="kpi-sub">cerca del top 3 (&gt;200 impr.)</div>
+      <div class="kpi-trend trend-up">▲ Quick wins SEO</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Mercados Alta Intención</div>
+      <div class="kpi-value" id="ins-kpi-markets">—</div>
+      <div class="kpi-sub">países con CTR &gt; 4%</div>
+      <div class="kpi-trend trend-up">▲ Escalar con paid</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Queries sin clics</div>
+      <div class="kpi-value" id="ins-kpi-zeroclick">—</div>
+      <div class="kpi-sub">impresiones sin conversión</div>
+      <div class="kpi-trend trend-down">▼ Revisar intención</div>
+    </div>
   </div>
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-title">Tests Priorizados</div>
-    <table class="data-table">
-      <thead><tr><th>Test</th><th>Hipótesis</th><th>Variable</th><th>KPI Éxito</th><th>Duración</th><th>Trimestre</th></tr></thead>
-      <tbody>
-        <tr><td><strong>CTA Homepage</strong></td><td>"Reservar Ahora" vs "Ver Flota" vs "Cotizar"</td><td>Texto y color del CTA principal</td><td>CVR +15%</td><td>3 semanas</td><td><span class="pill pill-orange">Q2 2026</span></td></tr>
-        <tr><td><strong>Checkout mobile</strong></td><td>Proceso en 3 pasos vs 1 scroll continuo</td><td>Estructura del formulario reserva</td><td>Abandono -30%</td><td>4 semanas</td><td><span class="pill pill-orange">Q2 2026</span></td></tr>
-        <tr><td><strong>Meta descriptions</strong></td><td>Precio visible en snippet vs beneficio emocional</td><td>Copy del meta description</td><td>CTR +0.8%</td><td>6 semanas</td><td><span class="pill pill-orange">Q2 2026</span></td></tr>
-        <tr><td><strong>Remarketing timing</strong></td><td>Retargeting 1h vs 24h post-abandono</td><td>Tiempo de disparo del anuncio</td><td>Recuperación +20%</td><td>4 semanas</td><td><span class="pill pill-green">Q3 2026</span></td></tr>
-        <tr><td><strong>Landing SDQ</strong></td><td>Página específica aeropuerto vs homepage</td><td>URL destino de campañas</td><td>CVR +25%</td><td>3 semanas</td><td><span class="pill pill-green">Q3 2026</span></td></tr>
-        <tr><td><strong>Trust signals</strong></td><td>Reseñas prominentes en homepage vs sin reseñas</td><td>Presencia de social proof</td><td>CVR +12%</td><td>4 semanas</td><td><span class="pill pill-blue">Q4 2026</span></td></tr>
-        <tr><td><strong>Precios en listings</strong></td><td>Mostrar precio desde X$ vs sin precio en SERP</td><td>Schema markup de precio</td><td>CTR +0.5%</td><td>8 semanas</td><td><span class="pill pill-blue">Q4 2026</span></td></tr>
-        <tr><td><strong>WhatsApp vs Email</strong></td><td>Recuperación carrito por WhatsApp vs email</td><td>Canal de remarketing</td><td>Recuperación +35%</td><td>4 semanas</td><td><span class="pill pill-gray">Q1 2027</span></td></tr>
-      </tbody>
-    </table>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">🎯 Páginas con Mayor Oportunidad de CTR</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.55">Alta visibilidad pero CTR menor a 1% — mejorar el title y meta description puede multiplicar los clics sin más tráfico ni inversión publicitaria.</div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Página</th><th>Impr.</th><th>CTR actual</th><th>Clics potenciales (+3%)</th></tr></thead>
+          <tbody id="insights-ctr-table"><tr><td colspan="4"><div class="empty-state">Cargando…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚀 Queries Cerca del Top 3</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.55">Queries entre posición 4-10 con buen volumen — mejorar el contenido, la autoridad de la página o la estructura puede llevarlos al top 3 y duplicar los clics.</div>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Query</th><th>Posición</th><th>Impresiones</th><th>Clics posibles (+top3)</th></tr></thead>
+          <tbody id="insights-neartop-table"><tr><td colspan="4"><div class="empty-state">Cargando…</div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">🌍 Mercados con Alta Intención (CTR &gt; 4%)</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.55">Países donde los usuarios tienen alta intención de compra pero bajo volumen — campañas de paid search geo-específicas o contenido localizado pueden escalar este tráfico rápidamente.</div>
+      <div id="insights-markets-list">
+        <div class="empty-state">Cargando…</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Distribución de Clics por Tipo de Query</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.55">Branded son clics de marca (ya te conocen). Comerciales tienen intención de compra alta. Genéricos tienen menor intención pero mayor volumen potencial.</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="insightsIntentChart"></canvas></div>
+    </div>
   </div>
 </div>
 
@@ -860,18 +988,58 @@ html,body{overflow-x:hidden;width:100%}
 
   <div class="grid-65">
     <div class="card">
-      <div class="card-title">Vistas del Perfil — Últimos 90 Días</div>
-      <div class="chart-wrap" style="height:220px"><canvas id="gmbViewsChart"></canvas></div>
+      <div class="card-header-flex">
+        <div class="card-title">Vistas del Perfil — Últimos 90 Días</div>
+        <div id="gmb-views-legend" style="font-size:10px;color:var(--text3)"></div>
+      </div>
+      <div class="gmb-metric-grid" id="gmb-views-breakdown">
+        <div class="gmb-metric">
+          <div class="gmb-metric-val" id="gmb-views-maps">—</div>
+          <div class="gmb-metric-label">📍 Google Maps</div>
+        </div>
+        <div class="gmb-metric">
+          <div class="gmb-metric-val" id="gmb-views-search">—</div>
+          <div class="gmb-metric-label">🔍 Búsqueda</div>
+        </div>
+        <div class="gmb-metric">
+          <div class="gmb-metric-val" id="gmb-views-total-mini">—</div>
+          <div class="gmb-metric-label">📊 Total 30d</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:160px"><canvas id="gmbViewsChart"></canvas></div>
     </div>
     <div class="card">
       <div class="card-title">Acciones por Tipo — 30 Días</div>
-      <div class="chart-wrap" style="height:220px"><canvas id="gmbActionsChart"></canvas></div>
+      <div class="gmb-metric-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="gmb-metric">
+          <div class="gmb-metric-val" id="gmb-act-calls">—</div>
+          <div class="gmb-metric-label">📞 Llamadas</div>
+        </div>
+        <div class="gmb-metric">
+          <div class="gmb-metric-val" id="gmb-act-web">—</div>
+          <div class="gmb-metric-label">🌐 Web Clics</div>
+        </div>
+        <div class="gmb-metric">
+          <div class="gmb-metric-val" id="gmb-act-dirs">—</div>
+          <div class="gmb-metric-label">🗺️ Direcciones</div>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:150px"><canvas id="gmbActionsChart"></canvas></div>
     </div>
   </div>
 
   <div class="grid-2">
     <div class="card">
-      <div class="card-title">Últimas Reseñas</div>
+      <div class="card-header-flex">
+        <div class="card-title">Reseñas de Clientes</div>
+        <div id="review-reply-badge" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <div class="review-filter-tabs">
+        <button class="rf-tab active" onclick="filterReviews('all',this)">Todas <span class="rf-count" id="rc-all"></span></button>
+        <button class="rf-tab" onclick="filterReviews('positive',this)">Positivas 4-5⭐ <span class="rf-count" id="rc-pos"></span></button>
+        <button class="rf-tab" onclick="filterReviews('neutral',this)">Neutrales 3⭐ <span class="rf-count" id="rc-neu"></span></button>
+        <button class="rf-tab" onclick="filterReviews('negative',this)">Negativas 1-2⭐ <span class="rf-count" id="rc-neg"></span></button>
+      </div>
       <div id="gmb-reviews-list">
         <div class="empty-state">Cargando reseñas…</div>
       </div>
@@ -1095,6 +1263,51 @@ async function loadData() {
     if(!r.ok){const e=await r.json();throw new Error(e.error||r.status);}
     return await r.json();
   }catch(e){console.error('Error cargando datos:',e.message);return empty;}
+}
+
+// ── Helper: sanitize text for safe HTML insertion ─────────────────────────────
+function sanitizeText(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Global reviews store ──────────────────────────────────────────────────────
+let allReviews = [];
+
+// ── Review filter tabs ────────────────────────────────────────────────────────
+function filterReviews(type, btn) {
+  document.querySelectorAll('.rf-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  let filtered = allReviews;
+  if (type === 'positive') filtered = allReviews.filter(r => r.stars >= 4);
+  else if (type === 'neutral') filtered = allReviews.filter(r => r.stars === 3);
+  else if (type === 'negative') filtered = allReviews.filter(r => r.stars <= 2);
+  renderReviewsList(filtered);
+}
+
+function renderReviewsList(reviews) {
+  const list = document.getElementById('gmb-reviews-list');
+  if (!list) return;
+  if (!reviews.length) {
+    list.innerHTML = `<div class="empty-state">${allReviews.length ? 'No hay reseñas en esta categoría.' : 'No se encontraron reseñas.'}</div>`;
+    return;
+  }
+  const colorMap = { 5: '#27a663', 4: '#6fcf97', 3: '#E8610A', 2: '#e24b4a', 1: '#c0392b' };
+  list.innerHTML = reviews.map(r => {
+    const stars = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
+    const comment = r.comment
+      ? (r.comment.length > 180 ? sanitizeText(r.comment.slice(0, 177)) + '…' : sanitizeText(r.comment))
+      : '<em style="color:var(--text3)">Sin comentario escrito</em>';
+    const reviewer = sanitizeText(r.reviewer || 'Anónimo');
+    return `<div class="review-item">
+      <div class="review-header">
+        <span class="review-author">${reviewer}</span>
+        <span class="review-date">${r.date || ''}</span>
+      </div>
+      <div class="review-stars" style="color:${colorMap[r.stars]||'#f59e0b'}">${stars}</div>
+      <div class="review-comment">${comment}</div>
+      ${r.replied ? '<div class="review-replied">✓ Respondida</div>' : '<div style="font-size:10px;color:var(--text3);margin-top:3px">Sin respuesta</div>'}
+    </div>`;
+  }).join('');
 }
 
 // ── Helper: classify query type ───────────────────────────────────────────────
@@ -1485,6 +1698,100 @@ function render(D) {
     ct.innerHTML+=`<tr><td>${i+1}</td><td>${d.country}</td><td>${d.clicks.toLocaleString()}</td><td>${d.impressions.toLocaleString()}</td><td>${d.ctr.toFixed(2)}%</td><td>${d.position.toFixed(1)}</td><td>${opp}</td></tr>`;
   });
 
+  // ── PERIOD COMPARISON TABLE ────────────────────────────────────────────────
+  const compTbl = document.getElementById('period-comparison');
+  if (compTbl) {
+    const fmtNum = n => n > 999999 ? (n/1000000).toFixed(1)+'M' : n > 999 ? Math.round(n/1000)+'K' : n > 0 ? n.toLocaleString() : '—';
+    const fmtCtr = n => n > 0 ? n.toFixed(2)+'%' : '—';
+    const fmtPos = n => n > 0 ? n.toFixed(1) : '—';
+    // Daily rate for 7d vs daily rate for 28d comparison
+    const rate7  = s7.total_clicks;
+    const rate28d = s28.total_clicks > 0 ? s28.total_clicks / 4 : 0; // 28d / 4 = weekly equivalent
+    const delta = (a, b, invert) => {
+      if (!b || !a) return '<span class="delta-flat">—</span>';
+      const pct = ((a - b) / b * 100).toFixed(0);
+      const up = invert ? pct < 0 : pct > 0;
+      const cls = Math.abs(pct) < 3 ? 'delta-flat' : up ? 'delta-up' : 'delta-down';
+      const arrow = pct > 2 ? '▲' : pct < -2 ? '▼' : '→';
+      return `<span class="${cls}">${arrow} ${Math.abs(pct)}%</span>`;
+    };
+    const rows = [
+      { label: '🖱️ Clics', v7: fmtNum(s7.total_clicks), v28: fmtNum(s28.total_clicks), v6m: fmtNum(s.total_clicks), trend: delta(s7.total_clicks, rate28d, false) },
+      { label: '👁️ Impresiones', v7: fmtNum(s7.total_impressions), v28: fmtNum(s28.total_impressions), v6m: fmtNum(s.total_impressions), trend: delta(s7.total_impressions, s28.total_impressions/4, false) },
+      { label: '📊 CTR', v7: fmtCtr(s7.avg_ctr), v28: fmtCtr(s28.avg_ctr), v6m: fmtCtr(s.avg_ctr), trend: delta(s7.avg_ctr, s28.avg_ctr, false) },
+      { label: '📍 Posición Media', v7: fmtPos(s7.avg_position), v28: fmtPos(s28.avg_position), v6m: fmtPos(s.avg_position), trend: delta(s7.avg_position, s28.avg_position, true) },
+    ];
+    compTbl.innerHTML = rows.map(r =>
+      `<tr><td class="ct-metric">${r.label}</td><td style="text-align:right"><span class="ct-val">${r.v7}</span></td><td style="text-align:right"><span class="ct-val">${r.v28}</span></td><td style="text-align:right"><span class="ct-val">${r.v6m}</span></td><td style="text-align:right">${r.trend}</td></tr>`
+    ).join('');
+  }
+
+  // ── INTENT DISTRIBUTION DONUT ─────────────────────────────────────────────
+  const brandedQ    = D.queries.filter(q => queryType(q.query) === 'branded');
+  const commercialQ = D.queries.filter(q => queryType(q.query) === 'commercial');
+  const genericQ    = D.queries.filter(q => queryType(q.query) === 'generic');
+  const brandedClks = brandedQ.reduce((a,q)=>a+q.clicks,0);
+  const commClks    = commercialQ.reduce((a,q)=>a+q.clicks,0);
+  const genClks     = genericQ.reduce((a,q)=>a+q.clicks,0);
+
+  if (document.getElementById('intentChart')) {
+    mkChart('intentChart', {
+      type: 'doughnut',
+      data: {
+        labels: [`Branded (${brandedQ.length})`, `Comercial (${commercialQ.length})`, `Genérico (${genericQ.length})`],
+        datasets: [{ data: [brandedClks, commClks, genClks], backgroundColor: [O, GR, BL], borderWidth: 0, cutout: '60%' }]
+      },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: {size:10}, color: MU, padding: 8, boxWidth: 10 } },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()} clics` } } } }
+    });
+  }
+
+  // ── POSITION DISTRIBUTION ─────────────────────────────────────────────────
+  const pos1_3   = D.queries.filter(q => q.position <= 3);
+  const pos4_10  = D.queries.filter(q => q.position > 3  && q.position <= 10);
+  const pos11_20 = D.queries.filter(q => q.position > 10 && q.position <= 20);
+  const pos21p   = D.queries.filter(q => q.position > 20);
+  const totalQ   = D.queries.length || 1;
+  const buckets  = [
+    { label:'Top 3',  count:pos1_3.length,   clks:pos1_3.reduce((a,q)=>a+q.clicks,0),   color:GR },
+    { label:'4 – 10', count:pos4_10.length,  clks:pos4_10.reduce((a,q)=>a+q.clicks,0),  color:O },
+    { label:'11 – 20',count:pos11_20.length, clks:pos11_20.reduce((a,q)=>a+q.clicks,0), color:OL },
+    { label:'21 +',   count:pos21p.length,   clks:pos21p.reduce((a,q)=>a+q.clicks,0),   color:MU },
+  ];
+  const posGrid = document.getElementById('pos-dist-grid');
+  if (posGrid) {
+    posGrid.innerHTML = buckets.map(b => `
+      <div class="pos-bucket">
+        <div class="pos-bucket-val" style="color:${b.color}">${b.count}</div>
+        <div class="pos-bucket-label">Posición ${b.label}</div>
+        <div class="pos-bucket-pct">${Math.round(b.count/totalQ*100)}% queries</div>
+        <div class="pos-bucket-clicks">${b.clks.toLocaleString()} clics</div>
+      </div>`).join('');
+  }
+  if (document.getElementById('posDistChart')) {
+    mkChart('posDistChart', {
+      type: 'bar',
+      data: {
+        labels: buckets.map(b=>b.label),
+        datasets: [{
+          data: buckets.map(b=>b.count),
+          backgroundColor: buckets.map(b=>b.color), borderRadius: 4,
+        }]
+      },
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins: { legend:{display:false} },
+        scales: {
+          x: { ticks:{font:{size:10},color:MU}, grid:{display:false} },
+          y: { ticks:{font:{size:9},color:MU}, grid:{color:'rgba(0,0,0,0.05)'}, beginAtZero:true }
+        }
+      }
+    });
+  }
+
+  // ── INSIGHTS PAGE ─────────────────────────────────────────────────────────
+  renderInsights(D);
+
   // ── PROJECTION (static plan) ───────────────────────────────────────────────
   const base = s.avg_clicks_per_day * 30;
   const projBase = Array.from({length:12},(_,i)=>Math.round(base*(1+i*0.01)));
@@ -1580,6 +1887,115 @@ function renderHistoryCharts(){
   });
 }
 
+// ── Render Insights page ──────────────────────────────────────────────────────
+function renderInsights(D) {
+  const s = D.summary_6m;
+  // CTR opportunity pages: impr > 1000, ctr < 1%
+  const ctrOpps = D.pages
+    .filter(p => p.impressions > 1000 && p.ctr < 1)
+    .sort((a,b) => b.impressions - a.impressions)
+    .slice(0, 10);
+
+  const totalCtrImpr   = ctrOpps.reduce((a,p) => a+p.impressions, 0);
+  const totalCtrClicks = ctrOpps.reduce((a,p) => a+p.clicks, 0);
+  const ctrPotential   = Math.max(0, Math.round(totalCtrImpr * 0.03 - totalCtrClicks));
+
+  el('ins-kpi-ctr-pages', ctrOpps.length > 0 ? ctrOpps.length.toString() : '0');
+  el('ins-kpi-ctr-potential', ctrPotential > 0 ? '+'+ctrPotential.toLocaleString() : '—');
+
+  // Near-top queries: pos 4-10, impr > 200
+  const nearTop = D.queries
+    .filter(q => q.position > 3 && q.position <= 10 && q.impressions > 200)
+    .sort((a,b) => b.impressions - a.impressions)
+    .slice(0, 10);
+
+  el('ins-kpi-neartop', nearTop.length.toString());
+
+  // High CTR markets (>4%)
+  const highCTRMarkets = D.countries.filter(c => c.ctr > 4);
+  el('ins-kpi-markets', highCTRMarkets.length.toString());
+
+  // Zero-click queries
+  const zeroClik = D.queries.filter(q => q.clicks === 0 && q.impressions > 100).length;
+  el('ins-kpi-zeroclick', zeroClik.toString());
+
+  // Fill CTR table
+  const ctrTbl = document.getElementById('insights-ctr-table');
+  if (ctrTbl) {
+    ctrTbl.innerHTML = ctrOpps.length > 0 ? ctrOpps.map(p => {
+      const potential = Math.max(0, Math.round(p.impressions * 0.03 - p.clicks));
+      return `<tr>
+        <td class="cell-trunc" title="${sanitizeText(p.page)}">${shortPage(p.page)}</td>
+        <td>${p.impressions.toLocaleString()}</td>
+        <td style="color:var(--red);font-weight:700">${p.ctr.toFixed(2)}%</td>
+        <td style="color:var(--green);font-weight:700">+${potential.toLocaleString()}</td>
+      </tr>`;
+    }).join('')
+    : '<tr><td colspan="4"><div class="empty-state">Sin páginas con CTR muy bajo (¡buena señal!).</div></td></tr>';
+  }
+
+  // Fill near-top table
+  const nearTbl = document.getElementById('insights-neartop-table');
+  if (nearTbl) {
+    nearTbl.innerHTML = nearTop.length > 0 ? nearTop.map(q => {
+      const topRate = 0.12; // approximate CTR for top 3
+      const potential = Math.max(0, Math.round(q.impressions * topRate - q.clicks));
+      const qText = sanitizeText(q.query.length > 40 ? q.query.slice(0,38)+'…' : q.query);
+      return `<tr>
+        <td class="cell-trunc" title="${sanitizeText(q.query)}">${qText}</td>
+        <td style="color:var(--orange);font-weight:700">${q.position.toFixed(1)}</td>
+        <td>${q.impressions.toLocaleString()}</td>
+        <td style="color:var(--green);font-weight:700">+${potential > 0 ? potential.toLocaleString() : '—'}</td>
+      </tr>`;
+    }).join('')
+    : '<tr><td colspan="4"><div class="empty-state">Sin queries suficientes en esta posición.</div></td></tr>';
+  }
+
+  // Fill high CTR markets
+  const mktsEl = document.getElementById('insights-markets-list');
+  if (mktsEl) {
+    if (highCTRMarkets.length === 0) {
+      mktsEl.innerHTML = '<div class="empty-state">No se encontraron mercados con CTR mayor a 4%.</div>';
+    } else {
+      mktsEl.innerHTML = highCTRMarkets.sort((a,b)=>b.ctr-a.ctr).slice(0,8).map(c => `
+        <div class="funnel-step" style="padding:8px 0">
+          <div class="funnel-num" style="font-size:16px;min-width:60px">${c.ctr.toFixed(1)}%</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">${sanitizeText(c.country)}</div>
+            <div style="font-size:11px;color:var(--text3)">${c.impressions.toLocaleString()} impr. · ${c.clicks.toLocaleString()} clics · pos ${c.position.toFixed(1)}</div>
+          </div>
+          <div style="margin-left:auto"><span class="pill ${c.impressions < 5000 ? 'pill-green' : 'pill-blue'}">${c.impressions < 5000 ? 'Escalar' : 'Optimizar'}</span></div>
+        </div>`).join('');
+    }
+  }
+
+  // Insights intent chart (by clicks, not just query count)
+  if (document.getElementById('insightsIntentChart')) {
+    const bClk = D.queries.filter(q=>queryType(q.query)==='branded').reduce((a,q)=>a+q.clicks,0);
+    const cClk = D.queries.filter(q=>queryType(q.query)==='commercial').reduce((a,q)=>a+q.clicks,0);
+    const gClk = D.queries.filter(q=>queryType(q.query)==='generic').reduce((a,q)=>a+q.clicks,0);
+    mkChart('insightsIntentChart', {
+      type: 'bar',
+      data: {
+        labels: ['Branded', 'Comercial', 'Genérico'],
+        datasets: [{
+          label: 'Clics',
+          data: [bClk, cClk, gClk],
+          backgroundColor: [O, GR, BL], borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: {display:false} },
+        scales: {
+          x: { ticks:{font:{size:12},color:MU}, grid:{display:false} },
+          y: { ticks:{font:{size:10},color:MU,callback:v=>v.toLocaleString()}, grid:{color:'rgba(0,0,0,0.05)'} }
+        }
+      }
+    });
+  }
+}
+
 // ── Render GMB ────────────────────────────────────────────────────────────────
 function renderGMB(G) {
   if (!G) return;
@@ -1608,7 +2024,10 @@ function renderGMB(G) {
   const P = G.performance;
   if (P.views.total !== null) {
     el('gmb-kpi-views', P.views.total.toLocaleString());
-    el('gmb-views-split', `Maps: ${P.views.maps.toLocaleString()} · Search: ${P.views.search.toLocaleString()}`);
+    el('gmb-views-split', `Maps: ${(P.views.maps||0).toLocaleString()} · Search: ${(P.views.search||0).toLocaleString()}`);
+    el('gmb-views-maps',   (P.views.maps||0).toLocaleString());
+    el('gmb-views-search', (P.views.search||0).toLocaleString());
+    el('gmb-views-total-mini', P.views.total.toLocaleString());
   }
 
   // Actions
@@ -1616,33 +2035,40 @@ function renderGMB(G) {
     el('gmb-kpi-actions', P.actions.total.toLocaleString());
     el('gmb-actions-split',
       `${P.actions.calls} llamadas · ${P.actions.websiteClicks} clics · ${P.actions.directions} dirs`);
+    el('gmb-act-calls', (P.actions.calls||0).toLocaleString());
+    el('gmb-act-web',   (P.actions.websiteClicks||0).toLocaleString());
+    el('gmb-act-dirs',  (P.actions.directions||0).toLocaleString());
   }
 
-  // ── Views trend chart ─────────────────────────────────────────────────
+  // ── Views trend chart (Maps + Search split) ───────────────────────────────
   if (P.daily.length > 0) {
+    // Approximate split using total views and the overall ratio
+    const mapsRatio   = (P.views.total > 0 && P.views.maps   !== null) ? P.views.maps   / P.views.total : 0.5;
+    const searchRatio = (P.views.total > 0 && P.views.search !== null) ? P.views.search / P.views.total : 0.5;
     mkChart('gmbViewsChart', {
       type: 'line',
       data: {
-        labels: P.daily.map(d => d.date.slice(5)), // MM-DD
-        datasets: [{
-          label: 'Vistas', data: P.daily.map(d => d.views),
-          borderColor: O, backgroundColor: BG, fill: true, tension: 0.4, pointRadius: 2, borderWidth: 2,
-        }],
+        labels: P.daily.slice(-30).map(d => d.date.slice(5)),
+        datasets: [
+          {
+            label: 'Total Vistas', data: P.daily.slice(-30).map(d => d.views),
+            borderColor: O, backgroundColor: BG, fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2,
+          },
+        ],
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { ticks: { font: { size: 10 }, color: MU, maxTicksLimit: 10 }, grid: { display: false } },
+          x: { ticks: { font: { size: 9 }, color: MU, maxTicksLimit: 8 }, grid: { display: false } },
           y: { ticks: { font: { size: 10 }, color: MU }, grid: { color: 'rgba(0,0,0,0.05)' } },
         },
       },
     });
   } else {
-    // Placeholder chart
     mkChart('gmbViewsChart', {
       type: 'line',
-      data: { labels: ['No hay datos'], datasets: [{ data: [0], borderColor: '#ccc' }] },
+      data: { labels: ['Sin datos disponibles'], datasets: [{ data: [0], borderColor: '#ccc' }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
     });
   }
@@ -1673,6 +2099,22 @@ function renderGMB(G) {
 
   // ── Rating distribution chart ─────────────────────────────────────────
   const reviews = G.reviews || [];
+  allReviews = reviews; // store globally for filter tabs
+
+  // Update filter tab counts
+  const pos = reviews.filter(r => r.stars >= 4).length;
+  const neu = reviews.filter(r => r.stars === 3).length;
+  const neg = reviews.filter(r => r.stars <= 2).length;
+  el('rc-all', reviews.length > 0 ? `(${reviews.length})` : '');
+  el('rc-pos', pos > 0 ? `(${pos})` : '');
+  el('rc-neu', neu > 0 ? `(${neu})` : '');
+  el('rc-neg', neg > 0 ? `(${neg})` : '');
+
+  // Reply badge
+  const replied   = reviews.filter(r => r.replied).length;
+  const replyRate = reviews.length ? Math.round(replied / reviews.length * 100) : 0;
+  el('review-reply-badge', reviews.length ? `${replyRate}% respondidas (${replied}/${reviews.length})` : '');
+
   const dist = [5,4,3,2,1].map(s => reviews.filter(r => r.stars === s).length);
   const maxDist = Math.max(...dist, 1);
   mkChart('gmbRatingChart', {
@@ -1694,34 +2136,18 @@ function renderGMB(G) {
     },
   });
 
-  // Reply rate
-  const replied   = reviews.filter(r => r.replied).length;
-  const replyRate = reviews.length ? Math.round(replied / reviews.length * 100) : 0;
-  el('gmb-reply-rate', `Tasa de respuesta: ${replyRate}% (${replied}/${reviews.length} reseñas respondidas)`);
+  // Reply rate (moved to badge in header)
+  el('gmb-reply-rate', reviews.length
+    ? `Tasa de respuesta: ${replyRate}% (${replied}/${reviews.length} respondidas)`
+    : '');
 
-  // ── Reviews list ──────────────────────────────────────────────────────
-  const list = document.getElementById('gmb-reviews-list');
-  if (!list) return;
+  // ── Reviews list (uses global renderReviewsList) ──────────────────────
   if (!reviews.length) {
-    list.innerHTML = `<div class="empty-state">${G.configured ? 'No se encontraron reseñas.' : 'Conecta tu cuenta para ver reseñas reales.'}</div>`;
+    const list = document.getElementById('gmb-reviews-list');
+    if (list) list.innerHTML = `<div class="empty-state">${G.configured ? 'No se encontraron reseñas en esta cuenta.' : 'Conecta Google My Business para ver reseñas reales.'}</div>`;
     return;
   }
-  list.innerHTML = reviews.slice(0, 8).map(r => {
-    const stars    = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
-    const colorMap = { 5: '#f59e0b', 4: '#f59e0b', 3: '#E8610A', 2: '#e24b4a', 1: '#e24b4a' };
-    const comment  = r.comment
-      ? (r.comment.length > 140 ? r.comment.slice(0, 137) + '…' : r.comment)
-      : '<em style="color:var(--text3)">Sin comentario escrito</em>';
-    return `<div class="review-item">
-      <div class="review-header">
-        <span class="review-author">${r.reviewer || 'Anónimo'}</span>
-        <span class="review-date">${r.date || ''}</span>
-      </div>
-      <div class="review-stars" style="color:${colorMap[r.stars]||'#f59e0b'}">${stars}</div>
-      <div class="review-comment">${comment}</div>
-      ${r.replied ? '<div class="review-replied">✓ Respondida</div>' : ''}
-    </div>`;
-  }).join('');
+  renderReviewsList(reviews);
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
