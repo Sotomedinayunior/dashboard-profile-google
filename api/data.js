@@ -143,14 +143,23 @@ async function fetchGA4(auth, propertyId) {
   const date28D   = daysAgo(28);
   const date7D    = daysAgo(7);
 
+  // Primera llamada sin silenciar errores para detectar el problema real
+  const runFirst = async (body) => {
+    const r = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) });
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e?.error?.message || `GA4 HTTP ${r.status}`);
+    }
+    return r.json();
+  };
   const run = (body) =>
     fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(body) })
       .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e?.error?.message || 'GA4 error'); }))
       .catch(() => null);
 
   const [overview, channels, pages, devices, countries, daily7d, daily28d, daily6m] = await Promise.all([
-    // Overview totals (6 months)
-    run({
+    // Overview: usa runFirst para que el error sea visible
+    runFirst({
       dateRanges: [{ startDate: date6M, endDate: dateEnd }],
       metrics: [
         { name: 'sessions' }, { name: 'totalUsers' }, { name: 'newUsers' },
