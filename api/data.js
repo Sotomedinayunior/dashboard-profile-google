@@ -389,4 +389,12 @@ async function fetchGMB(auth, locationName) {
     reviewCount: isNaN(totalCount) ? null : totalCount,
     reviews,
     reviewsApiError: reviewsRes === null
-      ? `API de reseñas no
+      ? `API de reseñas norespondió. Location: ${locSegment}. Verifica en Vercel logs.`
+      : null,
+    performance: {
+      views:   { maps: mapsViews, search: searchViews, total: mapsViews+searchViews },
+      actions: { calls, websiteClicks: webClicks, directions: dirs, total: calls+webClicks+dirs },
+      daily:   Object.values(dailyIdx).sort((a,b) => a.date.localeCompare(b.date)),
+    },
+  };
+}
