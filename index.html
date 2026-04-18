@@ -320,6 +320,74 @@ html,body{overflow-x:hidden;width:100%}
 .gmb-metric{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
 .gmb-metric-val{font-family:var(--ffc);font-size:20px;font-weight:700;color:var(--text)}
 .gmb-metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}
+
+/* ── MOBILE NAV ───────────────────────────────────────────────── */
+.mobile-nav{display:none}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────── */
+@media(max-width:768px){
+  /* Layout */
+  .sidebar{display:none}
+  .main{margin-left:0;width:100%;padding:16px 14px 80px;min-height:100vh}
+
+  /* Bottom nav */
+  .mobile-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;z-index:200;
+    background:var(--darkbg);border-top:1px solid rgba(255,255,255,0.08);
+    padding:6px 0 env(safe-area-inset-bottom,6px);
+  }
+  .mobile-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:3px;padding:6px 2px;cursor:pointer;color:#666;transition:color 0.15s;
+    font-size:9px;font-weight:600;letter-spacing:0.3px;text-transform:uppercase;
+  }
+  .mobile-nav-item svg{width:20px;height:20px;flex-shrink:0}
+  .mobile-nav-item.active{color:var(--orange)}
+  .mobile-nav-item:active{opacity:0.7}
+
+  /* Header */
+  .page-header{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:16px}
+  .header-badge{font-size:10px;padding:4px 10px}
+  .page-title{font-size:20px}
+
+  /* KPI grids */
+  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}
+  .kpi-value{font-size:22px}
+
+  /* All multi-col grids → single col */
+  .grid-2,.grid-3,.grid-65{grid-template-columns:1fr;gap:12px;margin-bottom:14px}
+  .opp-grid{grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+
+  /* Cards */
+  .card{padding:14px 14px}
+
+  /* GMB metrics */
+  .gmb-metric-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .gmb-metric-val{font-size:16px}
+
+  /* Tables scroll */
+  .comparison-table-wrap,.table-wrap,table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* Charts taller on mobile */
+  .chart-wrap{height:auto!important}
+  .chart-wrap canvas{max-height:220px}
+
+  /* Position dist */
+  .pos-dist-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+  /* Alert banner */
+  .alert-banner{padding:12px 14px;gap:12px}
+  .alert-metrics{gap:16px}
+
+  /* GA4 bar rows */
+  .ga4-bar-label{min-width:70px!important;font-size:11px}
+}
+
+@media(max-width:420px){
+  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .main{padding:12px 10px 80px}
+  .page-title{font-size:18px}
+}
 </style>
 </head>
 <body>
@@ -341,28 +409,28 @@ html,body{overflow-x:hidden;width:100%}
   </div>
   <nav class="sidebar-nav">
     <div class="nav-label">Análisis</div>
-    <div class="nav-item active" onclick="showPage('overview',this)">
+    <div class="nav-item active" data-page="overview" onclick="showPage('overview',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
       Panorama General
     </div>
-    <div class="nav-item" onclick="showPage('seo',this)">
+    <div class="nav-item" data-page="seo" onclick="showPage('seo',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 10 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
       SEO & Queries
     </div>
-    <div class="nav-item" onclick="showPage('geo',this)">
+    <div class="nav-item" data-page="geo" onclick="showPage('geo',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="8" cy="8" rx="3" ry="6.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 8 h13" stroke="currentColor" stroke-width="1.2"/></svg>
       Geografía
     </div>
-    <div class="nav-item" onclick="showPage('gmb',this)">
+    <div class="nav-item" data-page="gmb" onclick="showPage('gmb',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2C5.24 2 3 4.24 3 7c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>
       Google Mi Negocio
     </div>
-    <div class="nav-item" onclick="showPage('analytics',this)">
+    <div class="nav-item" data-page="analytics" onclick="showPage('analytics',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 12h2V7H1v5zm4 0h2V4H5v8zm4 0h2V9H9v3zm4 0h2V2h-2v10z"/></svg>
       Analytics
     </div>
     <div class="nav-label">Estrategia</div>
-    <div class="nav-item" onclick="showPage('experiments',this)">
+    <div class="nav-item" data-page="experiments" onclick="showPage('experiments',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/><path d="M4.22 4.22l1.42 1.42M10.36 10.36l1.42 1.42M4.22 11.78l1.42-1.42M10.36 5.64l1.42-1.42"/></svg>
       Insights & Acciones
     </div>
@@ -982,6 +1050,35 @@ html,body{overflow-x:hidden;width:100%}
 </div>
 
 </main>
+
+<!-- MOBILE BOTTOM NAV -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-item active" onclick="showPage('overview',this)" data-page="overview">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+    General
+  </div>
+  <div class="mobile-nav-item" onclick="showPage('seo',this)" data-page="seo">
+    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 10 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    SEO
+  </div>
+  <div class="mobile-nav-item" onclick="showPage('geo',this)" data-page="geo">
+    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6.5" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="8" cy="8" rx="3" ry="6.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M1.5 8 h13" stroke="currentColor" stroke-width="1.2"/></svg>
+    Geo
+  </div>
+  <div class="mobile-nav-item" onclick="showPage('gmb',this)" data-page="gmb">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2C5.24 2 3 4.24 3 7c0 3.75 5 9 5 9s5-5.25 5-9c0-2.76-2.24-5-5-5z"/><circle cx="8" cy="7" r="1.5" fill="currentColor" stroke="none"/></svg>
+    Reseñas
+  </div>
+  <div class="mobile-nav-item" onclick="showPage('analytics',this)" data-page="analytics">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M1 12h2V7H1v5zm4 0h2V4H5v8zm4 0h2V9H9v3zm4 0h2V2h-2v10z"/></svg>
+    Analytics
+  </div>
+  <div class="mobile-nav-item" onclick="showPage('experiments',this)" data-page="experiments">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/></svg>
+    Insights
+  </div>
+</nav>
+
 </div>
 
 <script>
@@ -1260,8 +1357,16 @@ function pagePriority(ctr) {
 function showPage(name,el) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   el.classList.add('active');
+  // Sync the other nav (sidebar or mobile)
+  const isMobile = el.classList.contains('mobile-nav-item');
+  const selector = isMobile ? `.nav-item` : `.mobile-nav-item`;
+  document.querySelectorAll(selector).forEach(n=>{
+    if(n.dataset.page===name) n.classList.add('active');
+  });
+  window.scrollTo(0,0);
 }
 
 // ── Chart registry (for destroy on re-render) ─────────────────────────────────
