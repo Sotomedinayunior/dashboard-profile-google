@@ -1,33 +1,43 @@
 /**
  * api/data.js
- * POST /api/data
- * Body: { refreshToken, gscProperty, gmbLocation? }
+ * GET /api/data
  *
- * Fetches GSC + GMB data using the provided refresh token.
- * Only GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are needed as env vars.
+ * Fetches GSC + GMB + GA4 data using server-side environment variables.
+ * No login required — all credentials live in Vercel env vars.
+ *
+ * Required env vars:
+ *   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
+ *   GSC_PROPERTY  (e.g. https://nellyrac.do/)
+ *   GA4_PROPERTY_ID (e.g. properties/341199344)
  */
 const { google } = require('googleapis');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Cache-Control', 's-maxage=3600');
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Use POST' });
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Use GET' });
   }
 
-  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  const clientId     = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  const gscProperty  = process.env.GSC_PROPERTY;
+  const ga4Property  = process.env.GA4_PROPERTY_ID || null;
+  const gmbLocation  = process.env.GMB_LOCATION_NAME || null;
+
+  if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET no configurados en Vercel' });
   }
+  if (!refreshToken) {
+    return res.status(500).json({ error: 'GOOGLE_REFRESH_TOKEN no configurado en Vercel' });
+  }
+  if (!gscProperty) {
+    return res.status(500).json({ error: 'GSC_PROPERTY no configurado en Vercel' });
+  }
 
-  const { refreshToken, gscProperty, gmbLocation, ga4Property } = req.body || {};
-
-  if (!refreshToken) return res.status(400).json({ error: 'refreshToken requerido' });
-  if (!gscProperty)  return res.status(400).json({ error: 'gscProperty requerido' });
-
-  const auth = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-  );
+  const auth = new google.auth.OAuth2(clientId, clientSecret);
   auth.setCredentials({ refresh_token: refreshToken });
 
   const [gsc, gmb, ga4] = await Promise.allSettled([
@@ -379,12 +389,4 @@ async function fetchGMB(auth, locationName) {
     reviewCount: isNaN(totalCount) ? null : totalCount,
     reviews,
     reviewsApiError: reviewsRes === null
-      ? `API de reseñas no respondió. Location: ${locSegment}. Verifica en Vercel logs.`
-      : null,
-    performance: {
-      views:   { maps: mapsViews, search: searchViews, total: mapsViews+searchViews },
-      actions: { calls, websiteClicks: webClicks, directions: dirs, total: calls+webClicks+dirs },
-      daily:   Object.values(dailyIdx).sort((a,b) => a.date.localeCompare(b.date)),
-    },
-  };
-}
+      ? `API de reseñas no

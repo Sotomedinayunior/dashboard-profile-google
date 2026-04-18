@@ -323,95 +323,7 @@ html,body{overflow-x:hidden;width:100%}
 </style>
 </head>
 <body>
-<!-- =========== SETUP OVERLAY =========== -->
-<div id="setup-overlay" class="setup-overlay" style="display:none">
-  <div class="setup-card">
-
-    <div class="setup-logo">
-      <div class="setup-logo-text">Growth Dashboard</div>
-      <div class="setup-logo-sub">Powered by Google APIs</div>
-    </div>
-
-    <!-- Step dots -->
-    <div class="setup-steps">
-      <div class="setup-step-dot active" id="dot-1"></div>
-      <div class="setup-step-dot" id="dot-2"></div>
-      <div class="setup-step-dot" id="dot-3"></div>
-    </div>
-
-    <div id="setup-error" class="setup-error"></div>
-
-    <!-- STEP 1: URL del sitio -->
-    <div id="step-1" class="setup-step visible">
-      <div class="setup-label">Paso 1 de 3</div>
-      <div class="setup-title">¿Cuál es tu sitio web?</div>
-      <div class="setup-desc">Ingresa la URL de tu sitio. El dashboard cargará el logo, nombre y datos de Google Search Console y Google My Business automáticamente.</div>
-      <div class="setup-input-wrap">
-        <span class="setup-input-icon">🌐</span>
-        <input type="url" id="setup-url-input" class="setup-input" placeholder="https://dualsym.com" autocomplete="off" autocorrect="off" spellcheck="false">
-      </div>
-      <div id="setup-preview" class="setup-preview">
-        <img id="setup-favicon" class="setup-favicon" src="" alt="">
-        <div>
-          <div class="setup-site-name" id="setup-site-name-preview">—</div>
-          <div class="setup-site-url" id="setup-site-url-preview">—</div>
-        </div>
-      </div>
-      <button class="setup-btn" id="btn-step1" onclick="goStep2()">
-        Continuar →
-      </button>
-    </div>
-
-    <!-- STEP 2: Conectar Google -->
-    <div id="step-2" class="setup-step">
-      <div class="setup-label">Paso 2 de 3</div>
-      <div class="setup-title">Conecta tu cuenta Google</div>
-      <div class="setup-desc">Autoriza el acceso a Google Search Console y Google My Business. Solo necesitas hacerlo una vez — tus credenciales quedan guardadas en este navegador.</div>
-      <div id="setup-preview-2" class="setup-preview" style="margin-bottom:20px">
-        <img id="setup-favicon-2" class="setup-favicon" src="" alt="">
-        <div>
-          <div class="setup-site-name" id="setup-site-name-2">—</div>
-          <div class="setup-site-url" id="setup-site-url-2">—</div>
-        </div>
-      </div>
-      <button class="setup-btn" id="btn-connect-google" onclick="connectGoogle()">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
-        Conectar con Google
-      </button>
-      <button class="setup-btn setup-btn-secondary" onclick="goStep1()">← Cambiar sitio</button>
-    </div>
-
-    <!-- STEP 3: Confirmar propiedades -->
-    <div id="step-3" class="setup-step">
-      <div class="setup-label">Paso 3 de 3</div>
-      <div class="setup-title">Confirma tus propiedades</div>
-      <div class="setup-desc">Selecciona la propiedad de Search Console que corresponde a tu sitio.</div>
-
-      <div class="setup-section-label">Google Search Console</div>
-      <div id="gsc-list" class="setup-property-list">
-        <div style="color:#555;font-size:13px;padding:10px">Cargando propiedades…</div>
-      </div>
-
-      <div id="gmb-section" style="display:none">
-        <div class="setup-section-label">Google My Business (opcional)</div>
-        <div id="gmb-list" class="setup-property-list"></div>
-      </div>
-
-      <div id="ga4-section" style="display:none">
-        <div class="setup-section-label">Google Analytics 4 (opcional)</div>
-        <div id="ga4-list" class="setup-property-list"></div>
-      </div>
-
-      <button class="setup-btn" id="btn-finish" onclick="finishSetup()" disabled>
-        Comenzar →
-      </button>
-      <div class="setup-skip" onclick="skipGMB()">Omitir Google My Business por ahora</div>
-    </div>
-
-  </div>
-</div>
-
-<div class="app" id="app-main" style="display:none">
+<div class="app" id="app-main">
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -459,7 +371,7 @@ html,body{overflow-x:hidden;width:100%}
     <div class="sidebar-period" id="sidebar-status">
       <strong>Cargando…</strong>
     </div>
-    <span class="sidebar-reset" onclick="resetSetup()">⟳ Cambiar sitio / reconectar</span>
+    <span class="sidebar-reset" onclick="location.reload()" title="Recargar datos">⟳ Actualizar datos</span>
   </div>
 </aside>
 
@@ -1076,7 +988,7 @@ html,body{overflow-x:hidden;width:100%}
 const O='#E8610A',OL='#F9A36A',DK='#3A3A3A',BL='#378ADD',GR='#27a663',MU='#999',BG='rgba(232,97,10,0.08)';
 
 // ── Local storage keys ────────────────────────────────────────────────────────
-const LS = { rt:'g_rt', site:'g_site', gsc:'g_gsc', gmb:'g_gmb', name:'g_name', ga4:'g_ga4' };
+const LS = { rt:'g_rt', site:'g_site', gsc:'g_gsc', gmb:'g_gmb', name:'g_name', ga4:'g_ga4', pid:'g_pid' };
 const ls = { get: k => localStorage.getItem(k), set: (k,v) => localStorage.setItem(k,v), del: k => localStorage.removeItem(k) };
 
 // ── Site config (derived from localStorage) ───────────────────────────────────
@@ -1202,7 +1114,7 @@ function finishSetup(){
   ls.set(LS.name,nameFromUrl(ls.get(LS.site)||selectedGSC));
   history.replaceState({},'','/'); bootDashboard();
 }
-function resetSetup(){[LS.rt,LS.site,LS.gsc,LS.gmb,LS.name,LS.ga4].forEach(k=>ls.del(k));window.location.reload();}
+function resetSetup(){[LS.rt,LS.site,LS.gsc,LS.gmb,LS.name,LS.ga4,LS.pid].forEach(k=>ls.del(k));window.location.reload();}
 function showSetupError(msg){const e=document.getElementById('setup-error');if(e){e.textContent=msg;e.classList.add('visible');}}
 function clearSetupError(){const e=document.getElementById('setup-error');if(e)e.classList.remove('visible');}
 
@@ -1226,29 +1138,32 @@ function initURLInput() {
 
 // ── Apply stored config to dashboard UI ───────────────────────────────────────
 function applyStoredConfig() {
-  const name=ls.get(LS.name)||nameFromUrl(ls.get(LS.site)||'');
-  const site=ls.get(LS.site)||'', gsc=ls.get(LS.gsc)||'';
-  SITE_CONFIG={siteName:name,siteUrl:site,gscProperty:gsc,configured:true,gmbConfigured:!!ls.get(LS.gmb)};
-  el('logo-site-name',name.length>10?name.slice(0,10):name);
-  document.getElementById('page-title').textContent=name+' — Growth Dashboard';
-  const badge=document.getElementById('overview-badge');
-  if(badge){badge.textContent='● Datos en vivo';badge.style.color='#27a663';}
-  const sb=document.getElementById('sidebar-status');
-  if(sb) sb.innerHTML=`<strong>${name}</strong>${site?site.replace(/^https?:\/\//,''):gsc}`;
-  if(site){try{
-    const domain=new URL(site).hostname;
-    const svg=document.querySelector('.logo-wrap svg');
-    if(svg){const img=document.createElement('img');img.src=`https://www.google.com/s2/favicons?domain=${domain}&sz=64`;img.style.cssText='width:32px;height:32px;border-radius:6px;object-fit:contain';img.onerror=()=>img.remove();svg.replaceWith(img);}
-  }catch{}}
+  const name = 'Nelly RAC';
+  const site = 'https://nellyrac.do';
+  SITE_CONFIG = { siteName: name, siteUrl: site, gscProperty: site+'/', configured: true, gmbConfigured: true };
+  el('logo-site-name', 'Nelly RAC');
+  document.getElementById('page-title').textContent = 'Nelly RAC — Growth Dashboard';
+  const badge = document.getElementById('overview-badge');
+  if (badge) { badge.textContent = '● Datos en vivo'; badge.style.color = '#27a663'; }
+  const sb = document.getElementById('sidebar-status');
+  if (sb) sb.innerHTML = `<strong>${name}</strong> nellyrac.do`;
+  try {
+    const svg = document.querySelector('.logo-wrap svg');
+    if (svg) {
+      const img = document.createElement('img');
+      img.src = `https://www.google.com/s2/favicons?domain=nellyrac.do&sz=64`;
+      img.style.cssText = 'width:32px;height:32px;border-radius:6px;object-fit:contain';
+      img.onerror = () => img.remove();
+      svg.replaceWith(img);
+    }
+  } catch {}
 }
 
 // ── Load data via POST /api/data ──────────────────────────────────────────────
 async function loadData() {
-  const rt=ls.get(LS.rt), gsc=ls.get(LS.gsc), gmb=ls.get(LS.gmb)||null, ga4=ls.get(LS.ga4)||null;
   const empty={...FALLBACK,gmb:{configured:false,rating:null,reviewCount:null,reviews:[],performance:{views:{maps:null,search:null,total:null},actions:{calls:null,websiteClicks:null,directions:null,total:null},daily:[]}},ga4:null};
-  if(!rt||!gsc) return empty;
   try{
-    const r=await fetch('/api/data',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:rt,gscProperty:gsc,gmbLocation:gmb,ga4Property:ga4})});
+    const r=await fetch('/api/data');
     if(!r.ok){const e=await r.json();throw new Error(e.error||r.status);}
     return await r.json();
   }catch(e){console.error('Error cargando datos:',e.message);return empty;}
@@ -2061,6 +1976,69 @@ function renderGMB(G) {
   renderReviewsList(reviews);
 }
 
+// ── SerpAPI Reviews ───────────────────────────────────────────────────────────
+async function loadReviews() {
+  const pid = ls.get(LS.pid);
+  if (!pid) return null;
+  try {
+    const r = await fetch(`/api/reviews?place_id=${encodeURIComponent(pid)}`);
+    if (!r.ok) { const e=await r.json(); throw new Error(e.error||r.status); }
+    return await r.json();
+  } catch(e) { console.error('[Reviews]', e.message); return { error: e.message }; }
+}
+
+function renderSerpReviews(data) {
+  // Update KPI cards
+  if (data && data.ok) {
+    const v = n => n != null ? String(n) : '—';
+    el('gmb-kpi-rating',  data.avgRating ? data.avgRating.toFixed(1) : '—');
+    el('gmb-kpi-stars',   data.avgRating ? '★'.repeat(Math.round(data.avgRating))+'☆'.repeat(5-Math.round(data.avgRating)) : '— estrellas');
+    el('gmb-kpi-reviews', v(data.total));
+
+    // Reply rate badge
+    const badge = document.getElementById('review-reply-badge');
+    if (badge) badge.textContent = `Respondidas: ${data.replyRate}%`;
+
+    // Review count tabs
+    const reviews = data.reviews || [];
+    const pos = reviews.filter(r=>r.stars>=4).length;
+    const neu = reviews.filter(r=>r.stars===3).length;
+    const neg = reviews.filter(r=>r.stars<=2).length;
+    el('rc-all', String(reviews.length));
+    el('rc-pos', String(pos));
+    el('rc-neu', String(neu));
+    el('rc-neg', String(neg));
+
+    // Rating distribution chart
+    const dist = data.distribution || [];
+    mkChart('gmbRatingChart', {
+      type: 'bar',
+      data: {
+        labels: ['1★','2★','3★','4★','5★'],
+        datasets:[{ data: dist.map(d=>d.count), backgroundColor:[O,O,O,O,O], borderRadius:4, borderWidth:0 }],
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{
+          x:{ ticks:{font:{size:10},color:MU}, grid:{color:'rgba(0,0,0,0.05)'} },
+          y:{ ticks:{font:{size:12},color:MU}, grid:{display:false} },
+        },
+      },
+    });
+
+    el('gmb-reply-rate', `Tasa de respuesta: ${data.replyRate}% (${reviews.filter(r=>r.replied).length}/${reviews.length} respondidas)`);
+
+    // Render reviews list
+    allReviews = reviews;
+    renderReviewsList(reviews);
+  } else {
+    const msg = data?.error || 'Error cargando reseñas';
+    const list = document.getElementById('gmb-reviews-list');
+    if (list) list.innerHTML = `<div style="padding:14px;background:#2a1515;border:1px solid #5c1a1a;border-radius:8px;font-size:12px;color:#f87171;line-height:1.6">⚠️ ${msg}</div>`;
+  }
+}
+
 // ── GA4 chart state ───────────────────────────────────────────────────────────
 let GA4_DATA = null;
 let ga4SessionsChartInst = null;
@@ -2186,35 +2164,14 @@ function renderGA4(G) {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 async function bootDashboard() {
   applyStoredConfig();
-  showApp();
-  const D = await loadData();
+  const [D, reviews] = await Promise.all([loadData(), loadReviews()]);
   render(D);
   renderGMB(D.gmb || null);
   renderGA4(D.ga4 || null);
+  if (reviews) renderSerpReviews(reviews);
 }
 
-(async function init() {
-  initURLInput();
-  const step = new URLSearchParams(location.search).get('step');
-  const rt   = ls.get(LS.rt);
-  const gsc  = ls.get(LS.gsc);
-
-  if (step === 'discover' && rt) {
-    // Returning from OAuth — show setup step 3
-    showSetup();
-    await runDiscoverStep();
-  } else if (rt && gsc) {
-    // Already configured — go straight to dashboard
-    bootDashboard();
-  } else {
-    // First time — show setup
-    showSetup();
-    if (rt && !gsc) {
-      // Has token but no property selected yet
-      await runDiscoverStep();
-    }
-  }
-})();
+bootDashboard();
 </script>
 </body>
 </html>
