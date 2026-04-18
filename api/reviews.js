@@ -26,15 +26,18 @@ module.exports = async function handler(req, res) {
     let page = 0;
 
     while (page < MAX_PAGES) {
-      const params = new URLSearchParams({
+        const params = new URLSearchParams({
         engine:       'google_maps_reviews',
         place_id:     placeId,
         api_key:      apiKey,
         hl:           'es',
         sort_by:      'newestFirst',
-        num:          '20',
       });
-      if (nextPageToken) params.set('next_page_token', nextPageToken);
+      // num solo funciona en páginas 2+ (cuando hay next_page_token)
+      if (nextPageToken) {
+        params.set('next_page_token', nextPageToken);
+        params.set('num', '20');
+      }
 
       const r = await fetch(`https://serpapi.com/search.json?${params}`);
       if (!r.ok) {
