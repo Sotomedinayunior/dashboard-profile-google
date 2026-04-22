@@ -265,6 +265,23 @@ html,body{overflow-x:hidden;width:100%}
   .form-grid{grid-template-columns:minmax(0,1fr)}
 }
 
+/* ── LOCATION TABS ────────────────────────────────────────────── */
+.loc-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.loc-tab{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.15s;font-family:var(--ff)}
+.loc-tab:hover{border-color:var(--orange);color:var(--orange)}
+.loc-tab.active{background:var(--darkbg);color:#fff;border-color:var(--darkbg)}
+.loc-tab-rating{font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;background:rgba(255,255,255,0.12);color:#fff;margin-left:2px}
+.loc-tab:not(.active) .loc-tab-rating{background:var(--surface2);color:var(--orange)}
+.loc-tab-count{font-size:10px;color:inherit;opacity:0.7;margin-left:1px}
+
+/* ── REVIEWS KPI ROW ──────────────────────────────────────────── */
+.reviews-kpi-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.rev-kpi{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px;text-align:center;border:1px solid var(--border)}
+.rev-kpi-val{font-family:var(--ffc);font-size:22px;font-weight:700;line-height:1;color:var(--text)}
+.rev-kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:0.7px;color:var(--text3);margin-top:3px}
+.rev-kpi-neg .rev-kpi-val{color:var(--red)}
+.rev-kpi-pos .rev-kpi-val{color:var(--green)}
+
 /* ── REVIEW FILTER TABS ───────────────────────────────────────── */
 .review-filter-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .rf-tab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.15s;font-family:var(--ff)}
@@ -1028,26 +1045,100 @@ html,body{overflow-x:hidden;width:100%}
     </div>
   </div>
 
-  <div class="grid-2">
-    <div class="card">
-      <div class="card-header-flex">
-        <div class="card-title">Reseñas de Clientes</div>
-        <div id="review-reply-badge" style="font-size:11px;color:var(--text3)"></div>
+  <!-- ── REVIEWS SECTION ───────────────────────────────────────── -->
+  <div class="card" style="margin-top:4px">
+    <div class="card-header-flex" style="margin-bottom:12px">
+      <div class="card-title">Reseñas por Sucursal</div>
+      <button onclick="reloadCurrentLocation()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--ff)">⟳ Actualizar</button>
+    </div>
+
+    <!-- Location tabs -->
+    <div class="loc-tabs" id="loc-tabs">
+      <button class="loc-tab active" data-locid="all" onclick="switchLocation('all',this)">
+        🗺️ Todas las Sucursales
+        <span class="loc-tab-rating" id="lt-rating-all">—</span>
+      </button>
+      <button class="loc-tab" data-locid="independencia" onclick="switchLocation('independencia',this)">
+        🏢 Independencia
+        <span class="loc-tab-rating" id="lt-rating-independencia">—</span>
+        <span class="loc-tab-count" id="lt-count-independencia"></span>
+      </button>
+      <button class="loc-tab" data-locid="santiago" onclick="switchLocation('santiago',this)">
+        ✈️ Santiago
+        <span class="loc-tab-rating" id="lt-rating-santiago">—</span>
+        <span class="loc-tab-count" id="lt-count-santiago"></span>
+      </button>
+      <button class="loc-tab" data-locid="puertoplata" onclick="switchLocation('puertoplata',this)">
+        🌊 Pto. Plata
+        <span class="loc-tab-rating" id="lt-rating-puertoplata">—</span>
+        <span class="loc-tab-count" id="lt-count-puertoplata"></span>
+      </button>
+      <button class="loc-tab" data-locid="puntacana" onclick="switchLocation('puntacana',this)">
+        🌴 Punta Cana
+        <span class="loc-tab-rating" id="lt-rating-puntacana">—</span>
+        <span class="loc-tab-count" id="lt-count-puntacana"></span>
+      </button>
+      <button class="loc-tab" data-locid="bocachica" onclick="switchLocation('bocachica',this)">
+        🏖️ Boca Chica
+        <span class="loc-tab-rating" id="lt-rating-bocachica">—</span>
+        <span class="loc-tab-count" id="lt-count-bocachica"></span>
+      </button>
+    </div>
+
+    <!-- KPI row -->
+    <div class="reviews-kpi-row" id="reviews-kpi-row">
+      <div class="rev-kpi">
+        <div class="rev-kpi-val" id="rev-kpi-rating">—</div>
+        <div class="rev-kpi-label">⭐ Calificación</div>
       </div>
-      <div class="review-filter-tabs">
-        <button class="rf-tab active" onclick="filterReviews('all',this)">Todas <span class="rf-count" id="rc-all"></span></button>
-        <button class="rf-tab" onclick="filterReviews('positive',this)">Positivas 4-5⭐ <span class="rf-count" id="rc-pos"></span></button>
-        <button class="rf-tab" onclick="filterReviews('neutral',this)">Neutrales 3⭐ <span class="rf-count" id="rc-neu"></span></button>
-        <button class="rf-tab" onclick="filterReviews('negative',this)">Negativas 1-2⭐ <span class="rf-count" id="rc-neg"></span></button>
+      <div class="rev-kpi">
+        <div class="rev-kpi-val" id="rev-kpi-total">—</div>
+        <div class="rev-kpi-label">Total Reseñas</div>
       </div>
-      <div id="gmb-reviews-list">
-        <div class="empty-state">Cargando reseñas…</div>
+      <div class="rev-kpi rev-kpi-neg">
+        <div class="rev-kpi-val" id="rev-kpi-negative">—</div>
+        <div class="rev-kpi-label">🔴 Negativas 1-2★</div>
+      </div>
+      <div class="rev-kpi rev-kpi-pos">
+        <div class="rev-kpi-val" id="rev-kpi-positive">—</div>
+        <div class="rev-kpi-label">🟢 Positivas 4-5★</div>
+      </div>
+      <div class="rev-kpi">
+        <div class="rev-kpi-val" id="rev-kpi-replied">—</div>
+        <div class="rev-kpi-label">💬 % Respondidas</div>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">Distribución de Calificaciones</div>
-      <div class="chart-wrap" style="height:200px"><canvas id="gmbRatingChart"></canvas></div>
-      <div id="gmb-reply-rate" style="margin-top:14px;font-size:12px;color:var(--text2);text-align:center"></div>
+
+    <div class="grid-65" style="margin-bottom:4px">
+      <!-- Reviews list -->
+      <div>
+        <!-- Star filters -->
+        <div class="review-filter-tabs" id="star-filter-tabs">
+          <button class="rf-tab active" onclick="filterByStars('all',this)">Todas <span class="rf-count" id="sfc-all"></span></button>
+          <button class="rf-tab" onclick="filterByStars(5,this)">5★ <span class="rf-count" id="sfc-5"></span></button>
+          <button class="rf-tab" onclick="filterByStars(4,this)">4★ <span class="rf-count" id="sfc-4"></span></button>
+          <button class="rf-tab" onclick="filterByStars(3,this)">3★ <span class="rf-count" id="sfc-3"></span></button>
+          <button class="rf-tab" onclick="filterByStars(2,this)" style="color:var(--orange)">2★ <span class="rf-count" id="sfc-2"></span></button>
+          <button class="rf-tab" onclick="filterByStars(1,this)" style="color:var(--red)">1★ <span class="rf-count" id="sfc-1"></span></button>
+        </div>
+        <div id="gmb-reviews-list" style="max-height:520px;overflow-y:auto;padding-right:4px">
+          <div class="empty-state">Cargando reseñas…</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center" id="reviews-load-more-wrap" style="display:none">
+          <button id="reviews-load-more" onclick="loadFullLocation()" style="background:none;border:1px solid var(--border2);padding:6px 16px;border-radius:20px;font-size:11px;cursor:pointer;color:var(--text2);font-family:var(--ff)">
+            ↓ Cargar todas las reseñas de esta sucursal
+          </button>
+        </div>
+      </div>
+
+      <!-- Rating chart -->
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:12px" id="rev-chart-title">Distribución Global</div>
+        <div id="rev-dist-bars"></div>
+        <div style="margin-top:16px">
+          <div class="chart-wrap" style="height:140px"><canvas id="gmbRatingChart"></canvas></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1813,42 +1904,222 @@ function sanitizeText(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Global reviews store ──────────────────────────────────────────────────────
-let allReviews = [];
+// ── Reviews multi-location state ──────────────────────────────────────────────
+const REVIEW_LOCATIONS = [
+  { id: 'independencia', name: 'Independencia',    placeId: 'ChIJPRzgUXlipY4RTFpdm7Gtz2M' },
+  { id: 'santiago',      name: 'Santiago · Cibao', placeId: 'ChIJBUNVazXRsY4R76jNG9B5mUQ' },
+  { id: 'puertoplata',   name: 'Puerto Plata',      placeId: 'ChIJNSahrlDksY4RdDGaHelddiY' },
+  { id: 'puntacana',     name: 'Punta Cana',        placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
+  { id: 'bocachica',     name: 'Boca Chica',        placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
+];
+let _reviewsState = {
+  currentLocId: 'all',  // 'all' | location id
+  allData: null,        // full response from /api/reviews (mode=all)
+  cache: {},            // placeId → full location data
+  visibleReviews: [],   // currently displayed (before star filter)
+  starFilter: 'all',    // 'all' | 1..5
+};
 
-// ── Review filter tabs ────────────────────────────────────────────────────────
-function filterReviews(type, btn) {
-  document.querySelectorAll('.rf-tab').forEach(t => t.classList.remove('active'));
+// ── Switch location tab ───────────────────────────────────────────────────────
+async function switchLocation(locId, btn) {
+  document.querySelectorAll('.loc-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  let filtered = allReviews;
-  if (type === 'positive') filtered = allReviews.filter(r => r.stars >= 4);
-  else if (type === 'neutral') filtered = allReviews.filter(r => r.stars === 3);
-  else if (type === 'negative') filtered = allReviews.filter(r => r.stars <= 2);
+  _reviewsState.currentLocId = locId;
+  _reviewsState.starFilter = 'all';
+
+  // Reset star filter UI
+  document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('#star-filter-tabs .rf-tab').classList.add('active');
+
+  if (locId === 'all') {
+    const data = _reviewsState.allData;
+    if (!data) return;
+    // merge all reviews from summary data
+    const merged = (data.locations || []).flatMap(l =>
+      (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: l.name }))
+    );
+    updateReviewsKPIs(data.global);
+    updateRevChart(data.global);
+    updateRevDistBars(data.global, 'Todas las Sucursales');
+    setVisibleReviews(merged);
+    hideLoadMore();
+  } else {
+    const loc = REVIEW_LOCATIONS.find(l => l.id === locId);
+    if (!loc) return;
+
+    // Check if we have full data cached
+    if (_reviewsState.cache[loc.placeId]) {
+      applyLocationData(locId, _reviewsState.cache[loc.placeId]);
+      return;
+    }
+
+    // Use summary data if available
+    const summaryLoc = _reviewsState.allData?.locations?.find(l => l.id === locId);
+    if (summaryLoc) {
+      applyLocationData(locId, summaryLoc);
+      showLoadMore();
+      return;
+    }
+
+    // Fetch fresh
+    await loadFullLocation(loc.placeId, locId);
+  }
+}
+
+function applyLocationData(locId, locData) {
+  const reviews = locData.reviews || [];
+  updateReviewsKPIs(locData);
+  updateRevChart(locData);
+  updateRevDistBars(locData, locData.name || locId);
+  setVisibleReviews(reviews.map(r => ({ ...r, _locId: locId, _locName: locData.name })));
+}
+
+async function loadFullLocation(placeId, locId) {
+  if (!placeId) {
+    const loc = REVIEW_LOCATIONS.find(l => l.id === (locId || _reviewsState.currentLocId));
+    if (!loc) return;
+    placeId = loc.placeId;
+    locId   = loc.id;
+  }
+
+  const list = document.getElementById('gmb-reviews-list');
+  list.innerHTML = `<div class="empty-state" style="padding:30px">⏳ Cargando reseñas…</div>`;
+  hideLoadMore();
+
+  try {
+    const r = await fetch(`/api/reviews?place_id=${placeId}`);
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error);
+    _reviewsState.cache[placeId] = data;
+    applyLocationData(locId, data);
+  } catch(e) {
+    list.innerHTML = `<div style="padding:14px;background:#fcebeb;border-radius:8px;font-size:12px;color:var(--red)">⚠️ ${e.message}</div>`;
+  }
+}
+
+async function reloadCurrentLocation() {
+  const locId = _reviewsState.currentLocId;
+  if (locId === 'all') {
+    const data = await loadReviews();
+    if (data?.ok) renderSerpReviews(data);
+  } else {
+    const loc = REVIEW_LOCATIONS.find(l => l.id === locId);
+    if (loc) {
+      delete _reviewsState.cache[loc.placeId];
+      await loadFullLocation(loc.placeId, loc.id);
+    }
+  }
+}
+
+// ── Star filter ───────────────────────────────────────────────────────────────
+function filterByStars(stars, btn) {
+  document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  _reviewsState.starFilter = stars;
+  const base = _reviewsState.visibleReviews;
+  const filtered = stars === 'all' ? base : base.filter(r => r.stars === stars);
   renderReviewsList(filtered);
+}
+
+function setVisibleReviews(reviews) {
+  _reviewsState.visibleReviews = reviews;
+  _reviewsState.starFilter = 'all';
+
+  // Update star filter counts
+  const safe = n => { const el = document.getElementById(n); if (el) el.textContent = ''; };
+  const setfc = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n || ''; };
+  setfc('sfc-all', reviews.length);
+  [1,2,3,4,5].forEach(s => setfc(`sfc-${s}`, reviews.filter(r => r.stars === s).length));
+
+  renderReviewsList(reviews);
+}
+
+function showLoadMore()  { const w = document.getElementById('reviews-load-more-wrap'); if (w) w.style.display = 'block'; }
+function hideLoadMore()  { const w = document.getElementById('reviews-load-more-wrap'); if (w) w.style.display = 'none'; }
+
+// ── Update KPI row ────────────────────────────────────────────────────────────
+function updateReviewsKPIs(stats) {
+  if (!stats) return;
+  const s = n => n != null ? String(n) : '—';
+  el('rev-kpi-rating',   stats.avgRating ? stats.avgRating.toFixed(1) + ' ★' : '—');
+  el('rev-kpi-total',    s(stats.total));
+  el('rev-kpi-negative', s(stats.negative));
+  el('rev-kpi-positive', s(stats.positive));
+  el('rev-kpi-replied',  stats.replyRate != null ? stats.replyRate + '%' : '—');
+}
+
+// ── Rating distribution bars ──────────────────────────────────────────────────
+function updateRevDistBars(stats, label) {
+  const el2 = document.getElementById('rev-dist-bars');
+  const tit = document.getElementById('rev-chart-title');
+  if (tit) tit.textContent = label || '';
+  if (!el2 || !stats?.distribution) return;
+  const d = stats.distribution;
+  const max = Math.max(...[1,2,3,4,5].map(s => d[s] || 0), 1);
+  el2.innerHTML = [5,4,3,2,1].map(s => {
+    const count = d[s] || 0;
+    const pct   = Math.round(count / max * 100);
+    const color = s >= 4 ? 'var(--green)' : s === 3 ? 'var(--orange)' : 'var(--red)';
+    return `<div class="star-row">
+      <div class="star-label" style="color:${color};font-weight:700">${s}★</div>
+      <div class="star-bar-wrap"><div class="star-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="star-count">${count}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Rating donut chart ────────────────────────────────────────────────────────
+function updateRevChart(stats) {
+  if (!stats?.distribution) return;
+  const d = stats.distribution;
+  mkChart('gmbRatingChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['5★','4★','3★','2★','1★'],
+      datasets: [{ data:[d[5]||0,d[4]||0,d[3]||0,d[2]||0,d[1]||0],
+        backgroundColor:['#27a663','#8bc34a',O,'#ff9800','#e24b4a'],
+        borderWidth:2, borderColor:'#fff', hoverOffset:4 }],
+    },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ font:{size:10}, padding:8 } } } },
+  });
 }
 
 function renderReviewsList(reviews) {
   const list = document.getElementById('gmb-reviews-list');
   if (!list) return;
   if (!reviews.length) {
-    list.innerHTML = `<div class="empty-state">${allReviews.length ? 'No hay reseñas en esta categoría.' : 'No se encontraron reseñas.'}</div>`;
+    list.innerHTML = `<div class="empty-state" style="padding:24px">No hay reseñas en esta selección.</div>`;
     return;
   }
-  const colorMap = { 5: '#27a663', 4: '#6fcf97', 3: '#E8610A', 2: '#e24b4a', 1: '#c0392b' };
+  const colorMap = { 5:'#27a663', 4:'#6fcf97', 3:'#E8610A', 2:'#e24b4a', 1:'#c0392b' };
+  const locNames = { independencia:'🏢 Independencia', santiago:'✈️ Santiago', puertoplata:'🌊 Pto. Plata', puntacana:'🌴 Punta Cana', bocachica:'🏖️ Boca Chica' };
+  const showLoc = _reviewsState.currentLocId === 'all';
+
   list.innerHTML = reviews.map(r => {
-    const stars = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
+    const stars   = '★'.repeat(r.stars) + '☆'.repeat(5 - r.stars);
     const comment = r.comment
-      ? (r.comment.length > 180 ? sanitizeText(r.comment.slice(0, 177)) + '…' : sanitizeText(r.comment))
+      ? (r.comment.length > 200 ? sanitizeText(r.comment.slice(0,197)) + '…' : sanitizeText(r.comment))
       : '<em style="color:var(--text3)">Sin comentario escrito</em>';
-    const reviewer = sanitizeText(r.reviewer || 'Anónimo');
+    const starColor = colorMap[r.stars] || '#f59e0b';
+    const locBadge  = showLoc && r._locId
+      ? `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text3);margin-left:6px">${locNames[r._locId]||r._locName||''}</span>`
+      : '';
+    const replyBadge = r.replied
+      ? `<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:4px">✓ Respondida por el negocio</div>`
+      : `<div style="font-size:10px;color:var(--text3);margin-top:4px">⚠️ Sin respuesta aún</div>`;
+
     return `<div class="review-item">
       <div class="review-header">
-        <span class="review-author">${reviewer}</span>
-        <span class="review-date">${r.date || ''}</span>
+        <span style="display:flex;align-items:center;flex-wrap:wrap;gap:2px">
+          <span class="review-author">${sanitizeText(r.reviewer||'Anónimo')}</span>
+          ${locBadge}
+        </span>
+        <span class="review-date">${r.date||''}</span>
       </div>
-      <div class="review-stars" style="color:${colorMap[r.stars]||'#f59e0b'}">${stars}</div>
+      <div class="review-stars" style="color:${starColor};font-size:15px;letter-spacing:2px;margin-bottom:5px">${stars}</div>
       <div class="review-comment">${comment}</div>
-      ${r.replied ? '<div class="review-replied">✓ Respondida</div>' : '<div style="font-size:10px;color:var(--text3);margin-top:3px">Sin respuesta</div>'}
+      ${replyBadge}
     </div>`;
   }).join('');
 }
@@ -2627,61 +2898,52 @@ function renderGMB(G) {
 async function loadReviews() {
   try {
     const r = await fetch('/api/reviews');
-    if (!r.ok) { const e=await r.json(); throw new Error(e.error||r.status); }
+    if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.error || r.status); }
     return await r.json();
-  } catch(e) { console.error('[Reviews]', e.message); return { error: e.message }; }
+  } catch(e) { console.error('[Reviews]', e.message); return { ok: false, error: e.message }; }
 }
 
 function renderSerpReviews(data) {
-  // Update KPI cards
-  if (data && data.ok) {
-    const v = n => n != null ? String(n) : '—';
-    el('gmb-kpi-rating',  data.avgRating ? data.avgRating.toFixed(1) : '—');
-    el('gmb-kpi-stars',   data.avgRating ? '★'.repeat(Math.round(data.avgRating))+'☆'.repeat(5-Math.round(data.avgRating)) : '— estrellas');
-    el('gmb-kpi-reviews', v(data.total));
-
-    // Reply rate badge
-    const badge = document.getElementById('review-reply-badge');
-    if (badge) badge.textContent = `Respondidas: ${data.replyRate}%`;
-
-    // Review count tabs
-    const reviews = data.reviews || [];
-    const pos = reviews.filter(r=>r.stars>=4).length;
-    const neu = reviews.filter(r=>r.stars===3).length;
-    const neg = reviews.filter(r=>r.stars<=2).length;
-    el('rc-all', String(reviews.length));
-    el('rc-pos', String(pos));
-    el('rc-neu', String(neu));
-    el('rc-neg', String(neg));
-
-    // Rating distribution chart
-    const dist = data.distribution || [];
-    mkChart('gmbRatingChart', {
-      type: 'bar',
-      data: {
-        labels: ['1★','2★','3★','4★','5★'],
-        datasets:[{ data: dist.map(d=>d.count), backgroundColor:[O,O,O,O,O], borderRadius:4, borderWidth:0 }],
-      },
-      options:{
-        indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{display:false} },
-        scales:{
-          x:{ ticks:{font:{size:10},color:MU}, grid:{color:'rgba(0,0,0,0.05)'} },
-          y:{ ticks:{font:{size:12},color:MU}, grid:{display:false} },
-        },
-      },
-    });
-
-    el('gmb-reply-rate', `Tasa de respuesta: ${data.replyRate}% (${reviews.filter(r=>r.replied).length}/${reviews.length} respondidas)`);
-
-    // Render reviews list
-    allReviews = reviews;
-    renderReviewsList(reviews);
-  } else {
-    const msg = data?.error || 'Error cargando reseñas';
+  if (!data?.ok) {
     const list = document.getElementById('gmb-reviews-list');
-    if (list) list.innerHTML = `<div style="padding:14px;background:#2a1515;border:1px solid #5c1a1a;border-radius:8px;font-size:12px;color:#f87171;line-height:1.6">⚠️ ${msg}</div>`;
+    if (list) list.innerHTML = `<div style="padding:14px;background:#fcebeb;border-radius:8px;font-size:12px;color:var(--red)">⚠️ ${data?.error || 'Error cargando reseñas'}</div>`;
+    return;
   }
+
+  // Cache the full summary data
+  _reviewsState.allData = data;
+  window._reviewsData   = data;
+
+  // Update top GMB KPIs (header cards)
+  const G = data.global || {};
+  if (G.avgRating) {
+    el('gmb-kpi-rating', G.avgRating.toFixed(1));
+    el('gmb-kpi-stars',  '★'.repeat(Math.round(G.avgRating)) + '☆'.repeat(5 - Math.round(G.avgRating)));
+  }
+  el('gmb-kpi-reviews', G.total ?? '—');
+
+  // Update location tab badges
+  (data.locations || []).forEach(loc => {
+    const rEl = document.getElementById(`lt-rating-${loc.id}`);
+    const cEl = document.getElementById(`lt-count-${loc.id}`);
+    if (rEl) rEl.textContent = loc.avgRating ? loc.avgRating.toFixed(1) + '★' : '—';
+    if (cEl) cEl.textContent = loc.total ? `(${loc.total})` : '';
+  });
+
+  // Global rating tab badge
+  const allRatingEl = document.getElementById('lt-rating-all');
+  if (allRatingEl && G.avgRating) allRatingEl.textContent = G.avgRating.toFixed(1) + '★';
+
+  // Render "All" view by default
+  updateReviewsKPIs(G);
+  updateRevChart(G);
+  updateRevDistBars(G, 'Todas las Sucursales');
+
+  const merged = (data.locations || []).flatMap(l =>
+    (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: l.name }))
+  );
+  setVisibleReviews(merged);
+  hideLoadMore();
 }
 
 // ── GA4 chart state ───────────────────────────────────────────────────────────
@@ -3456,3 +3718,4 @@ bootDashboard();
 </script>
 </body>
 </html>
+       
