@@ -3536,10 +3536,10 @@ async function generateReply(reviewId, stars, comment, reviewer, locationName) {
   textarea.style.color = 'var(--text3)';
 
   try {
-    const r = await fetch('/api/reply', {
+    const r = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reviewText: comment, stars, reviewerName: reviewer, locationName }),
+      body: JSON.stringify({ action: 'reply', reviewText: comment, stars, reviewerName: reviewer, locationName }),
     });
     const data = await r.json();
     if (!data.ok) throw new Error(data.error || 'Error al generar');
