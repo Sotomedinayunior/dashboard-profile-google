@@ -49,7 +49,7 @@ async function fetchPlaceData(loc, apiKey) {
     });
 
     const r = await fetch(`https://serpapi.com/search.json?${params}`, {
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(7000),
     });
     if (!r.ok) throw new Error(`SerpAPI ${r.status}`);
     const data = await r.json();

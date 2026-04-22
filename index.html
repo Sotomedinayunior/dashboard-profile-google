@@ -1234,9 +1234,9 @@ html,body{overflow-x:hidden;width:100%}
     <div class="alert-banner" style="border:1px solid rgba(232,97,10,0.3);margin-bottom:20px">
       <span class="alert-icon">⚙️</span>
       <div style="flex:1">
-        <div class="alert-title">Google Analytics no está configurado</div>
-        <div style="font-size:12px;color:#aaa;margin-top:6px;line-height:1.7">
-          Reconecta con Google y selecciona tu propiedad de GA4 en el Paso 3.
+        <div class="alert-title" id="ga4-error-title">Google Analytics no está configurado</div>
+        <div style="font-size:12px;color:#aaa;margin-top:6px;line-height:1.7" id="ga4-error-detail">
+          Agrega la variable <strong style="color:var(--text2)">GA4_PROPERTY_ID</strong> en Vercel → Settings → Environment Variables con el valor <code style="background:var(--surface2);padding:1px 5px;border-radius:3px;font-size:11px">properties/XXXXXXXXX</code> de tu propiedad de Analytics.
         </div>
       </div>
     </div>
@@ -2990,7 +2990,16 @@ function renderGA4(G) {
   const badge   = document.getElementById('ga4-badge');
   if (!G || !G.configured) {
     if (notConf) notConf.style.display = 'block';
-    if (badge) { badge.textContent = '⚙ No configurado'; badge.style.color = '#888'; }
+    if (badge) { badge.textContent = '⚠ Sin datos'; badge.style.color = '#e86a0a'; }
+    // Show actual error if available
+    if (G?.error) {
+      const titleEl  = document.getElementById('ga4-error-title');
+      const detailEl = document.getElementById('ga4-error-detail');
+      if (titleEl)  titleEl.textContent  = 'Error al cargar Google Analytics';
+      if (detailEl) detailEl.innerHTML   =
+        `<span style="color:var(--red)">${sanitizeText(G.error)}</span><br>
+         <span style="margin-top:4px;display:inline-block">Verifica que <strong style="color:var(--text2)">GA4_PROPERTY_ID</strong> y las credenciales de Google estén correctas en Vercel.</span>`;
+    }
     return;
   }
   if (notConf) notConf.style.display = 'none';
@@ -3468,11 +3477,30 @@ function renderGmbLocationCards(locations) {
   const container = document.getElementById('gmb-location-cards');
   if (!container) return;
 
+  const ok = locations.filter(l => l.ok && l.rating);
+
   // Best location by rating
-  const best = locations.filter(l => l.ok && l.rating).sort((a,b) => b.rating - a.rating)[0];
+  const best = ok.slice().sort((a,b) => b.rating - a.rating)[0];
   if (best) {
     el('gmb-kpi-best', best.name.split('·')[0].trim());
     el('gmb-kpi-best-rating', `★ ${best.rating} · ${best.reviewsCount || '—'} reseñas`);
+  }
+
+  // Aggregate rating + review count from SerpAPI data
+  // (fills header KPIs even when /api/reviews hasn't loaded yet)
+  if (ok.length) {
+    const totalReviews = ok.reduce((s, l) => s + (l.reviewsCount || 0), 0);
+    const avgRating    = +(ok.reduce((s, l) => s + l.rating, 0) / ok.length).toFixed(1);
+    // Only update if the KPI still shows "—" (don't overwrite live reviews data)
+    const ratingEl = document.getElementById('gmb-kpi-rating');
+    const revEl    = document.getElementById('gmb-kpi-reviews');
+    if (ratingEl && ratingEl.textContent === '—') {
+      el('gmb-kpi-rating', avgRating.toFixed(1));
+      el('gmb-kpi-stars',  '★'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating)));
+    }
+    if (revEl && revEl.textContent === '—') {
+      el('gmb-kpi-reviews', totalReviews.toLocaleString());
+    }
   }
 
   const emojis = { independencia:'🏢', santiago:'✈️', puertoplata:'🌊', puntacana:'🌴', bocachica:'🏖️' };
