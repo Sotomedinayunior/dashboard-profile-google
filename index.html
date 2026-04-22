@@ -422,10 +422,49 @@ html,body{overflow-x:hidden;width:100%}
 .strat-btn{padding:5px 14px;font-size:12px;font-weight:600;border:none;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--ff);transition:all 0.15s}
 .strat-btn.active{background:var(--orange);color:#fff}
 
+/* ── AI PLAN ──────────────────────────────────────────────────── */
+.ai-health-ring{width:100px;height:100px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:6px solid;margin:0 auto 10px;flex-shrink:0}
+.ai-health-val{font-family:var(--ffc);font-size:32px;font-weight:800;line-height:1}
+.ai-health-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-top:2px}
+
+.action-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px 18px;margin-bottom:12px;display:flex;gap:14px;align-items:flex-start;transition:box-shadow 0.15s}
+.action-card:hover{box-shadow:0 2px 12px rgba(0,0,0,0.07)}
+.action-priority-bar{width:4px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:60px}
+.bar-alta{background:var(--red)}
+.bar-media{background:var(--orange)}
+.bar-baja{background:var(--blue)}
+.action-num{font-family:var(--ffc);font-size:22px;font-weight:700;color:var(--text3);min-width:28px;line-height:1.1;margin-top:2px}
+.action-body{flex:1;min-width:0}
+.action-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;line-height:1.3}
+.action-what{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:7px}
+.action-why{font-size:11px;color:var(--text3);line-height:1.5;padding:6px 10px;background:var(--surface2);border-radius:var(--radius-sm);border-left:3px solid var(--border2);margin-bottom:8px}
+.action-meta{display:flex;gap:8px;flex-wrap:wrap}
+.action-tag{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.3px}
+.at-category{background:var(--surface2);color:var(--text2)}
+.at-impact-alto{background:#e8f5ee;color:#27a663}
+.at-impact-medio{background:#fff0e6;color:var(--orange)}
+.at-impact-bajo{background:#f5f5f5;color:var(--text3)}
+.at-effort-bajo{background:#e6f1fb;color:#378ADD}
+.at-effort-medio{background:#fff8e6;color:#b07d00}
+.at-effort-alto{background:#fcebeb;color:var(--red)}
+.at-time{background:var(--surface2);color:var(--text2)}
+
+.ai-diagnosis{background:linear-gradient(135deg,#1a1a1a,#2a2a2a);border-radius:var(--radius);padding:20px 24px;color:#fff;margin-bottom:20px;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.ai-diag-text{flex:1;min-width:200px;font-size:13px;color:#ccc;line-height:1.7;padding-top:4px}
+.ai-diag-label{font-family:var(--ffc);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+
+.ai-filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.ai-filter-label{font-size:11px;font-weight:600;color:var(--text3);margin-right:4px}
+
+.ai-token-info{font-size:10px;color:var(--text3);margin-top:10px;text-align:right}
+
 /* mobile nav scroll */
 @media(max-width:768px){
   .mobile-nav{overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start}
   .mobile-nav-item{flex-shrink:0;min-width:56px}
+  .ai-diagnosis{flex-direction:column;gap:14px}
+  .ai-health-ring{width:80px;height:80px}
+  .ai-health-val{font-size:26px}
 }
 </style>
 </head>
@@ -485,6 +524,10 @@ html,body{overflow-x:hidden;width:100%}
       SEO On-Page
     </div>
     <div class="nav-label">Estrategia</div>
+    <div class="nav-item" data-page="aiplan" onclick="showPage('aiplan',this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 C5 1.5 3 3.5 3 6c0 1.5 0.7 2.8 1.8 3.6L4.5 12h7l-0.3-2.4C12.3 8.8 13 7.5 13 6c0-2.5-2-4.5-5-4.5z"/><path d="M5.5 12.5 v1 a2.5 2.5 0 0 0 5 0 v-1" stroke-linecap="round"/></svg>
+      Plan IA
+    </div>
     <div class="nav-item" data-page="experiments" onclick="showPage('experiments',this)">
       <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/><path d="M4.22 4.22l1.42 1.42M10.36 10.36l1.42 1.42M4.22 11.78l1.42-1.42M10.36 5.64l1.42-1.42"/></svg>
       Insights & Acciones
@@ -1173,6 +1216,80 @@ html,body{overflow-x:hidden;width:100%}
 </div>
 
 
+<!-- =========== PAGE: AI PLAN =========== -->
+<div id="page-aiplan" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">✨ Plan de Acción IA</div>
+      <div class="page-sub">Análisis inteligente con Claude · Recomendaciones priorizadas para Nelly RAC</div>
+    </div>
+    <button class="run-btn" id="aiplan-run-btn" onclick="runAIPlan()">✨ Generar Plan</button>
+  </div>
+
+  <!-- Data sources selector -->
+  <div class="card" style="margin-bottom:20px;padding:14px 18px">
+    <div class="card-title">Datos a incluir en el análisis</div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px">
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="ai-inc-gsc" checked style="accent-color:var(--orange);width:15px;height:15px"> Google Search Console
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="ai-inc-ga4" checked style="accent-color:var(--orange);width:15px;height:15px"> Google Analytics 4
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="ai-inc-reviews" checked style="accent-color:var(--orange);width:15px;height:15px"> Reseñas Google
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="ai-inc-serp" style="accent-color:var(--orange);width:15px;height:15px"> SERP / Posiciones
+        <span style="font-size:10px;color:var(--text3)">(requiere correr SERP primero)</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="ai-inc-ps" style="accent-color:var(--orange);width:15px;height:15px"> PageSpeed
+        <span style="font-size:10px;color:var(--text3)">(requiere correr PageSpeed primero)</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Status / loading -->
+  <div id="aiplan-status" style="display:none;text-align:center;padding:50px 20px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px">
+    <div id="aiplan-status-content"></div>
+  </div>
+
+  <!-- Results -->
+  <div id="aiplan-results" style="display:none">
+
+    <!-- Diagnosis card -->
+    <div class="ai-diagnosis" id="aiplan-diagnosis-card">
+      <div>
+        <div class="ai-diag-label">Salud Digital</div>
+        <div class="ai-health-ring" id="aiplan-health-ring">
+          <div class="ai-health-val" id="aiplan-health-val">—</div>
+          <div class="ai-health-label">/ 10</div>
+        </div>
+      </div>
+      <div class="ai-diag-text">
+        <div class="ai-diag-label">Diagnóstico</div>
+        <div id="aiplan-diagnosis-text">—</div>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="ai-filter-bar">
+      <span class="ai-filter-label">Filtrar:</span>
+      <button class="rf-tab active" onclick="filterAIPlan('all',this)">Todas</button>
+      <button class="rf-tab" onclick="filterAIPlan('alta',this)">🔴 Prioridad Alta</button>
+      <button class="rf-tab" onclick="filterAIPlan('media',this)">🟠 Media</button>
+      <button class="rf-tab" onclick="filterAIPlan('baja',this)">🔵 Baja</button>
+      <button class="rf-tab" onclick="filterAIPlan('rapidas',this)">⚡ Rápidas (esfuerzo bajo)</button>
+    </div>
+
+    <!-- Action cards -->
+    <div id="aiplan-actions"></div>
+
+    <div class="ai-token-info" id="aiplan-token-info"></div>
+  </div>
+</div>
+
 <!-- =========== PAGE: PAGESPEED =========== -->
 <div id="page-pagespeed" class="page">
   <div class="page-header">
@@ -1442,6 +1559,10 @@ html,body{overflow-x:hidden;width:100%}
   <div class="mobile-nav-item" onclick="showPage('onpage',this)" data-page="onpage">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10v12H3z"/><path d="M5 5h6M5 7.5h6M5 10h4" stroke-linecap="round"/></svg>
     On-Page
+  </div>
+  <div class="mobile-nav-item" onclick="showPage('aiplan',this)" data-page="aiplan">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 C5 1.5 3 3.5 3 6c0 1.5 0.7 2.8 1.8 3.6L4.5 12h7l-0.3-2.4C12.3 8.8 13 7.5 13 6c0-2.5-2-4.5-5-4.5z"/></svg>
+    Plan IA
   </div>
   <div class="mobile-nav-item" onclick="showPage('experiments',this)" data-page="experiments">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/></svg>
@@ -2734,6 +2855,196 @@ function renderAuditTable(rows) {
     </tr>`).join('');
 }
 
+// ── AI Plan ───────────────────────────────────────────────────────────────────
+let aiPlanAllActions = [];
+
+async function runAIPlan() {
+  const btn    = document.getElementById('aiplan-run-btn');
+  const status = document.getElementById('aiplan-status');
+  const stCont = document.getElementById('aiplan-status-content');
+  const resEl  = document.getElementById('aiplan-results');
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizando…';
+  status.style.display = 'block';
+  resEl.style.display  = 'none';
+  stCont.innerHTML = `<div style="font-size:32px;margin-bottom:14px">✨</div>
+    <div style="font-size:15px;font-weight:600;color:var(--text)">Claude está analizando tus datos…</div>
+    <div style="font-size:13px;color:var(--text2);margin-top:6px;line-height:1.7">
+      Procesando métricas SEO, Analytics, reseñas y posiciones.<br>
+      Generando recomendaciones personalizadas para Nelly RAC…
+    </div>
+    <div style="width:160px;height:4px;background:var(--surface2);border-radius:2px;margin:18px auto 0;overflow:hidden">
+      <div style="width:100%;height:100%;background:var(--orange);border-radius:2px;animation:progressBar 8s linear infinite"></div>
+    </div>`;
+
+  // Inject progress animation style once
+  if (!document.getElementById('aiplan-anim-style')) {
+    const s = document.createElement('style');
+    s.id = 'aiplan-anim-style';
+    s.textContent = `@keyframes progressBar{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}`;
+    document.head.appendChild(s);
+  }
+
+  // ── Build payload from cached dashboard data ──
+  const payload = {};
+
+  // GSC from global D variable if available
+  if (document.getElementById('ai-inc-gsc').checked && window._dashData) {
+    const D = window._dashData;
+    const s6 = D.summary_6m || {};
+    payload.gsc = {
+      clicks:      s6.total_clicks,
+      impressions: s6.total_impressions,
+      ctr:         s6.avg_ctr ? (s6.avg_ctr * 100).toFixed(2) + '%' : null,
+      avgPos:      s6.avg_position ? s6.avg_position.toFixed(1) : null,
+      topQueries:  (D.queries || []).slice(0, 10),
+      topPages:    (D.pages   || []).slice(0, 5),
+    };
+  }
+
+  // GA4
+  if (document.getElementById('ai-inc-ga4').checked && window._ga4Data) {
+    const G = window._ga4Data;
+    const ov = G.overview || {};
+    payload.ga4 = {
+      sessions:       ov.sessions,
+      users:          ov.totalUsers,
+      engagementRate: ov.engagementRate ? (ov.engagementRate * 100).toFixed(1) + '%' : null,
+      pageviews:      ov.screenPageViews,
+      channels:       (G.channels || []).slice(0, 6),
+    };
+  }
+
+  // Reviews (SerpAPI structure: avgRating, total, distribution)
+  if (document.getElementById('ai-inc-reviews').checked && window._reviewsData) {
+    const R = window._reviewsData;
+    payload.reviews = {
+      rating: R.avgRating,
+      count:  R.total,
+      dist:   R.distribution,
+    };
+  }
+
+  // SERP — only if user ran it and cached
+  if (document.getElementById('ai-inc-serp').checked && window._serpData) {
+    const SE = window._serpData;
+    payload.serp = {
+      total:    SE.summary?.total,
+      ranking:  SE.summary?.ranking,
+      top3:     SE.summary?.top3,
+      top10:    SE.summary?.top10,
+      avgPos:   SE.summary?.avgPos,
+      keywords: SE.keywords,
+    };
+  }
+
+  // PageSpeed — only if user ran it
+  if (document.getElementById('ai-inc-ps').checked && window._psData) {
+    payload.pagespeed = window._psData.summary;
+  }
+
+  try {
+    const r = await fetch('/api/claude', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || `Error ${r.status}`);
+    }
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error desconocido');
+
+    renderAIPlan(data);
+    status.style.display = 'none';
+    resEl.style.display  = 'block';
+
+  } catch(e) {
+    stCont.innerHTML = `<div style="font-size:28px;margin-bottom:12px">⚠️</div>
+      <div style="font-size:15px;font-weight:600;color:var(--red)">Error al generar el plan</div>
+      <div style="font-size:13px;color:var(--text2);margin-top:6px">${e.message}</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:10px">Verifica que CLAUDE_API_KEY esté configurada en Vercel.</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Generar Plan';
+  }
+}
+
+function renderAIPlan(data) {
+  const plan = data.plan || {};
+  aiPlanAllActions = plan.actions || [];
+
+  // Health ring
+  const score  = plan.score;
+  const ring   = document.getElementById('aiplan-health-ring');
+  const valEl  = document.getElementById('aiplan-health-val');
+  valEl.textContent = score ?? '—';
+  if (score !== null && score !== undefined) {
+    const color = score >= 7 ? '#27a663' : score >= 4 ? '#E8610A' : '#e24b4a';
+    ring.style.borderColor = color;
+    valEl.style.color = color;
+  }
+
+  // Diagnosis
+  const diagEl = document.getElementById('aiplan-diagnosis-text');
+  if (diagEl) diagEl.textContent = plan.diagnosis || '—';
+
+  // Token info
+  const tokEl = document.getElementById('aiplan-token-info');
+  if (tokEl) {
+    tokEl.textContent = `Generado: ${new Date(data.generatedAt).toLocaleString('es-DO')} · Modelo: ${data.model} · Tokens: ${data.inputTokens} entrada / ${data.outputTokens} salida`;
+  }
+
+  // Reset filter
+  document.querySelectorAll('#aiplan-results .rf-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('#aiplan-results .rf-tab').classList.add('active');
+
+  renderActionCards(aiPlanAllActions);
+}
+
+function filterAIPlan(type, btn) {
+  document.querySelectorAll('#aiplan-results .rf-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  let filtered = aiPlanAllActions;
+  if (type === 'alta')    filtered = aiPlanAllActions.filter(a => a.priority === 'alta');
+  if (type === 'media')   filtered = aiPlanAllActions.filter(a => a.priority === 'media');
+  if (type === 'baja')    filtered = aiPlanAllActions.filter(a => a.priority === 'baja');
+  if (type === 'rapidas') filtered = aiPlanAllActions.filter(a => a.effort === 'bajo');
+  renderActionCards(filtered);
+}
+
+function renderActionCards(actions) {
+  const container = document.getElementById('aiplan-actions');
+  if (!actions.length) {
+    container.innerHTML = '<div class="empty-state" style="padding:30px">Sin acciones en esta categoría.</div>';
+    return;
+  }
+
+  const priorityEmoji = p => p === 'alta' ? '🔴' : p === 'media' ? '🟠' : '🔵';
+  const impactLabel   = i => i === 'alto' ? 'Impacto Alto' : i === 'medio' ? 'Impacto Medio' : 'Impacto Bajo';
+  const effortLabel   = e => e === 'bajo' ? '⚡ Esfuerzo Bajo' : e === 'medio' ? '🔧 Esfuerzo Medio' : '⚒️ Esfuerzo Alto';
+  const timeLabel     = t => ({ 'inmediato':'⏰ Inmediato','1 semana':'📅 Esta semana','1 mes':'📅 Este mes','3 meses':'📅 3 meses' }[t] || t);
+
+  container.innerHTML = actions.map((a, i) => `
+    <div class="action-card">
+      <div class="action-priority-bar bar-${a.priority || 'media'}"></div>
+      <div class="action-num">${i + 1}</div>
+      <div class="action-body">
+        <div class="action-title">${priorityEmoji(a.priority)} ${sanitizeText(a.title)}</div>
+        <div class="action-what">${sanitizeText(a.what)}</div>
+        <div class="action-why">💡 ${sanitizeText(a.why)}</div>
+        <div class="action-meta">
+          <span class="action-tag at-category">📂 ${a.category || '—'}</span>
+          <span class="action-tag at-impact-${a.impact || 'medio'}">${impactLabel(a.impact)}</span>
+          <span class="action-tag at-effort-${a.effort || 'medio'}">${effortLabel(a.effort)}</span>
+          <span class="action-tag at-time">${timeLabel(a.timeframe)}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
 // ── PageSpeed ─────────────────────────────────────────────────────────────────
 let psStrategy = 'mobile';
 function setPsStrategy(s, btn) {
@@ -2777,6 +3088,7 @@ async function runPagespeed() {
     document.getElementById('ps-timestamp').textContent =
       'Analizado: ' + new Date(data.checkedAt).toLocaleString('es-DO') + ' · Estrategia: ' + data.strategy;
 
+    window._psData = data; // cache for AI Plan
     renderPsTable(data.results || []);
     status.style.display = 'none';
     res.style.display = 'block';
@@ -2855,6 +3167,7 @@ async function runSerp() {
     document.getElementById('serp-timestamp').textContent =
       'Verificado: ' + new Date(data.checkedAt).toLocaleString('es-DO') + ' · Dominio: ' + data.domain;
 
+    window._serpData = data; // cache for AI Plan
     renderSerpTable(data.keywords || []);
     status.style.display = 'none';
     res.style.display = 'block';
@@ -3006,6 +3319,9 @@ function renderOnPageTable(rows) {
 async function bootDashboard() {
   applyStoredConfig();
   const [D, reviews] = await Promise.all([loadData(), loadReviews()]);
+  window._dashData    = D;           // cache for AI Plan (GSC)
+  window._ga4Data     = D.ga4;       // cache for AI Plan (GA4)
+  window._reviewsData = reviews;     // cache for AI Plan (Reviews)
   render(D);
   renderGMB(D.gmb || null);
   renderGA4(D.ga4 || null);
