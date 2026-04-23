@@ -14,7 +14,7 @@ const LOCATIONS = [
   { id: 'santiago', name: 'Santiago · Cibao', placeId: 'ChIJBUNVazXRsY4R76jNG9B5mUQ' },
   { id: 'puertoplata', name: 'Puerto Plata', placeId: 'ChIJNSahrlDksY4RdDGaHelddiY' },
   { id: 'puntacana', name: 'Punta Cana', placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
-  { id: 'bocachica', name: 'Boca Chica', placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
+  { id: 'bocachica', name: 'Las Americas', placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
 ];
 
 module.exports = async function handler(req, res) {
