@@ -10,9 +10,9 @@
  * Requiere: SERPAPI_KEY en Vercel env vars.
  */
 
-const MAX_PAGES = 5; // single-location: 2 pages × ~3s = ~6s 
-const MAX_PAGES_ALL = 1; // all-locations: 1 page × 5 parallel = ~4s 
-const CALL_TIMEOUT = 6000; // 6s per SerpAPI call
+const MAX_PAGES     = 5;  // single-location: hasta 5 páginas × ~20 reviews = ~100 reviews
+const MAX_PAGES_ALL = 3;  // all-locations:   hasta 3 páginas × 5 sucursales en paralelo
+const CALL_TIMEOUT  = 8000; // 8s per SerpAPI call
 
 // Sucursales Nelly RAC 
 const LOCATIONS = [
@@ -97,10 +97,10 @@ async function fetchAllPages(placeId, apiKey, maxPages) {
   api_key: apiKey,
   hl: 'es',
   sort_by: 'newestFirst',
+  num: '20',   // pedir 20 reviews por página (primera y siguientes)
   });
   if (nextPageToken) {
   params.set('next_page_token', nextPageToken);
-  params.set('num', '20');
   }
 
   const r = await fetch(`https://serpapi.com/search.json?${params}`, {

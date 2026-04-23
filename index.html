@@ -1137,13 +1137,53 @@ html,body{overflow-x:hidden;width:100%}
   </div>
   </div>
 
-  <!-- Rating chart -->
-  <div>
-  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);margin-bottom:12px" id="rev-chart-title">Distribución Global</div>
-  <div id="rev-dist-bars"></div>
-  <div style="margin-top:16px">
-  <div class="chart-wrap" style="height:140px"><canvas id="gmbRatingChart"></canvas></div>
-  </div>
+  <!-- Panel derecho: métricas enriquecidas -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Fila de stats rápidas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
+        <div id="rev-stat-rate" style="font-size:22px;font-weight:800;color:var(--orange);font-family:var(--ff-cond)">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;justify-content:center;gap:3px">
+          <svg data-lucide="message-square" style="width:10px;height:10px"></svg> Tasa de Respuesta
+        </div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
+        <div id="rev-stat-trend" style="font-size:22px;font-weight:800;color:var(--green);font-family:var(--ff-cond)">—</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;display:flex;align-items:center;justify-content:center;gap:3px">
+          <svg data-lucide="trending-up" style="width:10px;height:10px"></svg> Últ. 30 días
+        </div>
+      </div>
+    </div>
+
+    <!-- Distribución de estrellas -->
+    <div style="background:var(--surface2);border-radius:8px;padding:12px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:4px">
+        <svg data-lucide="star" style="width:10px;height:10px;color:var(--orange)"></svg>
+        Distribución
+        <span id="rev-chart-title" style="color:var(--text2);margin-left:4px;font-weight:600;text-transform:none;letter-spacing:0"></span>
+      </div>
+      <div id="rev-dist-bars"></div>
+    </div>
+
+    <!-- Tendencia mensual -->
+    <div style="background:var(--surface2);border-radius:8px;padding:12px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:4px">
+        <svg data-lucide="bar-chart-2" style="width:10px;height:10px;color:var(--orange)"></svg>
+        Reseñas por mes
+      </div>
+      <div style="height:110px"><canvas id="revTrendChart"></canvas></div>
+    </div>
+
+    <!-- Comparación por sucursal (solo en modo "Todas") -->
+    <div id="rev-loc-compare-wrap" style="background:var(--surface2);border-radius:8px;padding:12px;display:none">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:4px">
+        <svg data-lucide="map-pin" style="width:10px;height:10px;color:var(--orange)"></svg>
+        Calificación por Sucursal
+      </div>
+      <div id="rev-loc-compare"></div>
+    </div>
+
   </div>
   </div>
   </div>
@@ -1965,8 +2005,10 @@ async function switchLocation(locId, btn) {
   (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: shortLocName(l.name) }))
   );
   updateReviewsKPIs(data.global);
-  updateRevChart(data.global);
-  updateRevDistBars(data.global, 'Todas las Sucursales');
+  updateRevDistBars(data.global, 'Todas');
+  updateRevStats(data.global, merged);
+  updateRevTrendChart(merged);
+  updateLocCompare(data.locations);
   setVisibleReviews(merged);
   hideLoadMore();
   } else {
@@ -1994,10 +2036,15 @@ async function switchLocation(locId, btn) {
 
 function applyLocationData(locId, locData) {
   const reviews = locData.reviews || [];
+  const locLabel = shortLocName(locData.name) || locId;
   updateReviewsKPIs(locData);
-  updateRevChart(locData);
-  updateRevDistBars(locData, locData.name || locId);
-  setVisibleReviews(reviews.map(r => ({ ...r, _locId: locId, _locName: shortLocName(locData.name) })));
+  updateRevDistBars(locData, locLabel);
+  updateRevStats(locData, reviews);
+  updateRevTrendChart(reviews);
+  // Ocultar comparación por sucursal cuando vemos una sola
+  const cmpWrap = document.getElementById('rev-loc-compare-wrap');
+  if (cmpWrap) cmpWrap.style.display = 'none';
+  setVisibleReviews(reviews.map(r => ({ ...r, _locId: locId, _locName: locLabel })));
 }
 
 async function loadFullLocation(placeId, locId) {
@@ -2074,41 +2121,163 @@ function updateReviewsKPIs(stats) {
   el('rev-kpi-replied', stats.replyRate != null ? stats.replyRate + '%' : '—');
 }
 
-// Rating distribution bars 
+// ── Panel derecho de reseñas ──────────────────────────────────────────────────
+
+// Distribución de estrellas (barras horizontales)
 function updateRevDistBars(stats, label) {
   const el2 = document.getElementById('rev-dist-bars');
   const tit = document.getElementById('rev-chart-title');
-  if (tit) tit.textContent = label || '';
+  if (tit) tit.textContent = label ? `· ${label}` : '';
   if (!el2 || !stats?.distribution) return;
   const d = stats.distribution;
   const max = Math.max(...[1,2,3,4,5].map(s => d[s] || 0), 1);
+  const total = [1,2,3,4,5].reduce((a,s) => a + (d[s]||0), 0);
   el2.innerHTML = [5,4,3,2,1].map(s => {
-  const count = d[s] || 0;
-  const pct = Math.round(count / max * 100);
-  const color = s >= 4 ? 'var(--green)' : s === 3 ? 'var(--orange)' : 'var(--red)';
-  return `<div class="star-row">
-  <div class="star-label" style="color:${color};font-weight:700">${s}</div>
-  <div class="star-bar-wrap"><div class="star-bar" style="width:${pct}%;background:${color}"></div></div>
-  <div class="star-count">${count}</div>
-  </div>`;
+    const count = d[s] || 0;
+    const pct   = Math.round(count / max * 100);
+    const pctOf = total ? Math.round(count / total * 100) : 0;
+    const color = s >= 4 ? '#27a663' : s === 3 ? 'var(--orange)' : '#e24b4a';
+    return `<div class="star-row" style="margin-bottom:4px">
+      <div class="star-label" style="color:${color};font-weight:700;width:14px">${s}⭐</div>
+      <div class="star-bar-wrap" style="flex:1"><div class="star-bar" style="width:${pct}%;background:${color};height:8px;border-radius:4px"></div></div>
+      <div class="star-count" style="min-width:42px;text-align:right;font-size:10px;color:var(--text3)">${count} <span style="color:var(--text4)">(${pctOf}%)</span></div>
+    </div>`;
   }).join('');
 }
 
-// Rating donut chart 
-function updateRevChart(stats) {
-  if (!stats?.distribution) return;
-  const d = stats.distribution;
-  mkChart('gmbRatingChart', {
-  type: 'doughnut',
-  data: {
-  labels: ['5','4','3','2','1'],
-  datasets: [{ data:[d[5]||0,d[4]||0,d[3]||0,d[2]||0,d[1]||0],
-  backgroundColor:['#27a663','#8bc34a',O,'#ff9800','#e24b4a'],
-  borderWidth:2, borderColor:'#fff', hoverOffset:4 }],
-  },
-  options:{ responsive:true, maintainAspectRatio:false,
-  plugins:{ legend:{ position:'bottom', labels:{ font:{size:10}, padding:8 } } } },
+// Stats rápidas: tasa de respuesta + reseñas recientes
+function updateRevStats(stats, reviews) {
+  const rateEl  = document.getElementById('rev-stat-rate');
+  const trendEl = document.getElementById('rev-stat-trend');
+  if (!stats) return;
+
+  if (rateEl) {
+    const rate = stats.replyRate ?? 0;
+    rateEl.textContent = `${rate}%`;
+    rateEl.style.color = rate >= 70 ? '#27a663' : rate >= 40 ? 'var(--orange)' : '#e24b4a';
+  }
+
+  if (trendEl && reviews?.length) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const recent = reviews.filter(r => r.iso_date && new Date(r.iso_date) >= cutoff).length;
+    trendEl.textContent = `+${recent}`;
+    trendEl.style.color = recent > 0 ? '#27a663' : 'var(--text3)';
+  }
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Tendencia mensual: barras de reseñas por mes (últimos 6 meses)
+function updateRevTrendChart(reviews) {
+  if (!reviews?.length) return;
+
+  // Agrupar por mes (YYYY-MM)
+  const counts = {};
+  const ratings = {};
+  reviews.forEach(r => {
+    const m = (r.iso_date || r.date || '').slice(0, 7);
+    if (!m) return;
+    counts[m]  = (counts[m]  || 0) + 1;
+    ratings[m] = (ratings[m] || []);
+    ratings[m].push(r.stars);
   });
+
+  // Últimos 8 meses con datos
+  const months = Object.keys(counts).sort().slice(-8);
+  const labels = months.map(m => {
+    const [y, mo] = m.split('-');
+    return new Date(+y, +mo - 1).toLocaleDateString('es', { month: 'short', year: '2-digit' });
+  });
+  const barData = months.map(m => counts[m] || 0);
+  const avgData = months.map(m => {
+    const rs = ratings[m] || [];
+    return rs.length ? +(rs.reduce((a,b) => a+b, 0) / rs.length).toFixed(2) : null;
+  });
+
+  mkChart('revTrendChart', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Reseñas',
+          data: barData,
+          backgroundColor: 'rgba(232,97,10,0.7)',
+          borderRadius: 4,
+          yAxisID: 'y',
+          order: 2,
+        },
+        {
+          label: 'Calif. prom.',
+          data: avgData,
+          type: 'line',
+          borderColor: '#27a663',
+          backgroundColor: 'rgba(39,166,99,0.1)',
+          borderWidth: 2,
+          pointRadius: 3,
+          pointBackgroundColor: '#27a663',
+          tension: 0.4,
+          yAxisID: 'y2',
+          order: 1,
+          spanGaps: true,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { font: { size: 9 }, padding: 6, boxWidth: 10 } },
+      },
+      scales: {
+        x: { ticks: { font: { size: 9 }, color: '#999' }, grid: { display: false } },
+        y:  { position: 'left',  ticks: { font: { size: 9 }, color: '#999' }, grid: { color: 'rgba(0,0,0,0.05)' }, title: { display: false } },
+        y2: { position: 'right', min: 1, max: 5, ticks: { font: { size: 9 }, color: '#27a663' }, grid: { display: false } },
+      },
+    },
+  });
+}
+
+// Comparación por sucursal (modo "Todas")
+function updateLocCompare(locationsData) {
+  const wrap = document.getElementById('rev-loc-compare-wrap');
+  const cont = document.getElementById('rev-loc-compare');
+  if (!wrap || !cont || !locationsData?.length) return;
+
+  const valid = locationsData.filter(l => l.avgRating != null);
+  if (!valid.length) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+  const max = Math.max(...valid.map(l => l.avgRating), 5);
+
+  cont.innerHTML = valid
+    .sort((a, b) => b.avgRating - a.avgRating)
+    .map(l => {
+      const pct   = Math.round((l.avgRating / max) * 100);
+      const color = l.avgRating >= 4.5 ? '#27a663' : l.avgRating >= 4 ? '#6fcf97' : l.avgRating >= 3 ? 'var(--orange)' : '#e24b4a';
+      const name  = shortLocName(l.name || l.id);
+      const replied = l.repliedCount || 0;
+      const total   = l.total || 0;
+      const rate    = total ? Math.round(replied / total * 100) : 0;
+      return `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:11px;font-weight:600;color:var(--text2)">${name}</span>
+          <span style="font-size:10px;color:var(--text3)">${l.avgRating?.toFixed(1)} ⭐ · ${total} reseñas · <span style="color:${rate>=50?'#27a663':'var(--orange)'}">↩${rate}%</span></span>
+        </div>
+        <div style="background:var(--border);border-radius:4px;height:7px;overflow:hidden">
+          <div style="width:${pct}%;background:${color};height:100%;border-radius:4px;transition:width 0.4s"></div>
+        </div>
+      </div>`;
+    }).join('');
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// updateRevChart — mantiene compatibilidad con la pestaña GMB (no usada en panel nuevo)
+function updateRevChart(stats) {
+  // ya no se usa el donut — sustituido por updateRevTrendChart + updateRevDistBars
 }
 
 function renderReviewsList(reviews) {
@@ -2250,8 +2419,10 @@ function showPage(name,el) {
 // Chart registry (for destroy on re-render) 
 const charts = {};
 function mkChart(id, config) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), config);
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  if (charts[id]) { try { charts[id].destroy(); } catch(_) {} }
+  charts[id] = new Chart(canvas, config);
 }
 
 // Generate opportunities from real data 
