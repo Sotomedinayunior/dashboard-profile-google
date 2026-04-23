@@ -1922,12 +1922,14 @@ function shortLocName(fullName) {
 
 // Reviews multi-location state 
 const REVIEW_LOCATIONS = [
-  { id: 'independencia', name: 'Independencia', placeId: 'ChIJPRzgUXlipY4RTFpdm7Gtz2M' },
-  { id: 'santiago', name: 'Santiago · Cibao', placeId: 'ChIJBUNVazXRsY4R76jNG9B5mUQ' },
-  { id: 'puertoplata', name: 'Puerto Plata', placeId: 'ChIJNSahrlDksY4RdDGaHelddiY' },
-  { id: 'puntacana', name: 'Punta Cana', placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
-  { id: 'bocachica', name: 'Boca Chica', placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
+  { id: 'independencia', name: 'Independencia',   placeId: 'ChIJPRzgUXlipY4RTFpdm7Gtz2M' },
+  { id: 'santiago',      name: 'Santiago · Cibao', placeId: 'ChIJBUNVazXRsY4R76jNG9B5mUQ' },
+  { id: 'puertoplata',   name: 'Puerto Plata',     placeId: 'ChIJNSahrlDksY4RdDGaHelddiY' },
+  { id: 'puntacana',     name: 'Punta Cana',       placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
+  { id: 'bocachica',     name: 'Boca Chica',       placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
 ];
+// URL del panel de reseñas en Google Business (general — muestra todas las sucursales)
+const GMB_REVIEWS_URL = 'https://business.google.com/reviews';
 let _reviewsState = {
   currentLocId: 'all', // 'all' | location id
   allData: null, // full response from /api/reviews (mode=all)
@@ -2129,6 +2131,7 @@ function renderReviewsList(reviews) {
   // placeId for direct posting: look up from REVIEW_LOCATIONS by _locId
   const placeIdForPost  = (r._locId ? (REVIEW_LOCATIONS.find(l => l.id === r._locId)?.placeId || '') : '');
   const googleReviewId  = r.id || '';
+  const reviewDirectLink = (r.link || '').replace(/'/g, '%27'); // URL directa a la reseña (SerpAPI)
   const escapedComment  = rawComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').slice(0, 400);
   const escapedReviewer = (r.reviewer||'Cliente').replace(/'/g, "\\'");
 
@@ -2165,8 +2168,8 @@ function renderReviewsList(reviews) {
   <div class="reply-actions">
   <button class="reply-copy-btn" onclick="copyReply('${rid}')">Copiar</button>
   <button id="reply-publish-btn-${rid}" class="reply-open-btn"
-    style="cursor:pointer;border:none;background:var(--orange);color:#fff;font-weight:700"
-    onclick="publishReply('${rid}','${placeIdForPost}','${googleReviewId}')">
+    style="cursor:pointer;border:none;background:var(--orange);color:#fff;font-weight:700;padding:6px 14px;border-radius:var(--radius-sm);font-size:11px;font-family:var(--ff)"
+    onclick="publishReply('${rid}','${placeIdForPost}','${googleReviewId}','${reviewDirectLink}')">
     Publicar en Google
   </button>
   <span id="reply-copied-${rid}" class="reply-copied">Copiado</span>
@@ -3679,8 +3682,10 @@ function copyReply(reviewId) {
   });
 }
 
-// ── Publish reply directly to Google Business ─────────────────────────────────
-async function publishReply(domId, placeId, googleReviewId) {
+// ── Publish reply to Google Business ─────────────────────────────────────────
+// Mode A (API disponible): envía la respuesta directamente via /api/post-reply
+// Mode B (fallback): copia el texto al portapapeles y abre Google Business
+async function publishReply(domId, placeId, googleReviewId, reviewDirectLink) {
   const textarea   = document.getElementById(`reply-text-${domId}`);
   const btn        = document.getElementById(`reply-publish-btn-${domId}`);
   const statusEl   = document.getElementById(`reply-status-${domId}`);
@@ -3689,50 +3694,79 @@ async function publishReply(domId, placeId, googleReviewId) {
   if (!textarea || !btn) return;
 
   const replyText = textarea.value.trim();
-  if (!replyText) { statusEl.textContent = 'Escribe una respuesta antes de publicar.'; statusEl.style.color = 'var(--red)'; return; }
-  if (!placeId)   { statusEl.textContent = 'No se pudo identificar la sucursal.'; statusEl.style.color = 'var(--red)'; return; }
-  if (!googleReviewId) { statusEl.textContent = 'ID de reseña no disponible. Usa "Copiar" y pega en Google Business.'; statusEl.style.color = 'var(--red)'; return; }
+  if (!replyText) {
+    if (statusEl) { statusEl.textContent = 'Escribe una respuesta antes de publicar.'; statusEl.style.color = 'var(--red)'; }
+    return;
+  }
 
-  btn.disabled = true;
-  btn.textContent = 'Publicando…';
-  if (statusEl) { statusEl.textContent = ''; }
-
-  try {
-    const r = await fetch('/api/post-reply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ placeId, reviewId: googleReviewId, replyText }),
-    });
-    const data = await r.json();
-
-    if (!data.ok) throw new Error(data.error || 'Error al publicar');
-
-    // Success — mark review as replied in the UI
-    btn.textContent = 'Publicado';
-    btn.style.background = 'var(--green)';
+  // ── Intento via API ───────────────────────────────────────────────────────
+  if (placeId && googleReviewId) {
     btn.disabled = true;
-    if (statusEl) { statusEl.textContent = 'Respuesta publicada en Google.'; statusEl.style.color = 'var(--green)'; }
+    btn.textContent = 'Publicando…';
+    if (statusEl) statusEl.textContent = '';
 
-    // After 2 seconds, show "replied" badge and hide reply box
-    setTimeout(() => {
-      const box = document.getElementById(`reply-box-${domId}`);
-      if (box) box.style.display = 'none';
-      // Replace action buttons with "replied" indicator
-      const actionsDiv = reviewItem?.querySelector('.reply-actions')?.closest('div[style*="margin-top:6px"]');
-      if (actionsDiv) {
-        actionsDiv.innerHTML = '<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:5px">Respondida por el negocio</div>';
+    try {
+      const r = await fetch('/api/post-reply', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ placeId, reviewId: googleReviewId, replyText }),
+      });
+      const data = await r.json();
+
+      if (data.ok) {
+        // ✅ API funcionó — marcar como respondida
+        btn.textContent = '✓ Publicado';
+        btn.style.background = 'var(--green)';
+        btn.disabled = true;
+        if (statusEl) { statusEl.textContent = 'Respuesta publicada en Google.'; statusEl.style.color = 'var(--green)'; }
+        setTimeout(() => {
+          const box = document.getElementById(`reply-box-${domId}`);
+          if (box) box.style.display = 'none';
+          const actionsDiv = reviewItem?.querySelector('.reply-actions')?.closest('div[style*="margin-top:6px"]');
+          if (actionsDiv) actionsDiv.innerHTML = '<div style="font-size:10px;color:var(--green);font-weight:600;margin-top:5px">Respondida por el negocio</div>';
+        }, 2000);
+        return;
       }
-    }, 2000);
 
-  } catch(e) {
+      // API respondió pero con error — caer al modo manual
+      console.warn('[publishReply] API error:', data.error);
+
+    } catch (err) {
+      // Error de red u otro — caer al modo manual
+      console.warn('[publishReply] fetch failed:', err.message);
+    }
+
+    // Restaurar botón antes del fallback
     btn.disabled = false;
     btn.textContent = 'Publicar en Google';
-    btn.style.background = '';
-    if (statusEl) {
-      statusEl.style.color = 'var(--red)';
-      statusEl.textContent = e.message;
-    }
   }
+
+  // ── Fallback: copiar + abrir Google Business ──────────────────────────────
+  // 1. Copiar texto al portapapeles
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(replyText);
+    copied = true;
+  } catch {
+    // clipboard bloqueado (http o sin permiso) — no es crítico
+  }
+
+  // 2. Mostrar instrucciones claras antes de abrir la pestaña
+  if (statusEl) {
+    statusEl.style.color = 'var(--orange)';
+    statusEl.innerHTML = copied
+      ? '✅ <strong>Texto copiado.</strong> Pégalo en Google Business.'
+      : '⚠️ Copia el texto y pégalo en Google Business.';
+  }
+
+  // 4. Actualizar botón a modo "Abrir Google Business"
+  btn.textContent = 'Abrir Google Business →';
+  btn.style.background = 'var(--blue, #2563eb)';
+  btn.disabled = false;
+  btn.onclick = () => window.open(GMB_REVIEWS_URL, '_blank');
+
+  // 5. Abrir la pestaña de Google Business
+  window.open(GMB_REVIEWS_URL, '_blank');
 }
 
 // PageSpeed 

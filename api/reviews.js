@@ -125,6 +125,7 @@ async function fetchAllPages(placeId, apiKey, maxPages) {
   replied: !!rev.response,
   reply: rev.response?.snippet || null,
   likes: rev.likes || 0,
+  link: rev.link || null,           // URL directa a la reseña en Google Maps
   });
   });
 
