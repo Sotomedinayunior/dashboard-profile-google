@@ -539,6 +539,8 @@ html,body{overflow-x:hidden;width:100%}
   .reviews-kpi-row{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css"/>
 </head>
 <body>
 <div class="app" id="app-main">
@@ -3889,6 +3891,226 @@ async function bootDashboard() {
 }
 
 bootDashboard();
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DRIVER.JS — TOURS POR SECCIÓN
+// ══════════════════════════════════════════════════════════════════════════════
+
+const TOUR_CSS = `
+.tour-help-btn {
+  display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
+  background:transparent;border:1px solid var(--border2);border-radius:20px;
+  font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;
+  font-family:var(--ff);transition:all 0.15s;white-space:nowrap;
+}
+.tour-help-btn:hover { background:rgba(232,97,10,0.1);border-color:var(--orange);color:var(--orange); }
+.driver-popover { font-family: var(--ff) !important; }
+.driver-popover-title { font-size: 14px !important; font-weight: 700 !important; }
+.driver-popover-description { font-size: 12px !important; line-height: 1.6 !important; color: #ccc !important; }
+.driver-popover.driverjs-theme { background: #1e1e1e !important; border: 1px solid #333 !important; border-radius: 12px !important; }
+.driver-popover-arrow-side-left.driverjs-theme .driver-popover-arrow,
+.driver-popover-arrow-side-right.driverjs-theme .driver-popover-arrow,
+.driver-popover-arrow-side-top.driverjs-theme .driver-popover-arrow,
+.driver-popover-arrow-side-bottom.driverjs-theme .driver-popover-arrow { border-color: transparent !important; }
+`;
+(function injectTourCSS() {
+  const s = document.createElement('style');
+  s.textContent = TOUR_CSS;
+  document.head.appendChild(s);
+})();
+
+// ── Steps por sección ─────────────────────────────────────────────────────────
+const TOURS = {
+
+  overview: [
+    { element: '.kpi-grid', popover: { title: '📊 KPIs Principales', description: 'Aquí ves tus 5 métricas clave de Google Search Console de los últimos 6 meses: Clics, Impresiones, CTR, Posición media y Clics por día.', side: 'bottom', align: 'start' }},
+    { element: '#kpi-clicks', popover: { title: '🖱 Clics Totales', description: 'Cuántas veces los usuarios hicieron clic en tu sitio desde Google. Es la métrica más directa de tráfico orgánico.', side: 'bottom' }},
+    { element: '#kpi-pos', popover: { title: '📍 Posición Media', description: 'Tu puesto promedio en los resultados de búsqueda. Menor número = mejor posición. La meta es bajar de 4.0.', side: 'bottom' }},
+    { element: '#kpi-ctr', popover: { title: '% CTR Promedio', description: 'Porcentaje de impresiones que se convierten en clics. Un CTR bajo puede significar que tus títulos o descripciones en Google necesitan mejora.', side: 'bottom' }},
+    { element: '.comparison-table', popover: { title: '📅 Comparativa de Períodos', description: 'Compara el rendimiento de los últimos 7 días, 28 días y 6 meses para identificar tendencias positivas o negativas.', side: 'top' }},
+    { element: '#gsc-sessions-chart', popover: { title: '📈 Tendencia de Clics', description: 'Gráfica diaria de los últimos 6 meses. Busca picos o caídas que coincidan con cambios en tu sitio o en el algoritmo de Google.', side: 'top' }, fallback: { element: '.chart-wrap' }},
+  ],
+
+  seo: [
+    { element: '#page-seo .page-header', popover: { title: '🔍 SEO & Queries', description: 'Análisis detallado de las búsquedas que traen tráfico a tu sitio, basado en datos reales de Google Search Console.', side: 'bottom' }},
+    { element: '#page-seo .kpi-grid', popover: { title: '📊 Métricas SEO', description: 'Resumen de queries, páginas, posición promedio y CTR filtrado por el período seleccionado.', side: 'bottom' }},
+    { element: '#queries-table', popover: { title: '🗝 Top Queries', description: 'Las búsquedas con más clics e impresiones. Ordena por columnas para ver qué palabras clave tienen alto potencial de mejora (muchas impresiones, pocos clics).', side: 'top' }, fallback: { element: '#page-seo .card' }},
+    { element: '#pages-table', popover: { title: '📄 Páginas con más Tráfico', description: 'Las URLs que generan más visitas orgánicas. Las páginas con alta posición pero bajo CTR son candidatas a mejorar su meta description.', side: 'top' }, fallback: { element: '#page-seo .card' }},
+  ],
+
+  geo: [
+    { element: '#page-geo .page-header', popover: { title: '🌍 Geografía de Tráfico', description: 'Distribución por país de los visitantes que llegan a través de Google.', side: 'bottom' }},
+    { element: '#geo-chart', popover: { title: '📊 Gráfica de Países', description: 'Compara el volumen de clics por país. República Dominicana, EE.UU. y Europa suelen ser los mercados más relevantes para alquiler de autos.', side: 'top' }, fallback: { element: '#page-geo .card' }},
+    { element: '#geo-table', popover: { title: '🗺 Tabla de Países', description: 'Ordenada por clics. Identifica mercados internacionales activos — pueden ser turistas que investigan antes de viajar.', side: 'top' }, fallback: { element: '#page-geo .card' }},
+  ],
+
+  gmb: [
+    { element: '#page-gmb .kpi-grid', popover: { title: '⭐ KPIs Google Mi Negocio', description: 'Calificación promedio de todas tus sucursales, total de reseñas, número de ubicaciones activas y la sucursal mejor calificada.', side: 'bottom' }},
+    { element: '#gmb-kpi-rating', popover: { title: '⭐ Calificación Promedio', description: 'Promedio de todas las sucursales. La meta es 4.8 o más — los negocios con calificación alta aparecen primero en Google Maps.', side: 'bottom' }},
+    { element: '#gmb-location-cards', popover: { title: '📍 Tarjetas de Sucursales', description: 'Perfil de cada ubicación con dirección, teléfono, horario de hoy, si está abierta ahora y número de fotos. Haz clic en "Gestionar" para ir directo a Google Business.', side: 'top' }},
+    { element: '#loc-tabs', popover: { title: '🗂 Filtro por Sucursal', description: 'Cambia entre "Todas" y cada sucursal individual para ver sus reseñas específicas. Cada pestaña muestra la calificación de esa ubicación.', side: 'bottom' }},
+    { element: '#reviews-kpi-row', popover: { title: '📊 KPIs de Reseñas', description: 'Calificación, total de reseñas, cuántas son negativas (1-2★), positivas (4-5★) y qué porcentaje tiene respuesta del negocio.', side: 'bottom' }},
+    { element: '#star-filter-tabs', popover: { title: '⭐ Filtro por Estrellas', description: 'Filtra las reseñas por calificación. El filtro de 1-2★ es clave para identificar clientes insatisfechos que necesitan respuesta urgente.', side: 'bottom' }, fallback: { element: '#page-gmb .rf-tabs' }},
+    { element: '#gmb-reviews-list', popover: { title: '💬 Lista de Reseñas + IA', description: 'Cada reseña sin respuesta tiene el botón "💬 Responder con IA". Claude genera una respuesta profesional en español dominicano con un clic — solo copiala y pégala en Google Business.', side: 'top' }},
+  ],
+
+  analytics: [
+    { element: '#ga4-not-configured', popover: { title: '⚙ Configuración GA4', description: 'Si ves este banner, agrega la variable GA4_PROPERTY_ID en Vercel → Settings → Environment Variables con el ID de tu propiedad de Google Analytics 4.', side: 'bottom' }},
+    { element: '#page-analytics .kpi-grid', popover: { title: '📊 KPIs de Analytics', description: 'Sesiones, usuarios únicos, nuevos usuarios, engagement rate y páginas vistas de los últimos 6 meses — datos en tiempo real de GA4.', side: 'bottom' }},
+    { element: '#ga4-kpi-engagement', popover: { title: '🎯 Engagement Rate', description: 'Porcentaje de sesiones donde el usuario interactuó (scroll, clic, tiempo > 10s). Un rate alto indica que tu contenido es relevante.', side: 'bottom' }},
+    { element: '#ga4SessionsChart', popover: { title: '📈 Tendencia de Sesiones', description: 'Usa los botones 7d / 28d / 6m para cambiar el período. Busca correlaciones con campañas, publicaciones o estacionalidad turística.', side: 'top' }},
+    { element: '#ga4ChannelsChart', popover: { title: '🚦 Fuentes de Tráfico', description: 'Distribución por canal: Organic Search (SEO), Direct, Referral, Paid, Social. Indica qué canales de marketing funcionan mejor.', side: 'top' }},
+    { element: '#ga4-devices-list', popover: { title: '📱 Dispositivos', description: 'Proporción de tráfico móvil vs escritorio. Si más del 60% es móvil, la experiencia y velocidad en celular es prioridad.', side: 'top' }},
+    { element: '#ga4-pages-body', popover: { title: '📄 Top Páginas', description: 'Páginas más visitadas con vistas, sesiones y tiempo promedio. Las páginas con bajo engagement pueden necesitar mejor contenido o CTA.', side: 'top' }},
+  ],
+
+  audit: [
+    { element: '#page-audit .page-header', popover: { title: '🔍 Auditoría Técnica', description: 'Rastrea todas las URLs de tu sitio y detecta errores técnicos que pueden afectar tu posicionamiento en Google.', side: 'bottom' }},
+    { element: '#audit-run-btn', popover: { title: '▶ Ejecutar Crawl', description: 'Inicia el rastreo. El crawler visita ~18 páginas clave de nellyrac.do y verifica estado HTTP, velocidad de carga, meta tags y canonicals.', side: 'bottom' }},
+    { element: '#audit-kpis', popover: { title: '📊 Resultados del Crawl', description: 'Total de páginas, cuántas responden 200 OK, cuántas tienen redirecciones (301/302), errores 404 y páginas lentas (>2s). Los errores y páginas lentas impactan el SEO.', side: 'bottom' }},
+    { element: '#audit-filters', popover: { title: '🔧 Filtros de Estado', description: 'Filtra por tipo de resultado para enfocarte en los problemas. Prioriza primero los errores 404 y luego las páginas lentas.', side: 'bottom' }},
+    { element: '#audit-tbody', popover: { title: '📋 Tabla de Resultados', description: 'Cada fila muestra URL, código de estado, tiempo de carga, title y meta description. Una meta description vacía o duplicada puede bajar tu CTR en Google.', side: 'top' }},
+  ],
+
+  pagespeed: [
+    { element: '#page-pagespeed .page-header', popover: { title: '⚡ PageSpeed & Core Web Vitals', description: 'Mide la velocidad de carga de tus páginas usando la API de Google PageSpeed Insights — los mismos datos que usa Google para rankear.', side: 'bottom' }},
+    { element: '#ps-btn-mobile', popover: { title: '📱 Mobile vs Desktop', description: 'Alterna entre análisis móvil y escritorio. Google usa primero el índice móvil (mobile-first indexing), así que el score móvil es más crítico para SEO.', side: 'bottom' }},
+    { element: '#ps-run-btn', popover: { title: '▶ Analizar Velocidad', description: 'Analiza todas las URLs de tu sitio. Puede tomar 30-60 segundos. Google asigna scores del 0-100: 90+ verde, 50-89 naranja, <50 rojo.', side: 'bottom' }},
+    { element: '#ps-kpis', popover: { title: '📊 Resumen de Scores', description: 'Score promedio, páginas rápidas (90+), páginas a mejorar (50-89) y páginas lentas (<50). Cualquier página lenta perjudica la experiencia del usuario y el ranking.', side: 'bottom' }},
+    { element: '#ps-tbody', popover: { title: '📋 Detalle por Página', description: 'Score individual, LCP (tiempo de carga del elemento principal), CLS (estabilidad visual) y FID (respuesta a interacción). Son los 3 Core Web Vitals que Google evalúa.', side: 'top' }},
+  ],
+
+  serp: [
+    { element: '#page-serp .page-header', popover: { title: '📈 SERP & Posiciones', description: 'Verifica en qué posición aparece nellyrac.do para las keywords más importantes. Usa SerpAPI para obtener resultados reales de Google.', side: 'bottom' }},
+    { element: '#serp-kw-input', popover: { title: '🗝 Keywords a Rastrear', description: 'Escribe las palabras clave separadas por coma. Ejemplo: "rent a car santo domingo, nelly rac, alquiler de autos punta cana, rent a car aeropuerto las americas"', side: 'bottom' }},
+    { element: '#serp-gl-select', popover: { title: '🌍 País de Búsqueda', description: 'Selecciona el país desde donde simular la búsqueda. Usa República Dominicana para resultados locales, EE.UU. para turistas americanos.', side: 'bottom' }},
+    { element: '#serp-run-btn', popover: { title: '▶ Verificar Posiciones', description: 'Ejecuta la búsqueda. Muestra posición exacta, URL que aparece y los primeros competidores. Guarda los resultados para incluirlos en el Plan IA.', side: 'bottom' }},
+    { element: '#serp-kpis', popover: { title: '📊 Resumen de Posiciones', description: 'Cuántas keywords rastreaste, cuántas aparecen en los primeros 20 resultados, cuántas en top 3 y top 10, y la posición promedio.', side: 'bottom' }},
+  ],
+
+  onpage: [
+    { element: '#page-onpage .page-header', popover: { title: '📄 SEO On-Page', description: 'Analiza los elementos de SEO on-page de cada URL: title, meta description, H1, canonical y robots. Datos críticos para el posicionamiento.', side: 'bottom' }},
+    { element: '#onpage-run-btn', popover: { title: '▶ Analizar SEO On-Page', description: 'Rastrea todas las páginas del sitio extrayendo sus meta tags. Identifica páginas con title demasiado largo, sin meta description o sin H1.', side: 'bottom' }},
+    { element: '#onpage-kpis', popover: { title: '📊 Problemas Detectados', description: 'Cuántas páginas tienen título correcto, cuántas les falta meta description, cuántas no tienen H1 y cuántas carecen de canonical. Cada uno es un issue SEO.', side: 'bottom' }},
+    { element: '#onpage-filters', popover: { title: '🔧 Filtros por Tipo de Problema', description: 'Filtra por páginas con "Sin descripción", "Sin H1" o "Sin canonical" para enfocarte en un tipo de problema a la vez y priorizarlo.', side: 'bottom' }},
+    { element: '#onpage-tbody', popover: { title: '📋 Tabla de Páginas', description: 'Cada fila muestra la URL con sus meta tags. Los campos en rojo indican problemas. El canonical indica cuál URL considera Google la "oficial".', side: 'top' }},
+  ],
+
+  aiplan: [
+    { element: '#page-aiplan .page-header', popover: { title: '🤖 Plan de Acción IA', description: 'Claude analiza todos tus datos de SEO, Analytics, reseñas y velocidad para generar un plan de acción personalizado y priorizado para Nelly RAC.', side: 'bottom' }},
+    { element: '#page-aiplan .card', popover: { title: '☑ Fuentes de Datos', description: 'Selecciona qué datos incluir en el análisis. Search Console y Analytics se cargan automáticamente. SERP y PageSpeed requieren ejecutarlos primero en sus secciones.', side: 'bottom' }},
+    { element: '#aiplan-run-btn', popover: { title: '✨ Generar Plan', description: 'Claude Haiku analiza todos los datos seleccionados y genera un plan con 7-9 acciones priorizadas. Toma ~10 segundos.', side: 'bottom' }},
+    { element: '#aiplan-results', popover: { title: '📊 Diagnóstico con IA', description: 'El gauge muestra la "salud digital" del 1 al 10. El texto de diagnóstico explica la situación actual en lenguaje directo, como si hablara con el dueño del negocio.', side: 'bottom' }},
+    { element: '#aiplan-actions-grid', popover: { title: '🎯 Cards de Acciones', description: 'Cada card muestra: qué hacer, por qué hacerlo, el impacto esperado, el esfuerzo requerido y el plazo sugerido. Las de prioridad alta (borde rojo) son las más urgentes.', side: 'top' }, fallback: { element: '#aiplan-results' }},
+    { element: '#aiplan-filter-bar', popover: { title: '🔍 Filtrar por Categoría', description: 'Filtra las acciones por categoría: SEO Técnico, Contenido, Local SEO, Velocidad, Reseñas, etc. Útil para delegar tareas por área.', side: 'bottom' }, fallback: { element: '#aiplan-results' }},
+  ],
+
+  experiments: [
+    { element: '#page-experiments .page-header', popover: { title: '💡 Insights & Acciones', description: 'Oportunidades detectadas automáticamente en tus datos de Google Search Console. Insights accionables sin necesidad de análisis manual.', side: 'bottom' }},
+    { element: '#page-experiments .kpi-grid', popover: { title: '📊 Oportunidades Detectadas', description: 'Páginas con CTR bajo, clics potenciales si mejoras el CTR, queries "cerca del top 3" (posiciones 4-10), mercados de alta intención y queries sin conversión.', side: 'bottom' }},
+    { element: '#ins-kpi-neartop', popover: { title: '🎯 Quick Wins SEO', description: 'Queries en posición 4-10 con más de 200 impresiones. Con pequeñas mejoras de contenido estas páginas pueden saltar al top 3, multiplicando los clics.', side: 'bottom' }},
+    { element: '#ins-kpi-ctr-potential', popover: { title: '🚀 Clics Potenciales', description: 'Estimación de clics adicionales si las páginas con CTR < 1% subieran al 3%. Muestra el impacto real de optimizar los titles y meta descriptions.', side: 'bottom' }},
+    { element: '#insights-ctr-table', popover: { title: '📋 Páginas con Mayor Oportunidad', description: 'Lista ordenada por potencial de mejora. Estas páginas tienen mucha visibilidad pero poca gente hace clic — son las primeras que debes optimizar.', side: 'top' }},
+  ],
+};
+
+// ── Función principal de tour ─────────────────────────────────────────────────
+function startTour(pageId) {
+  if (typeof window.driver === 'undefined') {
+    alert('Driver.js no cargó correctamente. Verifica tu conexión a internet.');
+    return;
+  }
+
+  const rawSteps = TOURS[pageId];
+  if (!rawSteps) return;
+
+  // Navigate to the page first
+  const navEl = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+  if (navEl) showPage(pageId, navEl);
+
+  // Filter out steps whose elements don't exist in the DOM
+  const steps = rawSteps.map(step => {
+    const el = document.querySelector(step.element);
+    if (el) return step;
+    if (step.fallback) {
+      const fb = document.querySelector(step.fallback.element);
+      if (fb) return { element: step.fallback.element, popover: step.popover };
+    }
+    return null;
+  }).filter(Boolean);
+
+  if (!steps.length) return;
+
+  const driverObj = window.driver.js.driver({
+    showProgress: true,
+    showButtons: ['next', 'previous', 'close'],
+    nextBtnText: 'Siguiente →',
+    prevBtnText: '← Anterior',
+    doneBtnText: '✓ Listo',
+    progressText: '{{current}} de {{total}}',
+    popoverClass: 'driverjs-theme',
+    animate: true,
+    steps,
+  });
+
+  driverObj.drive();
+}
+
+// ── Inyectar botones de tour en cada page-header ──────────────────────────────
+function initTourButtons() {
+  Object.keys(TOURS).forEach(pageId => {
+    const page = document.getElementById(`page-${pageId}`);
+    if (!page) return;
+    const header = page.querySelector('.page-header');
+    if (!header) return;
+
+    // Don't add if there's already a tour button
+    if (header.querySelector('.tour-help-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'tour-help-btn';
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5A6.5 6.5 0 1 0 14.5 8 6.507 6.507 0 0 0 8 1.5zM0 8a8 8 0 1 1 8 8A8 8 0 0 1 0 8z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg> Tour`;
+    btn.title = `Iniciar tour de esta sección`;
+    btn.onclick = () => startTour(pageId);
+    header.appendChild(btn);
+  });
+}
+
+// ── Botón global en sidebar ───────────────────────────────────────────────────
+function initSidebarTourBtn() {
+  const nav = document.querySelector('.sidebar-nav');
+  if (!nav) return;
+
+  const divider = document.createElement('div');
+  divider.className = 'nav-label';
+  divider.style.marginTop = '8px';
+  divider.textContent = 'Ayuda';
+
+  const btn = document.createElement('div');
+  btn.className = 'nav-item';
+  btn.style.cursor = 'pointer';
+  btn.innerHTML = `<svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5A6.5 6.5 0 1 0 14.5 8 6.507 6.507 0 0 0 8 1.5zM0 8a8 8 0 1 1 8 8A8 8 0 0 1 0 8z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg> Tours de Ayuda`;
+  btn.onclick = () => {
+    // Show picker modal
+    const current = document.querySelector('.page.active')?.id?.replace('page-','') || 'overview';
+    startTour(current);
+  };
+
+  nav.appendChild(divider);
+  nav.appendChild(btn);
+}
+
+// Init after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  initTourButtons();
+  initSidebarTourBtn();
+});
+// Also init immediately in case DOMContentLoaded already fired
+if (document.readyState !== 'loading') {
+  initTourButtons();
+  initSidebarTourBtn();
+}
+
 </script>
 </body>
 </html>
