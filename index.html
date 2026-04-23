@@ -1962,7 +1962,7 @@ async function switchLocation(locId, btn) {
   if (!data) return;
   // merge all reviews from summary data
   const merged = (data.locations || []).flatMap(l =>
-  (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: l.name }))
+  (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: shortLocName(l.name) }))
   );
   updateReviewsKPIs(data.global);
   updateRevChart(data.global);
@@ -1997,7 +1997,7 @@ function applyLocationData(locId, locData) {
   updateReviewsKPIs(locData);
   updateRevChart(locData);
   updateRevDistBars(locData, locData.name || locId);
-  setVisibleReviews(reviews.map(r => ({ ...r, _locId: locId, _locName: locData.name })));
+  setVisibleReviews(reviews.map(r => ({ ...r, _locId: locId, _locName: shortLocName(locData.name) })));
 }
 
 async function loadFullLocation(placeId, locId) {
@@ -2120,7 +2120,7 @@ function renderReviewsList(reviews) {
   }
   const colorMap = { 5:'#27a663', 4:'#6fcf97', 3:'#E8610A', 2:'#e24b4a', 1:'#c0392b' };
   // Build from live REVIEW_LOCATIONS so real Google names are used
-  const locNames = Object.fromEntries(REVIEW_LOCATIONS.map(l => [l.id, l.name]));
+  const locNames = Object.fromEntries(REVIEW_LOCATIONS.map(l => [l.id, shortLocName(l.name)]));
   const showLoc = _reviewsState.currentLocId === 'all';
 
   list.innerHTML = reviews.map((r, i) => {
@@ -2999,7 +2999,7 @@ function renderSerpReviews(data) {
   updateRevDistBars(G, 'Todas las Sucursales');
 
   const merged = (data.locations || []).flatMap(l =>
-  (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: l.name }))
+  (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: shortLocName(l.name) }))
   );
   setVisibleReviews(merged);
   hideLoadMore(); // all pages already loaded for each location
@@ -3519,14 +3519,16 @@ function renderGmbLocationCards(locations) {
   const ok = locations.filter(l => l.ok && l.rating);
 
   // Sync real Google Business names into tab labels and REVIEW_LOCATIONS
+  // Always use shortLocName() to strip "Nelly Rent A Car" prefix
   locations.forEach(loc => {
     if (!loc.name) return;
+    const cleanName = shortLocName(loc.name);
     // Update tab label
     const nameEl = document.getElementById(`lt-name-${loc.id}`);
-    if (nameEl) nameEl.textContent = loc.name;
-    // Update REVIEW_LOCATIONS in memory so reply IA uses real name
+    if (nameEl) nameEl.textContent = cleanName;
+    // Update REVIEW_LOCATIONS in memory so reply IA and review badges use clean name
     const rl = REVIEW_LOCATIONS.find(r => r.id === loc.id);
-    if (rl) rl.name = loc.name;
+    if (rl) rl.name = cleanName;
   });
 
   // Best location by rating

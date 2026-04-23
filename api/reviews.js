@@ -10,7 +10,7 @@
  * Requiere: SERPAPI_KEY en Vercel env vars.
  */
 
-const MAX_PAGES = 2; // single-location: 2 pages × ~3s = ~6s 
+const MAX_PAGES = 5; // single-location: 2 pages × ~3s = ~6s 
 const MAX_PAGES_ALL = 1; // all-locations: 1 page × 5 parallel = ~4s 
 const CALL_TIMEOUT = 6000; // 6s per SerpAPI call
 
