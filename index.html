@@ -1053,31 +1053,31 @@ html,body{overflow-x:hidden;width:100%}
   <!-- Location tabs -->
   <div class="loc-tabs" id="loc-tabs">
   <button class="loc-tab active" data-locid="all" onclick="switchLocation('all',this)">
-  Todas las Sucursales
+  <span id="lt-name-all">Todas las Sucursales</span>
   <span class="loc-tab-rating" id="lt-rating-all">—</span>
   </button>
   <button class="loc-tab" data-locid="independencia" onclick="switchLocation('independencia',this)">
-  Independencia
+  <span id="lt-name-independencia">Independencia</span>
   <span class="loc-tab-rating" id="lt-rating-independencia">—</span>
   <span class="loc-tab-count" id="lt-count-independencia"></span>
   </button>
   <button class="loc-tab" data-locid="santiago" onclick="switchLocation('santiago',this)">
-  Santiago
+  <span id="lt-name-santiago">Santiago</span>
   <span class="loc-tab-rating" id="lt-rating-santiago">—</span>
   <span class="loc-tab-count" id="lt-count-santiago"></span>
   </button>
   <button class="loc-tab" data-locid="puertoplata" onclick="switchLocation('puertoplata',this)">
-  Pto. Plata
+  <span id="lt-name-puertoplata">Pto. Plata</span>
   <span class="loc-tab-rating" id="lt-rating-puertoplata">—</span>
   <span class="loc-tab-count" id="lt-count-puertoplata"></span>
   </button>
   <button class="loc-tab" data-locid="puntacana" onclick="switchLocation('puntacana',this)">
-  Punta Cana
+  <span id="lt-name-puntacana">Punta Cana</span>
   <span class="loc-tab-rating" id="lt-rating-puntacana">—</span>
   <span class="loc-tab-count" id="lt-count-puntacana"></span>
   </button>
   <button class="loc-tab" data-locid="bocachica" onclick="switchLocation('bocachica',this)">
-  Las Americas
+  <span id="lt-name-bocachica">Las Americas</span>
   <span class="loc-tab-rating" id="lt-rating-bocachica">—</span>
   <span class="loc-tab-count" id="lt-count-bocachica"></span>
   </button>
@@ -2091,7 +2091,8 @@ function renderReviewsList(reviews) {
   return;
   }
   const colorMap = { 5:'#27a663', 4:'#6fcf97', 3:'#E8610A', 2:'#e24b4a', 1:'#c0392b' };
-  const locNames = { independencia:' Independencia', santiago:' Santiago', puertoplata:' Pto. Plata', puntacana:' Punta Cana', bocachica:' Boca Chica' };
+  // Build from live REVIEW_LOCATIONS so real Google names are used
+  const locNames = Object.fromEntries(REVIEW_LOCATIONS.map(l => [l.id, l.name]));
   const showLoc = _reviewsState.currentLocId === 'all';
 
   list.innerHTML = reviews.map((r, i) => {
@@ -2106,7 +2107,7 @@ function renderReviewsList(reviews) {
   ? `<span style="font-size:9px;padding:2px 7px;border-radius:10px;background:var(--surface2);color:var(--text3);margin-left:6px">${locNames[r._locId]||r._locName||''}</span>`
   : '';
 
-  const locNameForReply = r._locName || 'Nelly RAC';
+  const locNameForReply = (r._locId ? locNames[r._locId] : null) || r._locName || 'Nelly RAC';
   const escapedComment = rawComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').slice(0, 400);
   const escapedReviewer = (r.reviewer||'Cliente').replace(/'/g, "\\'");
 
@@ -2133,7 +2134,7 @@ function renderReviewsList(reviews) {
   style="font-size:11px;font-weight:600;padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--ff);display:inline-flex;align-items:center;gap:5px;transition:all 0.15s"
   onmouseover="this.style.borderColor='var(--blue)';this.style.color='var(--blue)'"
   onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">
-  Escribir manual
+  Responder
   </button>
   </div>
   <div id="reply-box-${rid}" class="reply-box" style="display:none;margin-top:8px">
@@ -3488,6 +3489,17 @@ function renderGmbLocationCards(locations) {
 
   const ok = locations.filter(l => l.ok && l.rating);
 
+  // Sync real Google Business names into tab labels and REVIEW_LOCATIONS
+  locations.forEach(loc => {
+    if (!loc.name) return;
+    // Update tab label
+    const nameEl = document.getElementById(`lt-name-${loc.id}`);
+    if (nameEl) nameEl.textContent = loc.name;
+    // Update REVIEW_LOCATIONS in memory so reply IA uses real name
+    const rl = REVIEW_LOCATIONS.find(r => r.id === loc.id);
+    if (rl) rl.name = loc.name;
+  });
+
   // Best location by rating
   const best = ok.slice().sort((a,b) => b.rating - a.rating)[0];
   if (best) {
@@ -4166,4 +4178,4 @@ if (document.readyState !== 'loading') {
 </script>
 </body>
 </html>
-                                                 
+                                                       
