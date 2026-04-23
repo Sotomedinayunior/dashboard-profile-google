@@ -15,6 +15,22 @@ const { google } = require('googleapis');
 // Resets on cold start, but saves extra API calls within the same execution
 const locationCache = {};
 
+// Static map loaded from GMB_LOCATION_MAP env var (JSON string).
+// Format: { "placeId": "accounts/123/locations/456", ... }
+// Set this in Vercel to skip the dynamic API lookup (use /api/gmb-debug to get the values).
+let staticLocationMap = null;
+function getStaticMap() {
+  if (staticLocationMap !== null) return staticLocationMap;
+  try {
+    staticLocationMap = process.env.GMB_LOCATION_MAP
+      ? JSON.parse(process.env.GMB_LOCATION_MAP)
+      : {};
+  } catch {
+    staticLocationMap = {};
+  }
+  return staticLocationMap;
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Cache-Control', 'no-store');
@@ -49,7 +65,12 @@ module.exports = async function handler(req, res) {
     };
 
     // ── 1. Resolve GMB location name from placeId ─────────────────────────────
-    let locationName = locationCache[placeId] || process.env[`GMB_LOC_${placeId}`] || null;
+    // Priority: memory cache → static map (GMB_LOCATION_MAP) → individual env var → API lookup
+    let locationName =
+      locationCache[placeId] ||
+      getStaticMap()[placeId] ||
+      process.env[`GMB_LOC_${placeId}`] ||
+      null;
 
     if (!locationName) {
       locationName = await findLocationByPlaceId(placeId, hdrs);
@@ -58,7 +79,9 @@ module.exports = async function handler(req, res) {
 
     if (!locationName) {
       return res.status(404).json({
-        error: `No se encontró la sucursal con place_id "${placeId}" en tu cuenta de Google Business. Asegúrate de que el negocio esté vinculado a la cuenta de Google configurada en Vercel.`,
+        error: `No se encontró la sucursal con place_id "${placeId}" en tu cuenta de Google Business.`,
+        detail: 'La cuenta de Google en Vercel puede no tener este negocio vinculado, o el placeId no coincide con el registrado en Business Profile.',
+        fix: 'Ve a /api/gmb-debug para ver qué locaciones ve tu token. Luego agrega GMB_LOCATION_MAP en Vercel con el JSON que te devuelve ese endpoint.',
       });
     }
 

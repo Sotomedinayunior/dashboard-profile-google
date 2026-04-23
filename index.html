@@ -2601,7 +2601,7 @@ function render(D) {
   ).join('');
   }
 
-  // INTENT DISTRIBUTION DONUT 
+  // INTENT DISTRIBUTION DONUT   
   const brandedQ = D.queries.filter(q => queryType(q.query) === 'branded');
   const commercialQ = D.queries.filter(q => queryType(q.query) === 'commercial');
   const genericQ = D.queries.filter(q => queryType(q.query) === 'generic');
