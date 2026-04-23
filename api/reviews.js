@@ -10,9 +10,9 @@
  * Requiere: SERPAPI_KEY en Vercel env vars.
  */
 
-const MAX_PAGES     = 5;  // single-location: hasta 5 páginas × ~20 reviews = ~100 reviews
-const MAX_PAGES_ALL = 3;  // all-locations:   hasta 3 páginas × 5 sucursales en paralelo
-const CALL_TIMEOUT  = 8000; // 8s per SerpAPI call
+const MAX_PAGES     = 4;  // single-location: hasta 4 páginas × ~20 reviews = ~80 reviews
+const MAX_PAGES_ALL = 2;  // all-locations: 2 páginas × 5 sucursales en paralelo (~50 reviews/loc)
+const CALL_TIMEOUT  = 7000; // 7s per SerpAPI call (Vercel Hobby limit: 10s total)
 
 // Sucursales Nelly RAC 
 const LOCATIONS = [
@@ -25,6 +25,7 @@ const LOCATIONS = [
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
+  res.setHeader('X-Generated-At', new Date().toISOString()); // visible en Vercel logs
   if (req.method !== 'GET') return res.status(405).json({ error: 'Use GET' });
 
   const apiKey = process.env.SERPAPI_KEY;
@@ -40,7 +41,7 @@ module.exports = async function handler(req, res) {
 
   const reviews = await fetchAllPages(placeId, apiKey, MAX_PAGES);
   // Cache successful single-location responses for 15 min
-  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=120');
   return res.status(200).json({
   ok: true,
   mode: 'single',
@@ -68,7 +69,7 @@ module.exports = async function handler(req, res) {
   const global = buildStats(allReviews);
 
   // Cache successful all-locations response for 30 min
-  res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=600');
+  res.setHeader('Cache-Control', 's-maxage=900, stale-while-revalidate=300');
   return res.status(200).json({
   ok: true,
   mode: 'all',
