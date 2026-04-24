@@ -2111,16 +2111,22 @@ async function loadFullLocation(placeId, locId) {
 }
 
 async function reloadCurrentLocation() {
+  // Reset lazy-load flag so next visit to GMB re-fetches fresh data
+  _gmbDataLoaded = false;
+  _reviewsState.allData = null;
+  _reviewsState.cache   = {};
+
   const locId = _reviewsState.currentLocId;
   if (locId === 'all') {
-  const data = await loadReviews();
-  if (data?.ok) renderSerpReviews(data);
+    // Re-trigger full section load
+    _gmbDataLoaded = true;
+    await _loadGmbSection();
   } else {
-  const loc = REVIEW_LOCATIONS.find(l => l.id === locId);
-  if (loc) {
-  delete _reviewsState.cache[loc.placeId];
-  await loadFullLocation(loc.placeId, loc.id);
-  }
+    const loc = REVIEW_LOCATIONS.find(l => l.id === locId);
+    if (loc) {
+      delete _reviewsState.cache[loc.placeId];
+      await loadFullLocation(loc.placeId, loc.id);
+    }
   }
 }
 
@@ -2441,19 +2447,49 @@ function pagePriority(ctr) {
 }
 
 // Navigation 
-function showPage(name,el) {
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.querySelectorAll('.mobile-nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
+// Tracks whether GMB SerpAPI data has been fetched this session
+let _gmbDataLoaded = false;
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
   el.classList.add('active');
   // Sync the other nav (sidebar or mobile)
   const isMobile = el.classList.contains('mobile-nav-item');
-  const selector = isMobile ? `.nav-item` : `.mobile-nav-item`;
-  document.querySelectorAll(selector).forEach(n=>{
-  if(n.dataset.page===name) n.classList.add('active');
+  document.querySelectorAll(isMobile ? '.nav-item' : '.mobile-nav-item').forEach(n => {
+    if (n.dataset.page === name) n.classList.add('active');
   });
-  window.scrollTo(0,0);
+  window.scrollTo(0, 0);
+
+  // Lazy-load SerpAPI data only when entering the GMB section
+  if (name === 'gmb' && !_gmbDataLoaded) {
+    _gmbDataLoaded = true;
+    _loadGmbSection();
+  }
+}
+
+async function _loadGmbSection() {
+  // Show loading indicators
+  const reviewList = document.getElementById('gmb-reviews-list');
+  if (reviewList) reviewList.innerHTML = '<div class="empty-state" style="padding:30px">Cargando reseñas...</div>';
+
+  // Load reviews + location cards in sequence to avoid SerpAPI 429
+  try {
+    const reviews = await loadReviews();
+    window._reviewsData = reviews;
+    if (reviews) renderSerpReviews(reviews);
+  } catch(e) {
+    console.error('[GMB reviews]', e);
+  }
+
+  // Load location profile cards after reviews to avoid simultaneous calls
+  try {
+    await loadGmbData();
+  } catch(e) {
+    console.error('[GMB data]', e);
+  }
 }
 
 // Chart registry (for destroy on re-render) 
@@ -4338,23 +4374,17 @@ function renderOnPageTable(rows) {
 async function bootDashboard() {
   applyStoredConfig();
 
-  // Load data + reviews in parallel; errors are caught individually
-  const [D, reviews] = await Promise.all([
-  loadData().catch(e => { console.error('[bootDashboard] loadData:', e.message); return null; }),
-  loadReviews().catch(e => { console.error('[bootDashboard] loadReviews:', e.message); return { ok: false, error: e.message }; }),
-  ]);
+  // Only load GSC + GA4 data on startup (no SerpAPI calls)
+  const D = await loadData().catch(e => { console.error('[bootDashboard] loadData:', e.message); return null; });
 
   const safeD = D || {};
   window._dashData = safeD;
-  window._ga4Data = safeD.ga4 || null;
-  window._reviewsData = reviews;
+  window._ga4Data  = safeD.ga4 || null;
 
-  try { render(safeD); } catch(e) { console.error('[render]', e); }
+  try { render(safeD); }              catch(e) { console.error('[render]',    e); }
   try { renderGMB(safeD.gmb || null); } catch(e) { console.error('[renderGMB]', e); }
   try { renderGA4(safeD.ga4 || null); } catch(e) { console.error('[renderGA4]', e); }
-  try { if (reviews) renderSerpReviews(reviews); } catch(e) { console.error('[renderSerpReviews]', e); }
-
-  loadGmbData(); // load SerpAPI business profile cards (independent)
+  // Reviews + GMB cards loaded lazily when user opens that section
 }
 
 bootDashboard();
@@ -4364,23 +4394,30 @@ bootDashboard();
 // 
 
 const TOUR_CSS = `
-/* ── Overlay ── */
-.driver-overlay { background: rgba(0,0,0,0.55) !important; }
+/* ── Overlay: completely transparent ── */
+.driver-overlay { background: transparent !important; }
 
-/* ── Highlight border ── */
+/* ── Highlight border only — no dark backdrop ── */
 .driver-active-element,
-.driver-highlighted-element { outline: 2.5px solid #F26722 !important; outline-offset: 4px !important; border-radius: 8px !important; box-shadow: 0 0 0 4px rgba(242,103,34,0.18) !important; }
+.driver-highlighted-element {
+  outline: 2.5px solid #F26722 !important;
+  outline-offset: 5px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 0 5px rgba(242,103,34,0.15) !important;
+  position: relative !important;
+  z-index: 10000 !important;
+}
 
 /* ── Popover shell ── */
 .driver-popover.driverjs-theme {
   background: #18181b !important;
   border: 1px solid rgba(242,103,34,0.35) !important;
   border-radius: 14px !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(242,103,34,0.12) !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(242,103,34,0.1) !important;
   padding: 0 !important;
   overflow: hidden !important;
-  min-width: 300px !important;
-  max-width: 360px !important;
+  min-width: 320px !important;
+  max-width: 380px !important;
   font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
 }
 
@@ -4394,7 +4431,7 @@ const TOUR_CSS = `
 
 /* ── Header area ── */
 .driver-popover-header {
-  padding: 16px 18px 0 18px !important;
+  padding: 20px 22px 0 22px !important;
   display: flex !important;
   align-items: flex-start !important;
   justify-content: space-between !important;
@@ -4426,22 +4463,21 @@ const TOUR_CSS = `
 
 /* ── Description ── */
 .driver-popover-description {
-  font-size: 12.5px !important;
-  line-height: 1.65 !important;
-  color: #aaa !important;
-  padding: 10px 18px 16px 18px !important;
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+  color: #bbb !important;
+  padding: 12px 22px 20px 22px !important;
   margin: 0 !important;
 }
 
 /* ── Footer / buttons area ── */
 .driver-popover-footer {
-  padding: 0 18px 14px 18px !important;
+  padding: 12px 22px 18px 22px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
   gap: 8px !important;
-  border-top: 1px solid rgba(255,255,255,0.06) !important;
-  padding-top: 12px !important;
+  border-top: 1px solid rgba(255,255,255,0.07) !important;
 }
 
 /* ── Progress text ── */
@@ -4618,15 +4654,17 @@ function startTour(pageId) {
   if (!steps.length) return;
 
   const driverObj = window.driver.js.driver({
-  showProgress: true,
-  showButtons: ['next', 'previous', 'close'],
-  nextBtnText: 'Siguiente &rarr;',
-  prevBtnText: '&larr; Anterior',
-  doneBtnText: 'Listo',
-  progressText: '{{current}} / {{total}}',
-  popoverClass: 'driverjs-theme',
-  animate: true,
-  smoothScroll: true,
+  showProgress:   true,
+  showButtons:    ['next', 'previous', 'close'],
+  nextBtnText:    'Siguiente &rarr;',
+  prevBtnText:    '&larr; Anterior',
+  doneBtnText:    'Listo',
+  progressText:   '{{current}} / {{total}}',
+  popoverClass:   'driverjs-theme',
+  animate:        true,
+  smoothScroll:   true,
+  overlayOpacity: 0,       // no dark backdrop
+  allowClose:     true,
   steps,
   });
 
