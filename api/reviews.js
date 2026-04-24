@@ -10,9 +10,12 @@
  * Requiere: SERPAPI_KEY en Vercel env vars.
  */
 
-const MAX_PAGES     = 4;  // single-location: hasta 4 páginas × ~20 reviews = ~80 reviews
-const MAX_PAGES_ALL = 2;  // all-locations: 2 páginas × 5 sucursales en paralelo (~50 reviews/loc)
-const CALL_TIMEOUT  = 7000; // 7s per SerpAPI call (Vercel Hobby limit: 10s total)
+const MAX_PAGES     = 2;   // single-location: 2 páginas × ~20 reviews
+const MAX_PAGES_ALL = 1;   // all-locations: 1 página × 5 sucursales serializadas
+const CALL_TIMEOUT  = 7000; // per-request timeout
+const STAGGER_MS    = 400;  // delay between location calls to avoid 429
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Sucursales Nelly RAC 
 const LOCATIONS = [
@@ -50,17 +53,18 @@ module.exports = async function handler(req, res) {
   });
   }
 
-  // Modo: resumen de todas las sucursales (1 página c/u en paralelo) 
-  const results = await Promise.all(
-  LOCATIONS.map(async loc => {
+  // Modo: resumen de todas las sucursales (serializado con stagger para evitar 429)
+  const results = [];
+  for (let i = 0; i < LOCATIONS.length; i++) {
+  if (i > 0) await sleep(STAGGER_MS);
+  const loc = LOCATIONS[i];
   try {
   const reviews = await fetchAllPages(loc.placeId, apiKey, MAX_PAGES_ALL);
-  return { ...loc, ...buildStats(reviews), ok: true };
+  results.push({ ...loc, ...buildStats(reviews), ok: true });
   } catch (err) {
-  return { ...loc, ok: false, error: err.message, reviews: [], total: 0, avgRating: null };
+  results.push({ ...loc, ok: false, error: err.message, reviews: [], total: 0, avgRating: null });
   }
-  })
-  );
+  }
 
   // Global aggregate
   const allReviews = results.flatMap(l =>
@@ -109,6 +113,9 @@ async function fetchAllPages(placeId, apiKey, maxPages) {
   signal: AbortSignal.timeout(CALL_TIMEOUT),
   });
 
+  if (r.status === 429) {
+  throw new Error('Limite de SerpAPI alcanzado (429). Intenta de nuevo en unos segundos o verifica tu plan en serpapi.com.');
+  }
   if (!r.ok) {
   const err = await r.json().catch(() => ({}));
   throw new Error(err.error || `SerpAPI ${r.status}`);

@@ -285,6 +285,13 @@ html,body{overflow-x:hidden;width:100%}
 .glc-btn-ghost:hover{border-color:var(--orange);color:var(--orange)}
 
 /* REPLY BOX */
+.gloss-section{margin-bottom:28px}
+.gloss-cat{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.gloss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.gloss-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;transition:border-color 0.15s}
+.gloss-card:hover{border-color:var(--border2)}
+.gloss-term{font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px}
+.gloss-def{font-size:12px;color:var(--text2);line-height:1.65}
 .reply-box{margin-top:8px;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface2)}
 .reply-box-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--darkbg);color:#fff}
 .reply-box-label{font-size:11px;font-weight:700;letter-spacing:0.5px;color:var(--orange);transition:color 0.2s}
@@ -328,6 +335,11 @@ html,body{overflow-x:hidden;width:100%}
 .period-btn.active{background:var(--orange);color:#fff;border-color:var(--orange)}
 
 /* GA4 BAR ROWS */
+.ga4-filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.ga4-filter-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-right:4px}
+.ga4-period-tab{padding:6px 16px;border-radius:20px;border:1.5px solid var(--border2);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all 0.15s}
+.ga4-period-tab:hover{border-color:#F26722;color:#F26722}
+.ga4-period-tab.active{background:#F26722;border-color:#F26722;color:#fff}
 .ga4-bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
 .ga4-bar-row:last-child{border-bottom:none}
 .ga4-bar-label{min-width:90px;color:var(--text);font-weight:500}
@@ -607,6 +619,11 @@ html,body{overflow-x:hidden;width:100%}
   <div class="nav-item" data-page="experiments" onclick="showPage('experiments',this)">
   <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2"/><path d="M4.22 4.22l1.42 1.42M10.36 10.36l1.42 1.42M4.22 11.78l1.42-1.42M10.36 5.64l1.42-1.42"/></svg>
   Insights & Acciones
+  </div>
+  <div class="nav-label">Ayuda</div>
+  <div class="nav-item" data-page="glossary" onclick="showPage('glossary',this)">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="1" width="12" height="14" rx="1.5"/><path d="M5 5h6M5 7.5h6M5 10h4" stroke-linecap="round"/><path d="M5 5h6" stroke-linecap="round"/></svg>
+  Glosario
   </div>
   </nav>
   <div class="sidebar-footer">
@@ -998,6 +1015,25 @@ html,body{overflow-x:hidden;width:100%}
   </div>
 </div>
 
+<!-- =========== PAGE: GLOSSARY =========== -->
+<div id="page-glossary" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Glosario de Términos</div>
+      <div class="page-sub">Referencia rápida de todos los conceptos usados en el dashboard</div>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div style="margin-bottom:20px">
+    <input id="glossary-search" type="text" placeholder="Buscar término..."
+      oninput="filterGlossary(this.value)"
+      style="width:100%;padding:10px 14px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--ff);background:var(--surface);color:var(--text);box-sizing:border-box">
+  </div>
+
+  <div id="glossary-body"></div>
+</div>
+
 <!-- =========== PAGE: GMB =========== -->
 <div id="page-gmb" class="page">
   <div class="page-header">
@@ -1293,22 +1329,30 @@ html,body{overflow-x:hidden;width:100%}
   </div>
   </div>
 
+  <!-- Period filter — global for KPIs + chart -->
+  <div class="ga4-filter-bar" id="ga4-filter-bar">
+  <span class="ga4-filter-label">Período:</span>
+  <button class="ga4-period-tab" id="ga4-tab-7d"  onclick="ga4SetPeriod('7d',this)">7 días</button>
+  <button class="ga4-period-tab active" id="ga4-tab-28d" onclick="ga4SetPeriod('28d',this)">28 días</button>
+  <button class="ga4-period-tab" id="ga4-tab-6m"  onclick="ga4SetPeriod('6m',this)">6 meses</button>
+  </div>
+
   <!-- KPIs -->
   <div class="kpi-grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
   <div class="kpi-card">
   <div class="kpi-label">Sesiones</div>
   <div class="kpi-value" id="ga4-kpi-sessions">—</div>
-  <div class="kpi-sub">últimos 6 meses</div>
+  <div class="kpi-sub" id="ga4-sub-sessions">período seleccionado</div>
   </div>
   <div class="kpi-card">
   <div class="kpi-label">Usuarios</div>
   <div class="kpi-value" id="ga4-kpi-users">—</div>
-  <div class="kpi-sub">usuarios totales</div>
+  <div class="kpi-sub" id="ga4-sub-users">período seleccionado</div>
   </div>
   <div class="kpi-card">
   <div class="kpi-label">Nuevos Usuarios</div>
   <div class="kpi-value" id="ga4-kpi-newusers">—</div>
-  <div class="kpi-sub">primera visita</div>
+  <div class="kpi-sub">últimos 6 meses</div>
   </div>
   <div class="kpi-card">
   <div class="kpi-label">Engagement Rate</div>
@@ -1327,11 +1371,7 @@ html,body{overflow-x:hidden;width:100%}
   <div class="card">
   <div class="card-header-flex">
   <div class="card-title">Sesiones — Tendencia</div>
-  <div style="display:flex;gap:8px">
-  <button onclick="ga4ChartPeriod('7d',this)" class="period-btn active" id="ga4-btn-7d">7d</button>
-  <button onclick="ga4ChartPeriod('28d',this)" class="period-btn" id="ga4-btn-28d">28d</button>
-  <button onclick="ga4ChartPeriod('6m',this)" class="period-btn" id="ga4-btn-6m">6m</button>
-  </div>
+  <span id="ga4-chart-period-label" style="font-size:11px;color:var(--text3);font-weight:600">28 días</span>
   </div>
   <div class="chart-wrap" style="height:200px"><canvas id="ga4SessionsChart"></canvas></div>
   </div>
@@ -3177,23 +3217,63 @@ function renderSerpReviews(data) {
 }
 
 // GA4 chart state 
-let GA4_DATA = null;
+let GA4_DATA   = null;
+let GA4_PERIOD = '28d';   // active period
 let ga4SessionsChartInst = null;
 
-function ga4ChartPeriod(period, btn) {
-  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+// ── Format helper (local scope) ───────────────────────────────────────────────
+function _ga4Fmt(n) {
+  if (n == null || isNaN(n)) return '—';
+  return n >= 1000000 ? (n/1000000).toFixed(1)+'M'
+       : n >= 1000    ? (n/1000).toFixed(1)+'K'
+       : String(Math.round(n));
+}
+
+// ── Master period switch ──────────────────────────────────────────────────────
+function ga4SetPeriod(period, btn) {
+  GA4_PERIOD = period;
+  document.querySelectorAll('.ga4-period-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
   if (!GA4_DATA) return;
-  const dataMap = { '7d': GA4_DATA.daily7d, '28d': GA4_DATA.daily28d, '6m': GA4_DATA.daily6m };
-  const rows = dataMap[period] || [];
+
+  const periodRows = {
+    '7d':  GA4_DATA.daily7d  || [],
+    '28d': GA4_DATA.daily28d || [],
+    '6m':  GA4_DATA.daily6m  || [],
+  };
+  const rows = periodRows[period] || [];
+
+  // ── KPIs: sessions + users from daily aggregation ─────────────────────────
+  const totalSessions = rows.reduce((s, r) => s + (r.sessions || 0), 0);
+  const totalUsers    = rows.reduce((s, r) => s + (r.users    || 0), 0);
+  const labels = { '7d': 'últimos 7 días', '28d': 'últimos 28 días', '6m': 'últimos 6 meses' };
+
+  el('ga4-kpi-sessions', _ga4Fmt(totalSessions));
+  el('ga4-kpi-users',    _ga4Fmt(totalUsers));
+  const subEl1 = document.getElementById('ga4-sub-sessions');
+  const subEl2 = document.getElementById('ga4-sub-users');
+  if (subEl1) subEl1.textContent = labels[period];
+  if (subEl2) subEl2.textContent = labels[period];
+
+  // ── Chart ─────────────────────────────────────────────────────────────────
+  const periodLabel = { '7d': '7 días', '28d': '28 días', '6m': '6 meses' };
+  const chartLabelEl = document.getElementById('ga4-chart-period-label');
+  if (chartLabelEl) chartLabelEl.textContent = periodLabel[period];
+
   if (ga4SessionsChartInst) {
-  ga4SessionsChartInst.data.labels = rows.map(r => {
-  const d = r.date; return d.slice(5,7)+'/'+d.slice(6,8);
-  });
-  ga4SessionsChartInst.data.datasets[0].data = rows.map(r => r.sessions);
-  ga4SessionsChartInst.update();
+    ga4SessionsChartInst.data.labels   = rows.map(r => {
+      const d = r.date;
+      return period === '6m'
+        ? d.slice(5,7)+'/'+d.slice(8,10)   // MM/DD for 6m
+        : d.slice(5,7)+'/'+d.slice(8,10);  // same for all
+    });
+    ga4SessionsChartInst.data.datasets[0].data = rows.map(r => r.sessions);
+    ga4SessionsChartInst.update();
   }
 }
+
+// Keep old function name as alias for the tour helper calls
+function ga4ChartPeriod(period, btn) { ga4SetPeriod(period, btn); }
 
 function renderGA4(G) {
   const notConf = document.getElementById('ga4-not-configured');
@@ -3217,35 +3297,42 @@ function renderGA4(G) {
 
   GA4_DATA = G;
   const S = G.summary || {};
-  const fmt = n => n >= 1000000 ? (n/1000000).toFixed(1)+'M' : n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n||0);
 
-  el('ga4-kpi-sessions', fmt(S.sessions));
-  el('ga4-kpi-users', fmt(S.users));
-  el('ga4-kpi-newusers', fmt(S.newUsers));
-  el('ga4-kpi-engagement', (S.engagementRate||0)+'%');
-  el('ga4-kpi-pageviews', fmt(S.pageViews));
+  // Static KPIs (always 6m — no daily equivalent)
+  el('ga4-kpi-newusers',   _ga4Fmt(S.newUsers));
+  el('ga4-kpi-engagement', (S.engagementRate || 0) + '%');
+  el('ga4-kpi-pageviews',  _ga4Fmt(S.pageViews));
 
-  // Sessions chart (default 7d)
-  const rows7d = G.daily7d || [];
+  // Show filter bar
+  const filterBar = document.getElementById('ga4-filter-bar');
+  if (filterBar) filterBar.style.display = 'flex';
+
+  // Build sessions chart with default period (28d)
+  const rows28d = G.daily28d || [];
   ga4SessionsChartInst = mkChart('ga4SessionsChart', {
   type: 'line',
   data: {
-  labels: rows7d.map(r => r.date.slice(5,7)+'/'+r.date.slice(6,8)),
+  labels: rows28d.map(r => r.date.slice(5,7)+'/'+r.date.slice(8,10)),
   datasets: [{
-  label: 'Sesiones', data: rows7d.map(r => r.sessions),
-  borderColor: O, backgroundColor: BG, borderWidth: 2,
-  fill: true, tension: 0.4, pointRadius: 2,
+  label: 'Sesiones', data: rows28d.map(r => r.sessions),
+  borderColor: '#F26722', backgroundColor: 'rgba(242,103,34,0.08)',
+  borderWidth: 2, fill: true, tension: 0.4, pointRadius: 2,
+  pointHoverRadius: 5, pointHoverBackgroundColor: '#F26722',
   }],
   },
   options: {
   responsive: true, maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
+  plugins: { legend: { display: false },
+    tooltip: { callbacks: { label: ctx => ' ' + ctx.parsed.y.toLocaleString('es-DO') + ' sesiones' } } },
   scales: {
-  x: { ticks: { font: { size: 10 }, color: MU, maxTicksLimit: 10 }, grid: { display: false } },
-  y: { ticks: { font: { size: 10 }, color: MU }, grid: { color: 'rgba(0,0,0,0.05)' } },
+  x: { ticks: { font: { size: 10 }, color: MU, maxTicksLimit: 12 }, grid: { display: false } },
+  y: { ticks: { font: { size: 10 }, color: MU }, grid: { color: 'rgba(0,0,0,0.04)' } },
   },
   },
   });
+
+  // Apply default period (28d) to update sessions+users KPIs
+  ga4SetPeriod('28d', document.getElementById('ga4-tab-28d'));
 
   // Channels donut
   const channels = G.channels || [];
@@ -4277,14 +4364,130 @@ bootDashboard();
 // 
 
 const TOUR_CSS = `
-.driver-popover { font-family: var(--ff) !important; }
-.driver-popover-title { font-size: 14px !important; font-weight: 700 !important; }
-.driver-popover-description { font-size: 12px !important; line-height: 1.6 !important; color: #ccc !important; }
-.driver-popover.driverjs-theme { background: #1e1e1e !important; border: 1px solid #333 !important; border-radius: 12px !important; }
-.driver-popover-arrow-side-left.driverjs-theme .driver-popover-arrow,
-.driver-popover-arrow-side-right.driverjs-theme .driver-popover-arrow,
-.driver-popover-arrow-side-top.driverjs-theme .driver-popover-arrow,
-.driver-popover-arrow-side-bottom.driverjs-theme .driver-popover-arrow { border-color: transparent !important; }
+/* ── Overlay ── */
+.driver-overlay { background: rgba(0,0,0,0.55) !important; }
+
+/* ── Highlight border ── */
+.driver-active-element,
+.driver-highlighted-element { outline: 2.5px solid #F26722 !important; outline-offset: 4px !important; border-radius: 8px !important; box-shadow: 0 0 0 4px rgba(242,103,34,0.18) !important; }
+
+/* ── Popover shell ── */
+.driver-popover.driverjs-theme {
+  background: #18181b !important;
+  border: 1px solid rgba(242,103,34,0.35) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(242,103,34,0.12) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  min-width: 300px !important;
+  max-width: 360px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+}
+
+/* ── Color bar accent on top ── */
+.driver-popover.driverjs-theme::before {
+  content: '' !important;
+  display: block !important;
+  height: 3px !important;
+  background: linear-gradient(90deg, #F26722, #ff9a5c) !important;
+}
+
+/* ── Header area ── */
+.driver-popover-header {
+  padding: 16px 18px 0 18px !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+/* ── Title ── */
+.driver-popover-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+/* ── Close button ── */
+.driver-popover-close-btn {
+  color: #555 !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  flex-shrink: 0 !important;
+  transition: color 0.15s !important;
+}
+.driver-popover-close-btn:hover { color: #F26722 !important; }
+
+/* ── Description ── */
+.driver-popover-description {
+  font-size: 12.5px !important;
+  line-height: 1.65 !important;
+  color: #aaa !important;
+  padding: 10px 18px 16px 18px !important;
+  margin: 0 !important;
+}
+
+/* ── Footer / buttons area ── */
+.driver-popover-footer {
+  padding: 0 18px 14px 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  padding-top: 12px !important;
+}
+
+/* ── Progress text ── */
+.driver-popover-progress-text {
+  font-size: 10px !important;
+  color: #555 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+}
+
+/* ── Navigation buttons ── */
+.driver-popover-navigation-btns { display: flex !important; gap: 6px !important; }
+
+.driver-popover-prev-btn,
+.driver-popover-next-btn,
+.driver-popover-done-btn {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s !important;
+  text-shadow: none !important;
+}
+
+.driver-popover-prev-btn {
+  background: rgba(255,255,255,0.07) !important;
+  color: #aaa !important;
+}
+.driver-popover-prev-btn:hover { background: rgba(255,255,255,0.12) !important; color: #fff !important; }
+
+.driver-popover-next-btn,
+.driver-popover-done-btn {
+  background: #F26722 !important;
+  color: #fff !important;
+}
+.driver-popover-next-btn:hover,
+.driver-popover-done-btn:hover { background: #d95a1a !important; }
+
+/* ── Arrow ── */
+.driver-popover-arrow { border-color: transparent !important; }
+.driver-popover-arrow-side-bottom .driver-popover-arrow { border-top-color: #18181b !important; }
+.driver-popover-arrow-side-top    .driver-popover-arrow { border-bottom-color: #18181b !important; }
+.driver-popover-arrow-side-left   .driver-popover-arrow { border-right-color:  #18181b !important; }
+.driver-popover-arrow-side-right  .driver-popover-arrow { border-left-color:   #18181b !important; }
 `;
 (function injectTourCSS() {
   const s = document.createElement('style');
@@ -4417,12 +4620,13 @@ function startTour(pageId) {
   const driverObj = window.driver.js.driver({
   showProgress: true,
   showButtons: ['next', 'previous', 'close'],
-  nextBtnText: 'Siguiente →',
-  prevBtnText: '← Anterior',
-  doneBtnText: ' Listo',
-  progressText: '{{current}} de {{total}}',
+  nextBtnText: 'Siguiente &rarr;',
+  prevBtnText: '&larr; Anterior',
+  doneBtnText: 'Listo',
+  progressText: '{{current}} / {{total}}',
   popoverClass: 'driverjs-theme',
   animate: true,
+  smoothScroll: true,
   steps,
   });
 
@@ -4457,12 +4661,144 @@ function initSidebarTourBtn() {
 // Init after DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   initSidebarTourBtn();
-  // Inicializar íconos Lucide del DOM estático (header KPI cards, etc.)
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  renderGlossary();
 });
 if (document.readyState !== 'loading') {
   initSidebarTourBtn();
   if (typeof lucide !== 'undefined') lucide.createIcons();
+  renderGlossary();
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GLOSARIO DE TÉRMINOS
+// ══════════════════════════════════════════════════════════════════════════════
+
+const GLOSSARY = [
+  {
+    category: 'Search Console (GSC)',
+    terms: [
+      { term: 'Clics',           def: 'Cantidad de veces que un usuario hizo clic en tu sitio desde los resultados de Google. Es la métrica más directa de tráfico orgánico.' },
+      { term: 'Impresiones',     def: 'Cuántas veces apareció tu sitio en los resultados de búsqueda, sin importar si el usuario hizo clic o no. Alta impresión + pocos clics = oportunidad de mejorar título y descripción.' },
+      { term: 'CTR',             def: 'Click-Through Rate — porcentaje de impresiones que se convierten en clics. Fórmula: Clics ÷ Impresiones × 100. Un CTR mayor al 3% es bueno; menor al 1% indica que el snippet en Google no es atractivo.' },
+      { term: 'Posición media',  def: 'El promedio del puesto en que aparece tu sitio en Google para todas las búsquedas. Posición 1 = primer resultado. Cuanto menor el número, mejor. Meta recomendada: bajar de 4.0.' },
+      { term: 'Query / Keyword', def: 'Palabra o frase que escribió el usuario en Google antes de ver tu sitio. Las queries con más impresiones pero poca posición (4-10) son las mejores oportunidades de optimización.' },
+      { term: 'Snippet',         def: 'El texto que Google muestra en los resultados de búsqueda: incluye el título (title tag), la URL y la meta description. Optimizar el snippet mejora el CTR sin cambiar el contenido de la página.' },
+    ],
+  },
+  {
+    category: 'Google Analytics 4 (GA4)',
+    terms: [
+      { term: 'Sesión',           def: 'Una visita continua a tu sitio. Una sesión termina cuando el usuario está inactivo por más de 30 minutos o cierra el navegador. Un usuario puede generar múltiples sesiones.' },
+      { term: 'Usuarios',         def: 'Personas únicas que visitaron tu sitio en el período seleccionado, identificadas por un ID de dispositivo. Distintos de sesiones: un usuario puede tener varias sesiones.' },
+      { term: 'Nuevos usuarios',  def: 'Visitantes que acceden a tu sitio por primera vez. Una proporción alta de nuevos usuarios indica buen alcance; una proporción baja puede indicar fidelización o falta de adquisición nueva.' },
+      { term: 'Engagement Rate',  def: 'Porcentaje de sesiones donde el usuario interactuó de forma significativa: estuvo más de 10 segundos, visitó más de una página, o realizó un evento clave. Lo opuesto al bounce rate. Un 50%+ es positivo.' },
+      { term: 'Bounce Rate',      def: 'Porcentaje de sesiones sin engagement — el usuario entró y salió sin interactuar. En GA4 es el opuesto del Engagement Rate. Un bounce rate alto en páginas clave indica que el contenido no satisface la intención de búsqueda.' },
+      { term: 'Páginas vistas',   def: 'Total de páginas que fueron cargadas durante el período, incluyendo recgas de la misma página. Diferente a sesiones: una sesión puede incluir múltiples páginas vistas.' },
+      { term: 'Canal de tráfico', def: 'Origen agrupado de los visitantes: Organic Search (Google/Bing sin pagar), Direct (URL directa), Referral (otro sitio web), Paid Search (anuncios), Social (redes sociales), Email.' },
+      { term: 'Duración de sesión', def: 'Tiempo promedio que un usuario pasa en el sitio por visita. Sesiones largas suelen indicar contenido relevante. Para alquiler de autos, 1-3 minutos es típico en páginas de cotización.' },
+    ],
+  },
+  {
+    category: 'PageSpeed & Core Web Vitals',
+    terms: [
+      { term: 'PageSpeed Score',   def: 'Puntuación de 0 a 100 que Google asigna a la velocidad y experiencia de carga de una página. 90-100 = rápido (verde), 50-89 = necesita mejora (naranja), 0-49 = lento (rojo). Google usa esta métrica para el ranking.' },
+      { term: 'LCP',               def: 'Largest Contentful Paint — tiempo que tarda en aparecer el elemento más grande de la pantalla (imagen principal o bloque de texto). Meta: menos de 2.5 segundos. Un LCP lento hace que el usuario sienta que la página "no carga".' },
+      { term: 'CLS',               def: 'Cumulative Layout Shift — mide cuánto se mueven los elementos de la página mientras carga (ej. botones que saltan). Meta: menos de 0.1. Un CLS alto hace que el usuario haga clic en el lugar equivocado.' },
+      { term: 'FID / INP',         def: 'First Input Delay / Interaction to Next Paint — tiempo de respuesta cuando el usuario hace clic o escribe por primera vez. Meta: menos de 100ms. Mide qué tan "responsive" se siente la página.' },
+      { term: 'TTFB',              def: 'Time To First Byte — tiempo que tarda el servidor en enviar el primer byte de respuesta. Meta: menos de 800ms. Un TTFB alto suele ser problema del servidor o hosting, no del código.' },
+      { term: 'Mobile-first index', def: 'Google evalúa y rankea los sitios principalmente por su versión móvil. Si tu sitio es lento en celular, tu posición en Google se ve afectada incluso para búsquedas desde computadora.' },
+    ],
+  },
+  {
+    category: 'SERP & Posiciones',
+    terms: [
+      { term: 'SERP',           def: 'Search Engine Results Page — la página de resultados de Google. Aparecer en la primera SERP (top 10) es el objetivo principal del SEO, ya que el 90%+ de los clics van a esos resultados.' },
+      { term: 'Posición orgánica', def: 'El lugar que ocupa tu URL en los resultados naturales de Google (sin pagar). Posición 1-3 captura la mayor parte del tráfico; posición 11+ equivale a "página 2" con muy pocos clics.' },
+      { term: 'Top 3',          def: 'Las tres primeras posiciones orgánicas en Google. Capturan en promedio el 50-60% de todos los clics para esa búsqueda. Es la meta de SEO más impactante para el negocio.' },
+      { term: 'Featured Snippet', def: 'Resultado destacado que aparece sobre los resultados normales (posición 0). Google lo muestra cuando responde directamente una pregunta. Puede triplicar el CTR de una página.' },
+      { term: 'Local Pack',     def: 'El bloque de 3 negocios con mapa que aparece en búsquedas locales como "rent a car santo domingo". Depende de Google My Business, no de SEO web. Es el resultado más visible para búsquedas de clientes cercanos.' },
+    ],
+  },
+  {
+    category: 'SEO On-Page',
+    terms: [
+      { term: 'Title Tag',       def: 'El título de la página que Google muestra como enlace principal en los resultados. Debe tener 50-60 caracteres, incluir la keyword principal y ser único por página. Es el factor on-page más influyente para el ranking.' },
+      { term: 'Meta Description', def: 'El texto de descripción debajo del título en Google. No afecta directamente el ranking, pero sí el CTR. Debe tener 120-160 caracteres, describir claramente la página e incluir una llamada a la acción.' },
+      { term: 'H1',              def: 'Encabezado principal de la página (Heading 1). Debe haber exactamente uno por página, contener la keyword principal y describir de qué trata la página. Google lo usa para entender el tema central.' },
+      { term: 'Canonical',       def: 'Etiqueta que indica a Google cuál es la URL "oficial" de un contenido cuando existe en múltiples URLs. Previene problemas de contenido duplicado que pueden dividir la autoridad SEO de una página.' },
+      { term: 'Robots meta tag', def: 'Indica a Google si debe indexar una página (index) o seguir sus enlaces (follow). El valor "noindex" le dice a Google que no muestre esa página en resultados. Útil para páginas de confirmación, login, etc.' },
+      { term: 'Contenido duplicado', def: 'Cuando el mismo contenido aparece en múltiples URLs. Google penaliza indirectamente esto dividiendo la "autoridad" entre las copias. Se resuelve con canonical tags o redireccionamientos 301.' },
+    ],
+  },
+  {
+    category: 'Google Mi Negocio (GMB)',
+    terms: [
+      { term: 'Business Profile', def: 'El perfil de tu negocio en Google — lo que aparece en Google Maps y en el panel de información a la derecha cuando alguien busca tu empresa. Impacta directamente las búsquedas locales.' },
+      { term: 'Calificación',    def: 'El promedio de estrellas (1-5) de todas las reseñas de Google. Una calificación de 4.5+ mejora el CTR del Local Pack y genera confianza. Google favorece en ranking a negocios con más y mejores reseñas.' },
+      { term: 'Reseñas',         def: 'Opiniones de clientes en Google Maps. Son un factor de ranking para búsquedas locales. Responder a todas las reseñas (positivas y negativas) muestra actividad y profesionalismo al algoritmo de Google.' },
+      { term: 'Place ID',        def: 'Identificador único de Google para cada ubicación física. Formato: ChIJ... Se usa en la API de Google Maps para identificar una sucursal específica con precisión.' },
+      { term: 'Reply Rate',      def: 'Porcentaje de reseñas que tienen una respuesta del negocio. Un reply rate alto es señal de negocio activo y mejora la percepción del cliente. Meta recomendada: responder al 100% de las reseñas negativas y al menos el 50% de las positivas.' },
+    ],
+  },
+  {
+    category: 'Auditoría Técnica',
+    terms: [
+      { term: 'Status 200',     def: 'Código HTTP que indica que una página cargó correctamente. Es el estado esperado para todas las páginas activas del sitio.' },
+      { term: 'Status 301',     def: 'Redirección permanente. Le dice a Google y al navegador que la página se movió definitivamente a otra URL. Transfiere el 90-99% del "link equity" (autoridad SEO) a la nueva URL.' },
+      { term: 'Status 302',     def: 'Redirección temporal. No transfiere autoridad SEO como el 301. Usar 302 cuando debería ser 301 puede desperdiciar autoridad de la página.' },
+      { term: 'Status 404',     def: 'Página no encontrada. Si Google encuentra muchos 404 en tu sitio, puede interpretar que el sitio está mal mantenido. Los 404 en páginas con backlinks son especialmente dañinos para el SEO.' },
+      { term: 'Crawl / Rastreo', def: 'El proceso por el cual Google (y otros motores) visitan automáticamente las páginas de tu sitio para indexarlas. Un crawler sigue los enlaces de página en página. Si una página no es rastreada, no puede aparecer en Google.' },
+      { term: 'Tiempo de carga', def: 'Cuántos milisegundos tarda en responder el servidor de tu sitio. Páginas de más de 2000ms (2 segundos) se consideran lentas. Impacta la experiencia del usuario y el PageSpeed Score.' },
+    ],
+  },
+  {
+    category: 'Plan de Acción IA',
+    terms: [
+      { term: 'Salud digital',   def: 'Puntuación del 1 al 10 generada por Claude que resume el estado general del rendimiento digital del negocio, considerando SEO, velocidad, reseñas y analítica.' },
+      { term: 'Prioridad alta',  def: 'Acciones que deben ejecutarse primero por su alto impacto en el negocio y/o su urgencia. Generalmente son problemas técnicos críticos o cambios que afectan directamente las reservas.' },
+      { term: 'Prioridad media', def: 'Acciones importantes pero no urgentes. Mejoran el rendimiento a mediano plazo. Recomendable ejecutarlas en las próximas 2-4 semanas.' },
+      { term: 'Prioridad baja',  def: 'Optimizaciones que generan beneficios incrementales. Ejecutar cuando se hayan completado las prioridades alta y media.' },
+      { term: 'Impacto',         def: 'Estimación del efecto que tendrá la acción en el negocio (alto, medio, bajo). Un impacto alto significa que puede generar un cambio notable en tráfico, visibilidad o reservas.' },
+      { term: 'Esfuerzo',        def: 'Complejidad o tiempo requerido para ejecutar la acción (bajo, medio, alto). Las acciones de alto impacto y bajo esfuerzo (quick wins) deben priorizarse primero.' },
+    ],
+  },
+];
+
+let _glossaryRendered = false;
+
+function renderGlossary() {
+  if (_glossaryRendered) return;
+  _glossaryRendered = true;
+
+  const body = document.getElementById('glossary-body');
+  if (!body) return;
+
+  body.innerHTML = GLOSSARY.map(section => `
+    <div class="gloss-section" data-section>
+      <div class="gloss-cat">${section.category}</div>
+      <div class="gloss-grid">
+        ${section.terms.map(t => `
+          <div class="gloss-card" data-term="${t.term.toLowerCase()} ${t.def.toLowerCase()}">
+            <div class="gloss-term">${t.term}</div>
+            <div class="gloss-def">${t.def}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterGlossary(q) {
+  const query = q.toLowerCase().trim();
+  document.querySelectorAll('.gloss-card').forEach(card => {
+    const match = !query || card.dataset.term.includes(query);
+    card.style.display = match ? '' : 'none';
+  });
+  document.querySelectorAll('.gloss-section').forEach(section => {
+    const visible = [...section.querySelectorAll('.gloss-card')].some(c => c.style.display !== 'none');
+    section.style.display = visible ? '' : 'none';
+  });
 }
 
 </script>
