@@ -1992,9 +1992,11 @@ async function loadData() {
   const empty={...FALLBACK,gmb:{configured:false,rating:null,reviewCount:null,reviews:[],performance:{views:{maps:null,search:null,total:null},actions:{calls:null,websiteClicks:null,directions:null,total:null},daily:[]}},ga4:null};
   try{
   const r=await fetch('/api/data');
-  if(!r.ok){const e=await r.json();throw new Error(e.error||r.status);}
-  return await r.json();
-  }catch(e){console.error('Error cargando datos:',e.message);return empty;}
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||r.status);}
+  const json=await r.json();
+  console.log('[loadData] /api/data OK — ga4 configured:', json?.ga4?.configured, '| ga4 keys:', Object.keys(json?.ga4||{}));
+  return json;
+  }catch(e){console.error('[loadData] Error cargando datos:',e.message);return empty;}
 }
 
 // Helper: sanitize text for safe HTML insertion 
@@ -3367,6 +3369,7 @@ function renderGA4(G) {
   // ga4-badge hidden by design
 
   GA4_DATA = G;
+  console.log('[GA4] renderGA4 — datos recibidos:', JSON.stringify(G).slice(0, 400));
   const S = G.summary || {};
 
   // Fill ALL KPIs immediately from summary (reliable 6m data)
@@ -3428,44 +3431,63 @@ function renderGA4(G) {
   });
 
   // Devices bar rows
-  const devices = G.devices || [];
-  const devContainer = document.getElementById('ga4-devices-list');
-  if (devContainer) {
-    if (devices.length) {
-      const maxDev = Math.max(...devices.map(d => d.sessions), 1);
-      devContainer.innerHTML = devices.map(d => `
-        <div class="ga4-bar-row">
-          <div class="ga4-bar-label">${d.device}</div>
-          <div class="ga4-bar-track"><div class="ga4-bar-fill" style="width:${Math.round(d.sessions/maxDev*100)}%"></div></div>
-          <div class="ga4-bar-val">${fmt(d.sessions)}</div>
-        </div>`).join('');
-    } else {
-      devContainer.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin datos de dispositivos</div>';
+  try {
+    const devices = G.devices || [];
+    const devContainer = document.getElementById('ga4-devices-list');
+    if (devContainer) {
+      if (devices.length) {
+        const maxDev = Math.max(...devices.map(d => d.sessions), 1);
+        devContainer.innerHTML = devices.map(d => `
+          <div class="ga4-bar-row">
+            <div class="ga4-bar-label">${d.device}</div>
+            <div class="ga4-bar-track"><div class="ga4-bar-fill" style="width:${Math.round(d.sessions/maxDev*100)}%"></div></div>
+            <div class="ga4-bar-val">${fmt(d.sessions)}</div>
+          </div>`).join('');
+      } else {
+        devContainer.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin datos de dispositivos</div>';
+      }
     }
+  } catch(e) {
+    console.error('[GA4 Devices]', e);
+    _showChartError('ga4-devices-list', e, 'Dispositivos');
   }
 
   // Top pages table
-  const pages = (G.pages || []).slice(0, 15);
-  const tbody = document.getElementById('ga4-pages-body');
-  if (tbody) {
-    tbody.innerHTML = pages.length ? pages.map(p => {
-      const dur = p.avgDuration >= 60
-        ? Math.floor(p.avgDuration/60)+'m '+String(p.avgDuration%60).padStart(2,'0')+'s'
-        : p.avgDuration+'s';
-      return `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:8px 6px;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.page}</td>
-        <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt(p.pageViews)}</td>
-        <td style="padding:8px 6px;text-align:right">${fmt(p.sessions)}</td>
-        <td style="padding:8px 6px;text-align:right;color:var(--text2)">${dur}</td>
-        <td style="padding:8px 6px;text-align:right;color:${p.engagementRate>=50?GR:'var(--text2)'}">${p.engagementRate}%</td>
-      </tr>`;
-    }).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">Sin datos — verifica que GA4_PROPERTY_ID esté configurado correctamente en Vercel</td></tr>';
+  try {
+    const pages = (G.pages || []).slice(0, 15);
+    const tbody = document.getElementById('ga4-pages-body');
+    if (tbody) {
+      tbody.innerHTML = pages.length ? pages.map(p => {
+        const dur = p.avgDuration >= 60
+          ? Math.floor(p.avgDuration/60)+'m '+String(p.avgDuration%60).padStart(2,'0')+'s'
+          : p.avgDuration+'s';
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px 6px;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.page}</td>
+          <td style="padding:8px 6px;text-align:right;font-weight:600">${fmt(p.pageViews)}</td>
+          <td style="padding:8px 6px;text-align:right">${fmt(p.sessions)}</td>
+          <td style="padding:8px 6px;text-align:right;color:var(--text2)">${dur}</td>
+          <td style="padding:8px 6px;text-align:right;color:${p.engagementRate>=50?GR:'var(--text2)'}">${p.engagementRate}%</td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">Sin datos — verifica que GA4_PROPERTY_ID esté configurado correctamente en Vercel</td></tr>';
+    }
+  } catch(e) {
+    console.error('[GA4 Pages]', e);
+    const tbody = document.getElementById('ga4-pages-body');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="padding:12px;color:#c0392b">⚠️ Error páginas: ${e?.message || e}</td></tr>`;
   }
 
-  // D3 charts: defer until D3 is ready + page is visible
-  // Store GA4 data globally so showPage('analytics') can re-render if needed
+  // Chart.js charts (países + actividad diaria)
   window._ga4FullData = G;
   _renderGA4D3Charts(G);
+}
+
+// Helper: muestra error visible en un contenedor del DOM
+function _showChartError(id, err, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<div style="font-size:11px;color:#c0392b;background:#fdf0ef;border:1px solid #f5c6c2;border-radius:6px;padding:8px 10px;margin-top:4px">
+    ⚠️ <strong>${label}</strong>: ${err?.message || String(err)}
+  </div>`;
 }
 
 // Render Chart.js analytics charts (llamado al cargar datos Y cuando se abre la pestaña Analytics)
@@ -3473,12 +3495,23 @@ function _renderGA4D3Charts(G) {
   if (!G) return;
   const analyticsPage = document.getElementById('page-analytics');
   if (!analyticsPage?.classList.contains('active')) {
-    // Tab no visible — guardar datos y esperar a que se abra
     window._ga4FullData = G;
     return;
   }
-  renderD3Countries((G.countries || []).slice(0, 20));
-  renderD3Heatmap(G.daily6m || []);
+  console.log('[GA4 Charts] _renderGA4D3Charts — datos:', G);
+  try {
+    renderD3Countries((G.countries || []).slice(0, 20));
+  } catch(e) {
+    console.error('[GA4 Countries]', e);
+    _showChartError('ga4-countries-list', e, 'Países');
+  }
+  try {
+    renderD3Heatmap(G.daily6m || []);
+  } catch(e) {
+    console.error('[GA4 Heatmap]', e);
+    const wrap = document.getElementById('ga4-heatmap-chart')?.parentElement;
+    if (wrap) wrap.innerHTML = `<div style="font-size:11px;color:#c0392b;background:#fdf0ef;border:1px solid #f5c6c2;border-radius:6px;padding:8px 10px">⚠️ <strong>Actividad diaria</strong>: ${e?.message || e}</div>`;
+  }
 }
 
 // ── Chart.js — Top Países (barras horizontales) ───────────────────────────────
@@ -4548,7 +4581,18 @@ async function bootDashboard() {
 
   try { render(safeD); }              catch(e) { console.error('[render]',    e); }
   try { renderGMB(safeD.gmb || null); } catch(e) { console.error('[renderGMB]', e); }
-  try { renderGA4(safeD.ga4 || null); } catch(e) { console.error('[renderGA4]', e); }
+  try { renderGA4(safeD.ga4 || null); } catch(e) {
+    console.error('[renderGA4] ERROR COMPLETO:', e);
+    // Show visible error in analytics section so user can see it
+    const errBanner = document.getElementById('ga4-not-configured');
+    if (errBanner) {
+      errBanner.style.display = 'block';
+      errBanner.innerHTML = `<div style="background:#fdf0ef;border:1px solid #f5c6c2;border-radius:8px;padding:12px 16px;font-size:12px;color:#c0392b">
+        ⚠️ <strong>Error al renderizar Analytics:</strong> ${e?.message || e}<br>
+        <span style="color:#888;font-size:11px;margin-top:4px;display:inline-block">Revisa la consola del navegador (F12 → Console) para más detalles.</span>
+      </div>`;
+    }
+  }
   // Reviews + GMB cards loaded lazily when user opens that section
 }
 
