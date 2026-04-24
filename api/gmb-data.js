@@ -17,10 +17,7 @@ const LOCATIONS = [
   { id: 'bocachica',     name: 'Las Americas',      placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
 ];
 
-const STAGGER_MS   = 300;  // delay between each location call
-const CALL_TIMEOUT = 7000; // per-request timeout
-
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+const CALL_TIMEOUT = 8000; // per-request timeout
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -29,12 +26,8 @@ module.exports = async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'SERPAPI_KEY no configurada' });
 
   try {
-    // Serialize calls: one location at a time with a small gap to avoid 429
-    const results = [];
-    for (let i = 0; i < LOCATIONS.length; i++) {
-      if (i > 0) await sleep(STAGGER_MS);
-      results.push(await fetchPlaceData(LOCATIONS[i], apiKey));
-    }
+    // Parallel: all 5 at once — ~3s total vs 15s+ sequential (which causes timeout)
+    const results = await Promise.all(LOCATIONS.map(loc => fetchPlaceData(loc, apiKey)));
 
     const allOk = results.every(r => r.ok);
     // Cache 1 hour when successful; never cache errors
@@ -67,9 +60,8 @@ async function fetchPlaceData(loc, apiKey) {
       signal: AbortSignal.timeout(CALL_TIMEOUT),
     });
 
-    // Surface rate-limit errors clearly
     if (r.status === 429) {
-      throw new Error('Limite de SerpAPI alcanzado (429). Intenta de nuevo en unos segundos.');
+      throw new Error('429: Cuota de SerpAPI agotada. Ve a serpapi.com para verificar tu plan.');
     }
     if (!r.ok) throw new Error(`SerpAPI ${r.status}`);
 
