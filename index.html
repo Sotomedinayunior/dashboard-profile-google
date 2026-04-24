@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script src="https://www.gstatic.com/charts/loader.js"></script>
 <link rel="shortcut icon" href="/favico.png" type="image/x-icon">
 
 <meta name="robots" content="noindex, nofollow">
@@ -1401,12 +1400,10 @@ html,body{overflow-x:hidden;width:100%}
   </div>
   </div>
 
-  <!-- Actividad diaria (heatmap) -->
+  <!-- Actividad diaria -->
   <div class="card" style="margin-bottom:20px">
   <div class="card-title" style="margin-bottom:12px">Actividad Diaria · Últimos 6 meses</div>
-  <div id="ga4-heatmap" style="overflow-x:auto;min-height:120px">
-    <div style="font-size:12px;color:var(--text3);padding:20px 0">Cargando actividad…</div>
-  </div>
+  <div style="height:160px"><canvas id="ga4-heatmap-chart"></canvas></div>
   </div>
 
   <!-- Top Páginas -->
@@ -3348,7 +3345,9 @@ function renderGA4(G) {
   if (notConf) notConf.style.display = 'block';
   // Limpiar todos los divs de "Cargando…" para que no queden atascados
   const _empty = (id, msg) => { const el = document.getElementById(id); if (el) el.innerHTML = `<div style="font-size:11px;color:var(--text3);padding:8px 0">${msg}</div>`; };
-  _empty('ga4-heatmap',      'Activa Google Analytics en Vercel para ver la actividad diaria.');
+  // ga4-heatmap-chart is a canvas — replace parent div content
+  const _heatWrap = document.getElementById('ga4-heatmap-chart')?.parentElement;
+  if (_heatWrap) _heatWrap.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 0">Activa Google Analytics en Vercel para ver la actividad diaria.</div>';
   _empty('ga4-devices-list', 'Sin datos — configura GA4_PROPERTY_ID en Vercel.');
   _empty('ga4-countries-list','Sin datos — configura GA4_PROPERTY_ID en Vercel.');
   const tbody = document.getElementById('ga4-pages-body');
@@ -3469,8 +3468,7 @@ function renderGA4(G) {
   _renderGA4D3Charts(G);
 }
 
-// Render Google Charts (llamado al cargar datos Y cuando se abre la pestaña Analytics)
-// Google Charts Calendar necesita el contenedor visible para calcular el ancho
+// Render Chart.js analytics charts (llamado al cargar datos Y cuando se abre la pestaña Analytics)
 function _renderGA4D3Charts(G) {
   if (!G) return;
   const analyticsPage = document.getElementById('page-analytics');
@@ -3483,138 +3481,118 @@ function _renderGA4D3Charts(G) {
   renderD3Heatmap(G.daily6m || []);
 }
 
-// ── Google Charts — inicialización única ──────────────────────────────────────
-let _gcReady = null;
-function gcReady() {
-  if (_gcReady) return _gcReady;
-  _gcReady = new Promise(resolve => {
-    google.charts.load('current', { packages: ['geochart', 'calendar', 'bar'], language: 'es' });
-    google.charts.setOnLoadCallback(resolve);
-  });
-  return _gcReady;
-}
-
-// ── Google GeoChart — Top Países (mapa mundial) ───────────────────────────────
-async function renderD3Countries(data) {
+// ── Chart.js — Top Países (barras horizontales) ───────────────────────────────
+function renderD3Countries(data) {
   const container = document.getElementById('ga4-countries-list');
   if (!container) return;
-  if (!data.length) { container.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin datos de países</div>'; return; }
-
-  container.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 0">Cargando mapa…</div>';
-  await gcReady();
-  container.innerHTML = '';
-
-  // Detectar modo oscuro para el mapa
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-    || window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-
-  const tableData = new google.visualization.DataTable();
-  tableData.addColumn('string', 'País');
-  tableData.addColumn('number', 'Sesiones');
-  tableData.addColumn({ type: 'string', role: 'tooltip' });
-  data.forEach(d => {
-    tableData.addRow([
-      d.country,
-      d.sessions,
-      `${d.country}\nSesiones: ${d.sessions.toLocaleString('es-DO')}\nUsuarios: ${d.users?.toLocaleString('es-DO') || '—'}\nEngagement: ${d.engagementRate ?? '—'}%`,
-    ]);
-  });
-
-  const options = {
-    width:  '100%',
-    height: 200,
-    colorAxis: { colors: ['#ffd6b3', '#E8610A'] },
-    backgroundColor: 'transparent',
-    datalessRegionColor: isDark ? '#2a2a2a' : '#f0f0f0',
-    defaultColor: '#f5f5f5',
-    legend: { textStyle: { color: '#888', fontSize: 10 } },
-    tooltip: { isHtml: false },
-  };
-
-  const chart = new google.visualization.GeoChart(container);
-  chart.draw(tableData, options);
-
-  // Tabla resumen debajo del mapa
-  const topList = data.slice(0, 8);
-  const maxS = topList[0]?.sessions || 1;
-  const table = document.createElement('div');
-  table.style.cssText = 'margin-top:10px;font-size:11px';
-  table.innerHTML = topList.map((d, i) => `
-    <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px">
-      <span style="width:16px;color:var(--text3);font-size:10px">${i+1}</span>
-      <span style="flex:1;color:var(--text2);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.country}</span>
-      <div style="width:60px;background:var(--border);border-radius:3px;height:6px;overflow:hidden">
-        <div style="width:${Math.round(d.sessions/maxS*100)}%;background:var(--orange);height:100%;border-radius:3px"></div>
-      </div>
-      <span style="width:38px;text-align:right;color:var(--text3)">${d.sessions >= 1000 ? (d.sessions/1000).toFixed(1)+'K' : d.sessions}</span>
-    </div>`).join('');
-  container.appendChild(table);
-}
-
-// ── Google Charts Calendar — Actividad diaria (heatmap) ──────────────────────
-async function renderD3Heatmap(dailyData) {
-  const container = document.getElementById('ga4-heatmap');
-  if (!container) return;
-  if (!dailyData.length) {
-    container.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin datos de actividad diaria</div>';
+  if (!data || !data.length) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin datos de países</div>';
     return;
   }
 
-  container.innerHTML = '<div style="font-size:11px;color:var(--text3);padding:8px 0">Cargando calendario…</div>';
-  await gcReady();
-  container.innerHTML = '';
+  const top10 = data.slice(0, 10);
+  const fmt2  = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n);
+  const maxS  = top10[0]?.sessions || 1;
 
-  const tableData = new google.visualization.DataTable();
-  tableData.addColumn({ type: 'date',   id: 'Fecha' });
-  tableData.addColumn({ type: 'number', id: 'Sesiones' });
+  container.innerHTML = top10.map((d, i) => `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+      <span style="width:14px;font-size:10px;color:var(--text3);text-align:right">${i+1}</span>
+      <span style="width:120px;font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.country}</span>
+      <div style="flex:1;background:var(--border);border-radius:4px;height:8px;overflow:hidden">
+        <div style="width:${Math.round(d.sessions/maxS*100)}%;background:var(--orange);height:100%;border-radius:4px;transition:width .4s"></div>
+      </div>
+      <span style="width:36px;text-align:right;font-size:11px;color:var(--text3)">${fmt2(d.sessions)}</span>
+    </div>`).join('');
+}
 
-  dailyData.forEach(d => {
-    if (!d.date) return;
-    const [y, m, day] = d.date.split('-').map(Number);
-    tableData.addRow([new Date(y, m - 1, day), d.sessions]);
+// ── Actividad diaria — Chart.js bar chart (últimos 90 días) ───────────────────
+function renderD3Heatmap(dailyData) {
+  const canvas = document.getElementById('ga4-heatmap-chart');
+  if (!canvas) return;
+
+  if (!dailyData || !dailyData.length) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const parent = canvas.parentElement;
+    if (parent) {
+      parent.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:20px 0;text-align:center">Sin datos de actividad diaria</div>';
+    }
+    return;
+  }
+
+  // Last 90 days (or all if fewer)
+  const last90 = dailyData.slice(-90);
+
+  // Group by week label for readability when many days
+  const labels = last90.map(d => {
+    if (!d.date) return '';
+    const [, m, day] = d.date.split('-');
+    return `${day}/${m}`;
+  });
+  const values = last90.map(d => d.sessions || 0);
+  const maxV   = Math.max(...values, 1);
+
+  // Color each bar by intensity (light → orange)
+  const bgColors = values.map(v => {
+    const pct = v / maxV;
+    if (pct < 0.2)  return 'rgba(232,97,10,0.15)';
+    if (pct < 0.45) return 'rgba(232,97,10,0.38)';
+    if (pct < 0.70) return 'rgba(232,97,10,0.62)';
+    return 'rgba(232,97,10,0.90)';
   });
 
-  // Año más reciente con datos
-  const years = dailyData.map(d => parseInt(d.date?.slice(0,4))).filter(Boolean);
-  const maxYear = Math.max(...years);
+  // Only show every Nth label to avoid overlap
+  const step = Math.ceil(last90.length / 20);
+  const displayLabels = labels.map((l, i) => (i % step === 0 ? l : ''));
 
-  const options = {
-    width:  container.clientWidth || 700,
-    height: 165,
-    title:  '',
-    calendar: {
-      cellSize:       13,
-      cellColor:      { stroke: 'transparent', strokeOpacity: 0 },
-      focusedCellColor: { stroke: 'var(--orange)', strokeOpacity: 1 },
-      monthLabel:     { fontSize: 10, color: '#888', fontName: 'Barlow' },
-      dayOfWeekLabel: { fontSize: 9,  color: '#aaa', fontName: 'Barlow' },
-      dayOfWeekRightSpace: 0,
-      unusedMonthOutlineColor: { stroke: 'transparent' },
-    },
-    colorAxis:         { minValue: 0, colors: ['#f0e6dd', '#E8610A'] },
-    noDataPattern:     { backgroundColor: '#f5f5f5', color: '#ececec' },
-    tooltip:           { isHtml: false },
-  };
-
-  try {
-    const chart = new google.visualization.Calendar(container);
-    chart.draw(tableData, options);
-  } catch(e) {
-    // Fallback: mini tabla si Calendar falla
-    const maxS = Math.max(...dailyData.map(d => d.sessions), 1);
-    const last30 = dailyData.slice(-30);
-    container.innerHTML = `<div style="font-size:10px;color:var(--text3);margin-bottom:6px">Últimos 30 días</div>` +
-      last30.map(d => {
-        const pct = Math.round(d.sessions / maxS * 100);
-        return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-          <span style="width:52px;font-size:9px;color:var(--text3)">${d.date?.slice(5)}</span>
-          <div style="flex:1;background:var(--border);border-radius:2px;height:8px">
-            <div style="width:${pct}%;background:var(--orange);height:100%;border-radius:2px"></div>
-          </div>
-          <span style="width:30px;text-align:right;font-size:9px;color:var(--text3)">${d.sessions}</span>
-        </div>`;
-      }).join('');
+  if (charts['ga4-heatmap-chart']) {
+    try { charts['ga4-heatmap-chart'].destroy(); } catch(_) {}
   }
+  charts['ga4-heatmap-chart'] = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: displayLabels,
+      datasets: [{
+        label: 'Sesiones',
+        data: values,
+        backgroundColor: bgColors,
+        borderRadius: 2,
+        borderSkipped: 'bottom',
+        barPercentage: 0.9,
+        categoryPercentage: 0.95,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 400 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const idx = items[0].dataIndex;
+              return last90[idx]?.date || '';
+            },
+            label: (item) => ` ${item.raw} sesiones`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 9 }, color: '#aaa', maxRotation: 0 },
+          border: { display: false },
+        },
+        y: {
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4 },
+          border: { display: false },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 }
 
 // ── Auditoría Crawler 
