@@ -486,6 +486,72 @@ html,body{overflow-x:hidden;width:100%}
 .run-btn:hover{background:var(--orange-dark)}
 .run-btn:disabled{background:#ccc;cursor:not-allowed}
 
+/* VISTA EJECUTIVA */
+.semaforo-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:18px 16px;text-align:center;position:relative;overflow:hidden;transition:transform 0.15s}
+.semaforo-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.semaforo-card.s-green::before{background:var(--green)}
+.semaforo-card.s-yellow::before{background:#f39c12}
+.semaforo-card.s-red::before{background:var(--red)}
+.semaforo-dot{width:12px;height:12px;border-radius:50%;margin:0 auto 10px;flex-shrink:0}
+.semaforo-dot.s-green{background:var(--green);box-shadow:0 0 8px rgba(39,166,99,0.5)}
+.semaforo-dot.s-yellow{background:#f39c12;box-shadow:0 0 8px rgba(243,156,18,0.5)}
+.semaforo-dot.s-red{background:var(--red);box-shadow:0 0 8px rgba(226,75,74,0.5)}
+.semaforo-val{font-family:var(--ffc);font-size:22px;font-weight:800;line-height:1;margin-bottom:4px}
+.semaforo-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:4px}
+.semaforo-sub{font-size:10px;color:var(--text3);line-height:1.4}
+.exec-action-item{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2)}
+.exec-action-badge{flex-shrink:0;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;color:#fff}
+.exec-action-badge.p1{background:var(--red)}
+.exec-action-badge.p2{background:#f39c12}
+.exec-action-badge.p3{background:var(--blue)}
+.exec-kpi-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px 18px}
+.exec-kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:8px}
+.exec-kpi-val{font-family:var(--ffc);font-size:26px;font-weight:800;color:var(--text);line-height:1}
+.exec-kpi-sub{font-size:11px;color:var(--text3);margin-top:5px}
+
+/* PANEL EJECUTIVO */
+.exec-header{background:linear-gradient(135deg,#0f0f0f 0%,#1a1a1a 60%,#2a1a0a 100%);border-radius:var(--radius);padding:36px 40px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;border:1px solid #2a2a2a;position:relative;overflow:hidden}
+.exec-header::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,97,10,0.12) 0%,transparent 70%)}
+.exec-score-ring{position:relative;width:110px;height:110px;flex-shrink:0}
+.exec-score-ring svg{transform:rotate(-90deg)}
+.exec-score-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.exec-score-val{font-family:var(--ffc);font-size:36px;font-weight:800;line-height:1}
+.exec-score-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-top:2px}
+.exec-meta-title{font-family:var(--ffc);font-size:28px;font-weight:800;color:#fff;margin-bottom:6px;letter-spacing:0.3px}
+.exec-meta-sub{font-size:13px;color:#777;line-height:1.6}
+.exec-meta-date{font-size:11px;color:#555;margin-top:10px;letter-spacing:0.5px}
+.exec-semaforos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.semaforo-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border);display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
+.semaforo-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+.semaforo-green::after{background:var(--green)}
+.semaforo-yellow::after{background:#f39c12}
+.semaforo-red::after{background:var(--red)}
+.semaforo-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green);box-shadow:0 0 8px rgba(39,166,99,0.5)}
+.dot-yellow{background:#f39c12;box-shadow:0 0 8px rgba(243,156,18,0.5)}
+.dot-red{background:var(--red);box-shadow:0 0 8px rgba(226,75,74,0.5)}
+.semaforo-body{flex:1;min-width:0}
+.semaforo-label{font-size:10px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:700;margin-bottom:4px}
+.semaforo-val{font-family:var(--ffc);font-size:22px;font-weight:700;color:var(--text);line-height:1.1}
+.semaforo-desc{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.4}
+.exec-money{background:linear-gradient(135deg,#0a1a0a 0%,#0f2a0f 100%);border-radius:var(--radius);padding:28px 32px;margin-bottom:28px;border:1px solid #1a3a1a;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.exec-money-item{text-align:center}
+.exec-money-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#4a8a4a;font-weight:700;margin-bottom:8px}
+.exec-money-val{font-family:var(--ffc);font-size:34px;font-weight:800;color:#2ecc71;line-height:1}
+.exec-money-sub{font-size:11px;color:#4a8a4a;margin-top:5px}
+.exec-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-bottom:28px}
+.exec-action-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border)}
+.exec-action-num{font-family:var(--ffc);font-size:40px;font-weight:800;opacity:0.08;line-height:1;margin-bottom:-8px}
+.exec-action-tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px}
+.exec-action-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;line-height:1.4}
+.exec-action-desc{font-size:12px;color:var(--text2);line-height:1.6}
+.exec-kpi-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:28px}
+.exec-kpi{background:var(--surface);border-radius:var(--radius);padding:16px 18px;border:1px solid var(--border);text-align:center}
+.exec-kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:0.7px;color:var(--text2);font-weight:700;margin-bottom:6px}
+.exec-kpi-val{font-family:var(--ffc);font-size:24px;font-weight:700;color:var(--text);line-height:1}
+.exec-kpi-delta{font-size:11px;font-weight:600;margin-top:4px}
+@media(max-width:900px){.exec-semaforos{grid-template-columns:repeat(2,1fr)}.exec-actions{grid-template-columns:1fr}.exec-money{grid-template-columns:1fr}.exec-kpi-strip{grid-template-columns:repeat(2,1fr)}}
+
 /* TRENDS PERIOD BUTTONS */
 .trends-period-btn{background:var(--surface);border:1px solid var(--border);color:var(--text2);padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all 0.15s;letter-spacing:0.3px}
 .trends-period-btn:hover{border-color:var(--orange);color:var(--orange)}
@@ -625,6 +691,10 @@ html,body{overflow-x:hidden;width:100%}
   SEO On-Page
   </div>
   <div class="nav-label">Estrategia</div>
+  <div class="nav-item" data-page="executive" onclick="showPage('executive',this)">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M5 7h6M5 9.5h4" stroke-linecap="round"/><circle cx="8" cy="1.5" r="1" fill="currentColor" stroke="none"/></svg>
+  Panel Ejecutivo
+  </div>
   <div class="nav-item" data-page="trafficvalue" onclick="showPage('trafficvalue',this)">
   <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 L5 8 L8 10 L11 5 L14 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 3h3v3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
   Valor del Tráfico
@@ -636,6 +706,10 @@ html,body{overflow-x:hidden;width:100%}
   <div class="nav-item" data-page="trends" onclick="showPage('trends',this)">
   <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 12 C3 8 5 10 7 7 C9 4 11 6 15 2" stroke-linecap="round" stroke-linejoin="round"/><path d="M1 14h14" stroke-linecap="round" opacity="0.3"/></svg>
   Google Trends
+  </div>
+  <div class="nav-item" data-page="executive" onclick="showPage('executive',this)" style="border:1px solid rgba(232,97,10,0.25);margin-bottom:6px">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l1.8 3.6L14 5.6l-3 2.9.7 4.1L8 10.4l-3.7 2.2.7-4.1-3-2.9 4.2-.6z" stroke-linejoin="round"/></svg>
+  Vista Ejecutiva
   </div>
   <div class="nav-item" data-page="aiplan" onclick="showPage('aiplan',this)">
   <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 C5 1.5 3 3.5 3 6c0 1.5 0.7 2.8 1.8 3.6L4.5 12h7l-0.3-2.4C12.3 8.8 13 7.5 13 6c0-2.5-2-4.5-5-4.5z"/><path d="M5.5 12.5 v1 a2.5 2.5 0 0 0 5 0 v-1" stroke-linecap="round"/></svg>
@@ -1567,6 +1641,94 @@ html,body{overflow-x:hidden;width:100%}
 </div>
 
 <!-- =========== PAGE: FORECAST =========== -->
+<!-- =========== PAGE: PANEL EJECUTIVO =========== -->
+<div id="page-executive" class="page">
+
+  <!-- Header ejecutivo con score -->
+  <div class="exec-header">
+    <div style="flex:1;min-width:200px">
+      <div class="exec-meta-title" id="exec-title">Reporte de Salud Digital</div>
+      <div class="exec-meta-sub">Resumen ejecutivo · Nelly Rent A Car · República Dominicana</div>
+      <div class="exec-meta-date" id="exec-date">—</div>
+    </div>
+    <div style="text-align:center;flex-shrink:0">
+      <div class="exec-score-ring">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+          <circle id="exec-ring-fill" cx="55" cy="55" r="46" fill="none" stroke="#E8610A"
+            stroke-width="10" stroke-linecap="round"
+            stroke-dasharray="289" stroke-dashoffset="289"
+            style="transition:stroke-dashoffset 1.2s ease"/>
+        </svg>
+        <div class="exec-score-num">
+          <div class="exec-score-val" id="exec-score-val" style="color:#E8610A">—</div>
+          <div class="exec-score-label" style="color:#555">/ 10</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#555;margin-top:8px;letter-spacing:0.5px">Índice de salud digital</div>
+    </div>
+    <div id="exec-verdict" style="text-align:right;flex-shrink:0;max-width:220px">
+      <div id="exec-verdict-emoji" style="font-size:36px;margin-bottom:6px">—</div>
+      <div id="exec-verdict-text" style="font-size:13px;color:#777;line-height:1.6"></div>
+    </div>
+  </div>
+
+  <!-- Strip de KPIs numéricos rápidos -->
+  <div class="exec-kpi-strip" style="margin-bottom:28px" id="exec-kpi-strip">
+    <div class="exec-kpi"><div class="exec-kpi-label">Clics orgánicos / mes</div><div class="exec-kpi-val" id="ekpi-clicks">—</div><div class="exec-kpi-delta" id="ekpi-clicks-d"></div></div>
+    <div class="exec-kpi"><div class="exec-kpi-label">Posición media Google</div><div class="exec-kpi-val" id="ekpi-pos">—</div><div class="exec-kpi-delta" id="ekpi-pos-d"></div></div>
+    <div class="exec-kpi"><div class="exec-kpi-label">Calificación Google</div><div class="exec-kpi-val" id="ekpi-rating">—</div><div class="exec-kpi-delta" id="ekpi-rating-d"></div></div>
+    <div class="exec-kpi"><div class="exec-kpi-label">Sesiones web / mes</div><div class="exec-kpi-val" id="ekpi-sessions">—</div><div class="exec-kpi-delta" id="ekpi-sessions-d"></div></div>
+    <div class="exec-kpi"><div class="exec-kpi-label">CTR orgánico</div><div class="exec-kpi-val" id="ekpi-ctr">—</div><div class="exec-kpi-delta" id="ekpi-ctr-d"></div></div>
+  </div>
+
+  <!-- Semáforos -->
+  <div style="margin-bottom:10px" class="section-label">Estado por área</div>
+  <div class="exec-semaforos" id="exec-semaforos">
+    <!-- renderizado por JS -->
+  </div>
+
+  <!-- Impacto económico -->
+  <div class="exec-money" id="exec-money">
+    <div class="exec-money-item">
+      <div class="exec-money-label">Valor del tráfico orgánico / mes</div>
+      <div class="exec-money-val" id="emoney-monthly">—</div>
+      <div class="exec-money-sub">equivalente en Google Ads</div>
+    </div>
+    <div class="exec-money-item" style="border-left:1px solid #1a3a1a;border-right:1px solid #1a3a1a;padding:0 24px">
+      <div class="exec-money-label">Proyección anual</div>
+      <div class="exec-money-val" id="emoney-annual">—</div>
+      <div class="exec-money-sub">si la tendencia se mantiene</div>
+    </div>
+    <div class="exec-money-item">
+      <div class="exec-money-label">Forecast próximos 90 días</div>
+      <div class="exec-money-val" id="emoney-forecast">—</div>
+      <div class="exec-money-sub">clics orgánicos proyectados</div>
+    </div>
+  </div>
+
+  <!-- Acciones prioritarias -->
+  <div style="margin-bottom:10px" class="section-label">Acciones prioritarias recomendadas</div>
+  <div class="exec-actions" id="exec-actions">
+    <!-- renderizado por JS -->
+  </div>
+
+  <!-- Firma / nota al pie -->
+  <div class="card" style="background:var(--surface2);border-style:dashed;padding:18px 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:gap;gap:16px">
+      <div style="font-size:12px;color:var(--text3);line-height:1.7">
+        Este reporte es generado automáticamente por el <strong style="color:var(--text)">Growth Dashboard de Nelly RAC</strong>,
+        integrando datos de Google Search Console, Google Analytics 4 y Google My Business.<br>
+        Los valores económicos son estimados basados en CPCs del mercado dominicano de rent a car.
+      </div>
+      <div style="flex-shrink:0;text-align:right">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">Generado</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text)" id="exec-footer-date">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- =========== PAGE: GOOGLE TRENDS =========== -->
 <div id="page-trends" class="page">
   <div class="page-header">
@@ -1779,6 +1941,129 @@ html,body{overflow-x:hidden;width:100%}
       Esta proyección asume continuidad de las condiciones actuales de SEO — cambios en algoritmos, estacionalidad o acciones de marketing pueden alterar los resultados.
     </div>
   </div>
+</div>
+
+<!-- =========== PAGE: VISTA EJECUTIVA =========== -->
+<div id="page-executive" class="page">
+
+  <!-- HERO HEADER -->
+  <div id="exec-hero" style="background:linear-gradient(135deg,#1a1a1a 0%,#2d1a0a 60%,#3a2210 100%);border-radius:var(--radius);padding:36px 40px;margin-bottom:28px;position:relative;overflow:hidden;border:1px solid rgba(232,97,10,0.2)">
+    <!-- Decorative circles -->
+    <div style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(232,97,10,0.12) 0%,transparent 70%);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-60px;left:30%;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(232,97,10,0.06) 0%,transparent 70%);pointer-events:none"></div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px;position:relative">
+      <!-- Left: title + date -->
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#888;margin-bottom:8px;font-weight:600">Nelly Rent a Car · Unidad de Inteligencia Digital</div>
+        <div style="font-family:var(--ffc);font-size:32px;font-weight:800;color:#fff;letter-spacing:0.5px;margin-bottom:6px">Vista Ejecutiva</div>
+        <div style="font-size:13px;color:#777" id="exec-date-str">—</div>
+      </div>
+
+      <!-- Center: Health Score -->
+      <div style="text-align:center">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#888;margin-bottom:6px;font-weight:600">Salud Digital Global</div>
+        <div style="display:flex;align-items:baseline;justify-content:center;gap:4px">
+          <div id="exec-score-val" style="font-family:var(--ffc);font-size:80px;font-weight:800;line-height:1;color:var(--orange)">—</div>
+          <div style="font-family:var(--ffc);font-size:28px;color:#555;font-weight:700">/10</div>
+        </div>
+        <div id="exec-score-label" style="font-size:13px;color:#888;margin-top:4px">Calculando…</div>
+      </div>
+
+      <!-- Right: AI button -->
+      <div style="text-align:right">
+        <button id="exec-ai-btn" onclick="runExecutiveSummary()" style="background:var(--orange);color:#fff;border:none;padding:12px 24px;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:background 0.15s;display:flex;align-items:center;gap:8px">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 C5 1.5 3 3.5 3 6c0 1.5 0.7 2.8 1.8 3.6L4.5 12h7l-0.3-2.4C12.3 8.8 13 7.5 13 6c0-2.5-2-4.5-5-4.5z"/><path d="M5.5 12.5 v1 a2.5 2.5 0 0 0 5 0 v-1" stroke-linecap="round"/></svg>
+          Generar Resumen IA
+        </button>
+        <div style="font-size:11px;color:#555;margin-top:8px">Análisis ejecutivo con Claude AI</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEMÁFOROS: 6 métricas clave -->
+  <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-bottom:24px" id="exec-semaforos">
+    <!-- Generado por JS -->
+  </div>
+
+  <!-- ROI BANNER -->
+  <div id="exec-roi-banner" style="background:linear-gradient(90deg,var(--orange) 0%,var(--orange-dark) 100%);border-radius:var(--radius);padding:24px 32px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px">
+    <div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.7);margin-bottom:6px;font-weight:600">Valor del Tráfico Orgánico — Este Mes</div>
+      <div style="font-family:var(--ffc);font-size:42px;font-weight:800;color:#fff;line-height:1" id="exec-roi-val">—</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.75);margin-top:6px" id="exec-roi-sub">equivalente en Google Ads</div>
+    </div>
+    <div style="text-align:right;color:rgba(255,255,255,0.9)">
+      <div style="font-size:13px;margin-bottom:4px" id="exec-roi-line2">—</div>
+      <div style="font-size:13px;margin-bottom:4px" id="exec-roi-line3">—</div>
+      <div style="font-size:13px" id="exec-roi-line4">—</div>
+    </div>
+  </div>
+
+  <!-- TENDENCIA + ACCIONES URGENTES -->
+  <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:20px;margin-bottom:24px">
+
+    <!-- Tendencia del tráfico -->
+    <div class="card">
+      <div class="card-title">Tendencia del Tráfico Orgánico</div>
+      <div id="exec-trend-block" style="margin-top:8px">
+        <div id="exec-trend-arrow" style="font-size:64px;line-height:1;margin-bottom:8px">—</div>
+        <div id="exec-trend-label" style="font-family:var(--ffc);font-size:18px;font-weight:700;margin-bottom:8px">—</div>
+        <div id="exec-trend-desc" style="font-size:13px;color:var(--text2);line-height:1.7"></div>
+        <div style="margin-top:18px;padding-top:18px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center">
+          <div>
+            <div id="exec-p30" style="font-family:var(--ffc);font-size:20px;font-weight:700">—</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">30 días</div>
+          </div>
+          <div>
+            <div id="exec-p60" style="font-family:var(--ffc);font-size:20px;font-weight:700">—</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">60 días</div>
+          </div>
+          <div>
+            <div id="exec-p90" style="font-family:var(--ffc);font-size:20px;font-weight:700">—</div>
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:3px">90 días</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones prioritarias -->
+    <div class="card">
+      <div class="card-title">Acciones Prioritarias del Negocio</div>
+      <div id="exec-actions" style="margin-top:8px;display:flex;flex-direction:column;gap:12px">
+        <div style="color:var(--text3);font-size:13px;padding:16px 0">Calculando prioridades…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs EJECUTIVOS: fila de 5 -->
+  <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-bottom:24px" id="exec-kpis">
+    <!-- Generado por JS -->
+  </div>
+
+  <!-- RESUMEN IA -->
+  <div id="exec-ai-result" style="display:none;margin-bottom:24px">
+    <div class="card" style="border-left:4px solid var(--orange)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="card-title" style="margin-bottom:0">Resumen Ejecutivo — Generado por Claude AI</div>
+        <div id="exec-ai-date" style="font-size:11px;color:var(--text3)"></div>
+      </div>
+      <div id="exec-ai-content" style="font-size:14px;color:var(--text);line-height:1.85;white-space:pre-wrap"></div>
+    </div>
+  </div>
+
+  <!-- AI Loading -->
+  <div id="exec-ai-loading" style="display:none;margin-bottom:24px">
+    <div class="card" style="text-align:center;padding:40px">
+      <div style="font-size:32px;margin-bottom:12px">🤖</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Claude está redactando el informe ejecutivo…</div>
+      <div style="font-size:13px;color:var(--text2)">Analizando todas las métricas y generando un resumen formal para la dirección.</div>
+      <div style="width:180px;height:4px;background:var(--surface2);border-radius:2px;margin:20px auto 0;overflow:hidden">
+        <div style="width:100%;height:100%;background:var(--orange);border-radius:2px;animation:progressBar 6s linear infinite"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- =========== PAGE: AI PLAN =========== -->
@@ -5434,6 +5719,7 @@ async function bootDashboard() {
   try { render(safeD); }              catch(e) { console.error('[render]',    e); }
   try { renderTrafficValue(safeD); }  catch(e) { console.error('[renderTrafficValue]', e); }
   try { renderForecast(safeD); }      catch(e) { console.error('[renderForecast]', e); }
+  try { renderExecutive(safeD); }     catch(e) { console.error('[renderExecutive]', e); }
   try { renderGMB(safeD.gmb || null); } catch(e) { console.error('[renderGMB]', e); }
   try { renderGA4(safeD.ga4 || null); } catch(e) {
     console.error('[renderGA4] ERROR COMPLETO:', e);
@@ -5894,6 +6180,251 @@ function renderGlossary() {
       </div>
     </div>
   `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PANEL EJECUTIVO
+// ══════════════════════════════════════════════════════════════════════════════
+function renderExecutive(D) {
+  if (!D) return;
+
+  const gsc  = D.summary_28d || D.summary_6m || {};
+  const gsc6 = D.summary_6m  || {};
+  const ga4  = D.ga4  || null;
+  const gmb  = D.gmb  || null;
+
+  const now  = new Date();
+  const dateStr = now.toLocaleDateString('es-DO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const el   = (id) => document.getElementById(id);
+
+  // Fecha
+  const capFirst = s => s.charAt(0).toUpperCase() + s.slice(1);
+  if (el('exec-date'))        el('exec-date').textContent        = 'Datos al ' + capFirst(dateStr);
+  if (el('exec-footer-date')) el('exec-footer-date').textContent = capFirst(dateStr);
+
+  // ── Helpers ───────────────────────────────────────────────────────
+  const fmt   = (v) => v >= 1000 ? (v/1000).toFixed(1) + 'K' : String(Math.round(v||0));
+  const fmtD  = (v) => '$' + (v >= 1000 ? (v/1000).toFixed(1) + 'K' : Math.round(v||0));
+  const pct   = (a, b) => b ? ((a-b)/b*100).toFixed(1) : '0.0';
+  const sign  = (v) => v >= 0 ? '+' : '';
+
+  // ── 1. Métricas base ─────────────────────────────────────────────
+  const clicks28   = gsc.total_clicks  || 0;
+  const clicksMo   = Math.round(clicks28 * (30/28));
+  const position   = gsc.avg_position  || 0;
+  const ctr        = gsc.avg_ctr       || 0;
+  const sessions   = ga4?.summary?.sessions || 0;
+  const engRate    = ga4?.summary?.engagementRate || 0;
+  const rating     = gmb?.totalRating  || gmb?.locations?.[0]?.rating || 0;
+  const totalRev   = gmb?.totalReviews || 0;
+  const replyRate  = gmb?.replyRate    || 0;
+
+  // KPI strip
+  if (el('ekpi-clicks'))    el('ekpi-clicks').textContent   = fmt(clicksMo);
+  if (el('ekpi-pos'))       el('ekpi-pos').textContent      = position ? position.toFixed(1) : '—';
+  if (el('ekpi-rating'))    el('ekpi-rating').textContent   = rating ? rating.toFixed(1) + ' ⭐' : '—';
+  if (el('ekpi-sessions'))  el('ekpi-sessions').textContent = fmt(sessions);
+  if (el('ekpi-ctr'))       el('ekpi-ctr').textContent      = ctr ? ctr.toFixed(1) + '%' : '—';
+
+  // Deltas — comparar 28d vs los 28d anteriores si hay datos 6m
+  const totalClicks6m = gsc6.total_clicks || 0;
+  const prev28Clicks  = Math.max(0, totalClicks6m / 6 - clicks28/28) * 28;
+  const deltaClicks   = prev28Clicks ? parseFloat(pct(clicks28, prev28Clicks)) : 0;
+  const colorDelta    = (v) => v >= 0 ? 'var(--green)' : 'var(--red)';
+
+  if (el('ekpi-clicks-d')) {
+    el('ekpi-clicks-d').textContent = prev28Clicks ? sign(deltaClicks)+deltaClicks+'% vs mes anterior' : 'últimos 28 días';
+    el('ekpi-clicks-d').style.color = colorDelta(deltaClicks);
+  }
+  if (el('ekpi-pos-d'))       { el('ekpi-pos-d').textContent = 'posición media en Google'; el('ekpi-pos-d').style.color='var(--text3)'; }
+  if (el('ekpi-rating-d'))    { el('ekpi-rating-d').textContent = totalRev + ' reseñas totales'; el('ekpi-rating-d').style.color='var(--text3)'; }
+  if (el('ekpi-sessions-d'))  { el('ekpi-sessions-d').textContent = 'engagement ' + (engRate*100).toFixed(0) + '%'; el('ekpi-sessions-d').style.color = engRate >= 0.5 ? 'var(--green)' : 'var(--text3)'; }
+  if (el('ekpi-ctr-d'))       { el('ekpi-ctr-d').textContent = ctr >= 3 ? '✓ Por encima del promedio' : 'Meta: superar 3%'; el('ekpi-ctr-d').style.color = ctr >= 3 ? 'var(--green)' : 'var(--text3)'; }
+
+  // ── 2. Score de salud digital (0-10) ─────────────────────────────
+  let score = 0;
+  const scoreLog = [];
+
+  // CTR (0-2)
+  if (ctr >= 4)       { score += 2; scoreLog.push({area:'CTR', pts:2, max:2}); }
+  else if (ctr >= 2)  { score += 1; scoreLog.push({area:'CTR', pts:1, max:2}); }
+  else                {             scoreLog.push({area:'CTR', pts:0, max:2}); }
+
+  // Posición (0-2)
+  if (position > 0 && position <= 3.5)      { score += 2; scoreLog.push({area:'Posición', pts:2, max:2}); }
+  else if (position <= 6)                    { score += 1; scoreLog.push({area:'Posición', pts:1, max:2}); }
+  else                                       {             scoreLog.push({area:'Posición', pts:0, max:2}); }
+
+  // Rating GMB (0-2)
+  if (rating >= 4.6)      { score += 2; scoreLog.push({area:'Rating', pts:2, max:2}); }
+  else if (rating >= 4.0) { score += 1; scoreLog.push({area:'Rating', pts:1, max:2}); }
+  else                    {             scoreLog.push({area:'Rating', pts:0, max:2}); }
+
+  // Tráfico (0-2) — basado en clicks mensuales para un rent a car en RD
+  if (clicksMo >= 1500)      { score += 2; scoreLog.push({area:'Tráfico', pts:2, max:2}); }
+  else if (clicksMo >= 500)  { score += 1; scoreLog.push({area:'Tráfico', pts:1, max:2}); }
+  else                       {             scoreLog.push({area:'Tráfico', pts:0, max:2}); }
+
+  // Engagement GA4 (0-1)
+  if (engRate >= 0.5) { score += 1; scoreLog.push({area:'Engagement', pts:1, max:1}); }
+  else                {             scoreLog.push({area:'Engagement', pts:0, max:1}); }
+
+  // Reply rate GMB (0-1)
+  if (replyRate >= 70) { score += 1; scoreLog.push({area:'Reputación', pts:1, max:1}); }
+  else                 {             scoreLog.push({area:'Reputación', pts:0, max:1}); }
+
+  score = Math.min(10, Math.max(0, score));
+
+  // Animar ring SVG
+  const ringEl = el('exec-ring-fill');
+  if (ringEl) {
+    const circumference = 289;
+    const offset = circumference - (score / 10) * circumference;
+    const scoreColor = score >= 7 ? '#27a663' : score >= 5 ? '#f39c12' : '#e24b4a';
+    setTimeout(() => { ringEl.style.strokeDashoffset = offset; ringEl.style.stroke = scoreColor; }, 200);
+    if (el('exec-score-val')) { el('exec-score-val').textContent = score.toFixed(0); el('exec-score-val').style.color = scoreColor; }
+  }
+
+  // Veredicto
+  let emoji, verdict;
+  if (score >= 8)      { emoji = '🏆'; verdict = 'Posición digital sólida. El sitio está captando tráfico de calidad y la reputación respalda la marca.'; }
+  else if (score >= 6) { emoji = '📈'; verdict = 'Rendimiento positivo con áreas de mejora. Acciones puntuales pueden elevar el score significativamente.'; }
+  else if (score >= 4) { emoji = '⚠️'; verdict = 'Rendimiento moderado. Se requieren acciones correctivas en al menos dos frentes para proteger la visibilidad.'; }
+  else                 { emoji = '🚨'; verdict = 'Situación crítica. Se recomienda intervención inmediata para evitar pérdida adicional de tráfico y posicionamiento.'; }
+
+  if (el('exec-verdict-emoji')) el('exec-verdict-emoji').textContent = emoji;
+  if (el('exec-verdict-text'))  el('exec-verdict-text').textContent  = verdict;
+
+  // ── 3. Semáforos ─────────────────────────────────────────────────
+  function semStatus(val, threshGreen, threshYellow, invert) {
+    if (invert) {
+      if (val <= threshGreen) return 'green';
+      if (val <= threshYellow) return 'yellow';
+      return 'red';
+    }
+    if (val >= threshGreen) return 'green';
+    if (val >= threshYellow) return 'yellow';
+    return 'red';
+  }
+
+  const semaforos = [
+    {
+      label: 'Tráfico orgánico',
+      val: fmt(clicksMo) + ' clics/mes',
+      desc: clicksMo >= 1500 ? 'Volumen alto para el mercado dominicano' : clicksMo >= 500 ? 'Volumen moderado — hay margen de crecimiento' : 'Volumen bajo — acción urgente en SEO',
+      status: semStatus(clicksMo, 1500, 500)
+    },
+    {
+      label: 'Posición media Google',
+      val: position ? position.toFixed(1) : '—',
+      desc: position <= 3.5 ? 'Excelente visibilidad en página 1' : position <= 6 ? 'Buena posición, optimizable' : 'Posición baja — priorizar SEO técnico y contenido',
+      status: position ? semStatus(position, 3.5, 6, true) : 'yellow'
+    },
+    {
+      label: 'CTR en Google',
+      val: ctr ? ctr.toFixed(1) + '%' : '—',
+      desc: ctr >= 4 ? 'Snippets muy atractivos para los usuarios' : ctr >= 2 ? 'CTR aceptable — optimizar títulos y meta descriptions' : 'CTR bajo — los snippets no generan clics suficientes',
+      status: ctr ? semStatus(ctr, 4, 2) : 'yellow'
+    },
+    {
+      label: 'Reputación Google Maps',
+      val: rating ? rating.toFixed(1) + ' / 5.0' : '—',
+      desc: rating >= 4.6 ? 'Reputación excelente — activo diferencial ante la competencia' : rating >= 4.0 ? 'Buena reputación — responder reseñas para mejorar' : 'Reputación a mejorar — plan de reseñas urgente',
+      status: rating ? semStatus(rating, 4.6, 4.0) : 'yellow'
+    },
+    {
+      label: 'Engagement del sitio web',
+      val: engRate ? (engRate*100).toFixed(0) + '%' : '—',
+      desc: engRate >= 0.55 ? 'Los usuarios interactúan activamente con el sitio' : engRate >= 0.38 ? 'Engagement moderado — revisar velocidad y UX' : 'Engagement bajo — el sitio no retiene a los visitantes',
+      status: engRate ? semStatus(engRate, 0.55, 0.38) : 'yellow'
+    },
+    {
+      label: 'Respuesta a reseñas',
+      val: replyRate ? replyRate.toFixed(0) + '% respondidas' : '—',
+      desc: replyRate >= 80 ? 'Excelente gestión de la reputación' : replyRate >= 50 ? 'Respuesta parcial — atender reseñas negativas primero' : 'Baja tasa de respuesta — riesgo reputacional',
+      status: replyRate ? semStatus(replyRate, 80, 50) : 'yellow'
+    },
+  ];
+
+  const semEl = el('exec-semaforos');
+  if (semEl) {
+    semEl.innerHTML = semaforos.map(s => `
+      <div class="semaforo-card semaforo-${s.status}">
+        <div class="semaforo-dot dot-${s.status}"></div>
+        <div class="semaforo-body">
+          <div class="semaforo-label">${s.label}</div>
+          <div class="semaforo-val">${s.val}</div>
+          <div class="semaforo-desc">${s.desc}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  // ── 4. Impacto económico ─────────────────────────────────────────
+  // Calcular valor mensual del tráfico usando estimateCPC si está disponible
+  let monthlyValue = 0;
+  if (D.queries && D.queries.length && typeof estimateCPC === 'function' && typeof queryType === 'function') {
+    D.queries.forEach(q => {
+      const type = queryType(q.query);
+      const cpcV = estimateCPC(q.query, type);
+      monthlyValue += (q.clicks / 6) * cpcV;
+    });
+  }
+  const annualValue = monthlyValue * 12;
+
+  // Forecast 90 días — reutilizar datos del chart si existen
+  let fc90 = 0;
+  if (D.chart && D.chart.length >= 14) {
+    const raw = D.chart.slice().sort((a,b) => String(a.date).localeCompare(String(b.date)));
+    const n   = raw.length;
+    const ys  = raw.map(r => Number(r.clicks) || 0);
+    const xM  = (n-1)/2;
+    const yM  = ys.reduce((a,v)=>a+v,0)/n;
+    const ssXX= ys.reduce((_,__,i)=>(i-xM)**2+_, 0);
+    const ssXY= ys.reduce((a,v,i)=>a+(i-xM)*(v-yM),0);
+    const sl  = ssXX ? ssXY/ssXX : 0;
+    const ic  = yM - sl*xM;
+    for (let d=1;d<=90;d++) fc90 += Math.max(0, ic + sl*(n-1+d));
+    fc90 = Math.round(fc90);
+  }
+
+  if (el('emoney-monthly')) el('emoney-monthly').textContent = monthlyValue ? fmtD(monthlyValue) : '—';
+  if (el('emoney-annual'))  el('emoney-annual').textContent  = annualValue  ? fmtD(annualValue)  : '—';
+  if (el('emoney-forecast'))el('emoney-forecast').textContent= fc90 ? fmt(fc90) + ' clics' : '—';
+
+  // ── 5. Acciones prioritarias ─────────────────────────────────────
+  const actions = [];
+
+  if (ctr < 2)
+    actions.push({ tag:'Urgente', color:'#fff0e6', tcolor:'var(--orange)', title:'Optimizar snippets en Google', desc:'El CTR del '+ctr.toFixed(1)+'% indica que los títulos y meta descriptions no generan suficientes clics. Revisar las 10 páginas con más impresiones y reescribir sus snippets.' });
+  if (position > 6)
+    actions.push({ tag:'Alta prioridad', color:'#fff0e6', tcolor:'var(--orange)', title:'Mejorar posicionamiento orgánico', desc:'La posición media de '+position.toFixed(1)+' indica que el sitio está en la segunda página para muchas búsquedas. Plan de contenido y link building enfocado en keywords comerciales.' });
+  if (rating < 4.5 && rating > 0)
+    actions.push({ tag:'Urgente', color:'#fff0e6', tcolor:'var(--orange)', title:'Elevar calificación en Google Maps', desc:'La calificación de '+rating.toFixed(1)+' está por debajo del umbral competitivo de 4.5. Implementar campaña proactiva de solicitud de reseñas a clientes satisfechos.' });
+  if (replyRate < 70 && replyRate >= 0)
+    actions.push({ tag:'Media prioridad', color:'#eaf3de', tcolor:'#3b6d11', title:'Responder todas las reseñas pendientes', desc:'Solo el '+replyRate.toFixed(0)+'% de las reseñas tienen respuesta. Google favorece en el Local Pack a negocios con alta tasa de respuesta. Meta: 100% de respuesta en menos de 48 horas.' });
+  if (engRate < 0.5 && engRate > 0)
+    actions.push({ tag:'Media prioridad', color:'#eaf3de', tcolor:'#3b6d11', title:'Mejorar experiencia del sitio web', desc:'El '+( engRate*100).toFixed(0)+'% de engagement indica que los visitantes no encuentran lo que buscan o el sitio es lento. Auditoría de UX y PageSpeed recomendada.' });
+  if (clicksMo < 500)
+    actions.push({ tag:'Estratégico', color:'#e6f1fb', tcolor:'var(--blue)', title:'Ampliar cobertura de keywords', desc:'El volumen de clics mensual de '+fmt(clicksMo)+' es bajo para el sector. Crear contenido orientado a keywords de aeropuerto y destinos turísticos clave en RD.' });
+
+  // Si todo va bien, mostrar acciones de crecimiento
+  if (actions.length === 0) {
+    actions.push({ tag:'Crecimiento', color:'#e6f1fb', tcolor:'var(--blue)', title:'Expandir presencia en destinos clave', desc:'El rendimiento digital es sólido. El siguiente paso es atacar keywords de alta competencia: aeropuertos, ciudades y términos turísticos de alto valor comercial.' });
+    actions.push({ tag:'Crecimiento', color:'#e6f1fb', tcolor:'var(--blue)', title:'Activar campaña de Google Ads estratégica', desc:'Con el SEO consolidado, las campañas paid pueden amplificar el alcance en temporada alta sin canibalizar el tráfico orgánico existente.' });
+    actions.push({ tag:'Crecimiento', color:'#e6f1fb', tcolor:'var(--blue)', title:'Programa de fidelización digital', desc:'Con buena reputación y tráfico creciente, implementar un programa de referidos o descuentos para clientes recurrentes puede aumentar el LTV.' });
+  }
+
+  const topActions = actions.slice(0, 3);
+  const actEl = el('exec-actions');
+  if (actEl) {
+    actEl.innerHTML = topActions.map((a, i) => `
+      <div class="exec-action-card">
+        <div class="exec-action-num">${String(i+1).padStart(2,'0')}</div>
+        <div><span class="exec-action-tag" style="background:${a.color};color:${a.tcolor}">${a.tag}</span></div>
+        <div class="exec-action-title">${a.title}</div>
+        <div class="exec-action-desc">${a.desc}</div>
+      </div>`).join('');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
