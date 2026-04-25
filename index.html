@@ -5559,7 +5559,7 @@ const TOURS = {
   glossary: [
     { element: '#page-glossary .page-header', popover: { title: 'Glosario de Términos', description: 'Referencia rápida de todos los términos y métricas que aparecen en el dashboard. Si en alguna sección ves un término desconocido, búscalo aquí.', side: 'bottom' }},
     { element: '#glossary-search', popover: { title: 'Búsqueda en Tiempo Real', description: 'Escribe cualquier término para filtrarlo instantáneamente — por ejemplo "CTR", "LCP" o "canonical". Las secciones sin resultados se ocultan automáticamente.', side: 'bottom' }},
-    { element: '#glossary-body', popover: { title: '8 Categorías de Términos', description: 'Los términos están organizados por área: Search Console, Analytics, PageSpeed, SERP, SEO On-Page, Google My Business, Auditoría Técnica y Plan IA. Cada definición incluye el contexto específico para un negocio de alquiler de autos en RD.', side: 'top' }},
+    { element: '#glossary-body', popover: { title: '10 Categorías de Términos', description: 'Los términos están organizados por área: Search Console, Analytics, PageSpeed, SERP, SEO On-Page, Google My Business, Auditoría Técnica, Plan IA, Valor del Tráfico y Forecast. Cada definición incluye el contexto específico para un negocio de alquiler de autos en RD.', side: 'top' }},
   ],
 };
 
@@ -5711,6 +5711,31 @@ const GLOSSARY = [
       { term: 'Prioridad baja',  def: 'Optimizaciones que generan beneficios incrementales. Ejecutar cuando se hayan completado las prioridades alta y media.' },
       { term: 'Impacto',         def: 'Estimación del efecto que tendrá la acción en el negocio (alto, medio, bajo). Un impacto alto significa que puede generar un cambio notable en tráfico, visibilidad o reservas.' },
       { term: 'Esfuerzo',        def: 'Complejidad o tiempo requerido para ejecutar la acción (bajo, medio, alto). Las acciones de alto impacto y bajo esfuerzo (quick wins) deben priorizarse primero.' },
+    ],
+  },
+  {
+    category: 'Valor del Tráfico',
+    terms: [
+      { term: 'Valor del tráfico orgánico', def: 'Estimación en dólares de cuánto costaría comprar con Google Ads el mismo tráfico que Nelly RAC recibe gratis por SEO. Se calcula multiplicando los clics de cada keyword por su CPC estimado en el mercado dominicano de renta de autos.' },
+      { term: 'CPC',             def: 'Cost Per Click — el precio que pagaría un anunciante en Google Ads por cada clic en un anuncio. En el mercado de rent a car en RD, los CPCs varían entre $0.45 (branded) y $5.10 (keywords de aeropuerto), dependiendo de la competencia y la intención de compra.' },
+      { term: 'Query branded',   def: 'Búsqueda que contiene el nombre de la marca (ej. "nelly rent a car"). Tienen CPCs más bajos porque la competencia es menor, pero la intención de compra es casi directa — el usuario ya conoce la empresa.' },
+      { term: 'Query comercial', def: 'Búsqueda con intención de contratar o comprar (ej. "rent a car punta cana aeropuerto"). Son las más valiosas para el negocio y tienen los CPCs más altos ($4-5+), porque capturan al cliente justo cuando decide reservar.' },
+      { term: 'Query genérica',  def: 'Búsqueda informativa sin intención de compra inmediata (ej. "requisitos para alquilar auto en RD"). CPCs bajos, pero generan visibilidad y pueden atraer clientes en etapas tempranas del proceso de decisión.' },
+      { term: 'Tráfico equivalente de pago', def: 'Cuántos clics mensuales habría que comprar en Google Ads para replicar el tráfico orgánico actual. Esta cifra ayuda a justificar la inversión en SEO ante la gerencia: cada clic orgánico es un clic que no se paga.' },
+      { term: 'Valor mensual estimado', def: 'Proyección del valor económico del tráfico orgánico en un mes típico, basada en los datos de los últimos 6 meses de Search Console y los CPCs del mercado dominicano de renta de autos.' },
+    ],
+  },
+  {
+    category: 'Forecast de Tráfico',
+    terms: [
+      { term: 'Regresión lineal', def: 'Modelo estadístico que traza la "línea de mejor ajuste" a través de los datos históricos de clics diarios. Permite proyectar hacia el futuro asumiendo que la tendencia actual se mantiene. Es el método más transparente e interpretable para forecast de tráfico SEO.' },
+      { term: 'Pendiente (Slope)', def: 'La inclinación de la línea de tendencia, expresada en clics/día. Un slope positivo (+0.5) significa que el sitio gana 0.5 clics más cada día; un slope negativo indica pérdida. Multiplica por 7 para ver la variación semanal.' },
+      { term: 'Intercepto',       def: 'El valor inicial de la línea de regresión (el punto donde la línea cruza el eje Y). Junto con el slope, define completamente la ecuación de proyección: Clics estimados = Intercepto + (Slope × Día).' },
+      { term: 'R² (R-cuadrado)', def: 'Coeficiente de determinación — mide qué tan bien la línea de regresión explica los datos históricos. Va de 0% a 100%: 60%+ = alta confianza, 35-60% = confianza moderada (variabilidad estacional), menos de 35% = alta variabilidad, usar la proyección con cautela.' },
+      { term: 'Intervalo de confianza', def: 'Rango de valores dentro del cual se espera que caiga el tráfico real con alta probabilidad. Se calcula como ±1.5 desviaciones estándar de los residuales. La banda naranja del gráfico representa este intervalo: cuanto más ancha, mayor la incertidumbre.' },
+      { term: 'Desviación estándar residual (σ)', def: 'Medida de cuánto se desvían los datos reales de la línea de tendencia, en promedio. Un σ bajo indica que el tráfico es muy predecible; un σ alto indica alta variabilidad día a día (por estacionalidad, fluctuaciones de algoritmo, etc.).' },
+      { term: 'Proyección a 30/60/90 días', def: 'Estimación del total de clics orgánicos en los próximos 30, 60 o 90 días, calculada sumando la predicción diaria del modelo para cada día futuro. Incluye comparación con el período anterior para contexto de crecimiento o caída.' },
+      { term: 'Estacionalidad',   def: 'Variación predecible del tráfico según la época del año. Para Nelly RAC, temporada alta (dic-ene, verano) genera picos de tráfico que el modelo lineal no captura completamente. Un R² bajo en ciertos meses puede reflejar patrones estacionales, no errores del modelo.' },
     ],
   },
 ];
