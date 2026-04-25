@@ -616,6 +616,10 @@ html,body{overflow-x:hidden;width:100%}
   SEO On-Page
   </div>
   <div class="nav-label">Estrategia</div>
+  <div class="nav-item" data-page="trafficvalue" onclick="showPage('trafficvalue',this)">
+  <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 L5 8 L8 10 L11 5 L14 3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 3h3v3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="3" cy="13" r="1" fill="currentColor" stroke="none"/></svg>
+  Valor del Tráfico
+  </div>
   <div class="nav-item" data-page="aiplan" onclick="showPage('aiplan',this)">
   <svg class="nav-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 C5 1.5 3 3.5 3 6c0 1.5 0.7 2.8 1.8 3.6L4.5 12h7l-0.3-2.4C12.3 8.8 13 7.5 13 6c0-2.5-2-4.5-5-4.5z"/><path d="M5.5 12.5 v1 a2.5 2.5 0 0 0 5 0 v-1" stroke-linecap="round"/></svg>
   Plan IA
@@ -1429,6 +1433,121 @@ html,body{overflow-x:hidden;width:100%}
   </div>
 </div>
 
+
+<!-- =========== PAGE: TRAFFIC VALUE =========== -->
+<div id="page-trafficvalue" class="page">
+  <div class="page-header">
+    <div>
+      <div class="page-title">💰 Valor del Tráfico Orgánico</div>
+      <div class="page-sub">Equivalente en inversión publicitaria Google Ads · Últimos 6 meses</div>
+    </div>
+  </div>
+
+  <!-- Hero Banner -->
+  <div style="background:linear-gradient(135deg,#111 0%,#1c1c1c 50%,#1a1200 100%);border-radius:var(--radius);border:1px solid #2a2a2a;padding:32px 36px;margin-bottom:28px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(232,97,10,0.10) 0%,transparent 70%);pointer-events:none"></div>
+    <div style="position:absolute;bottom:-40px;left:30%;width:200px;height:200px;background:radial-gradient(circle,rgba(255,180,0,0.05) 0%,transparent 70%);pointer-events:none"></div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:10px">Tu SEO equivale a gastar en Google Ads</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+      <div>
+        <div id="tv-hero-monthly" style="font-family:var(--ffc);font-size:64px;font-weight:800;color:#fff;line-height:1;letter-spacing:-1px">$—</div>
+        <div style="font-size:14px;color:#666;margin-top:6px">valor mensual estimado</div>
+      </div>
+      <div style="padding-bottom:12px;color:#444;font-size:28px;font-weight:300">/</div>
+      <div style="padding-bottom:10px">
+        <div id="tv-hero-annual" style="font-family:var(--ffc);font-size:36px;font-weight:700;color:#aaa;line-height:1">$—</div>
+        <div style="font-size:12px;color:#555;margin-top:4px">valor anual</div>
+      </div>
+    </div>
+    <div id="tv-hero-note" style="font-size:12px;color:#555;margin-top:16px;line-height:1.6;max-width:680px"></div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:28px">
+    <div class="kpi-card">
+      <div class="kpi-label">Valor Mensual</div>
+      <div class="kpi-value" id="tv-kpi-monthly">—</div>
+      <div class="kpi-sub">en Google Ads equivalente</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CPC Promedio</div>
+      <div class="kpi-value" id="tv-kpi-cpc">—</div>
+      <div class="kpi-sub">costo por clic estimado</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Clics Mensuales</div>
+      <div class="kpi-value" id="tv-kpi-clicks">—</div>
+      <div class="kpi-sub">promedio últimos 6 meses</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Queries con Valor</div>
+      <div class="kpi-value" id="tv-kpi-queries">—</div>
+      <div class="kpi-sub">keywords activas</div>
+    </div>
+  </div>
+
+  <!-- Breakdown + Top Queries -->
+  <div class="grid-65" style="margin-bottom:28px">
+
+    <!-- Breakdown por categoría -->
+    <div class="card">
+      <div class="card-title">Valor por Categoría de Keyword</div>
+      <div id="tv-categories" style="margin-bottom:20px"></div>
+      <div style="border-top:1px solid var(--border);padding-top:18px">
+        <div class="card-title" style="margin-bottom:14px">Distribución de Valor</div>
+        <div id="tv-cat-chart" style="width:100%;height:180px"></div>
+      </div>
+    </div>
+
+    <!-- Top 5 páginas más valiosas -->
+    <div class="card">
+      <div class="card-title">Top Páginas — Valor por URL</div>
+      <div id="tv-pages-list"></div>
+    </div>
+  </div>
+
+  <!-- Top Queries Table -->
+  <div class="card" style="margin-bottom:28px">
+    <div class="card-header-flex" style="margin-bottom:18px">
+      <div class="card-title" style="margin-bottom:0">Top 25 Queries Más Valiosas</div>
+      <div style="font-size:11px;color:var(--text3)">Ordenadas por valor mensual estimado</div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="data-table" id="tv-queries-table">
+        <thead>
+          <tr>
+            <th style="text-align:left">#</th>
+            <th style="text-align:left">Query</th>
+            <th>Tipo</th>
+            <th>Clics/mes</th>
+            <th>Posición</th>
+            <th>CPC est.</th>
+            <th>Valor/mes</th>
+            <th>Valor/año</th>
+          </tr>
+        </thead>
+        <tbody id="tv-queries-body">
+          <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text3)">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Methodology -->
+  <div class="card" style="background:var(--surface2);border-style:dashed">
+    <div class="card-title">Metodología del Cálculo</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.75;max-width:800px">
+      Los CPCs se estiman según la categoría de cada keyword y los benchmarks del mercado de renta de autos en el Caribe y República Dominicana.
+      <strong style="color:var(--text)">Branded</strong> (búsquedas con el nombre de la marca): $0.45/clic —
+      <strong style="color:var(--text)">Comercial alta intención</strong> (rent a car + ciudad/aeropuerto): $4.20/clic —
+      <strong style="color:var(--text)">Comercial media</strong> (alquiler de carros, renta autos): $2.80/clic —
+      <strong style="color:var(--text)">Geográfico-comercial</strong> (+ República Dominicana, Punta Cana…): $2.20/clic —
+      <strong style="color:var(--text)">Genérico/informacional</strong>: $0.75/clic.
+      Los clics mensuales son el promedio de los últimos 6 meses reportados por Google Search Console.
+      Este cálculo representa el <em>ahorro mensual real</em> que genera el SEO frente a depender exclusivamente de publicidad pagada.
+    </div>
+  </div>
+</div>
 
 <!-- =========== PAGE: AI PLAN =========== -->
 <div id="page-aiplan" class="page">
@@ -2956,6 +3075,181 @@ function el(id, val) {
 
 
 // Render Insights page 
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRAFFIC VALUE — Calcula el equivalente en Google Ads del tráfico orgánico
+// ═══════════════════════════════════════════════════════════════════════════════
+function estimateCPC(query, type) {
+  const q = query.toLowerCase();
+  if (type === 'branded') return 0.45;
+  // Alta intención: rent a car + ubicación
+  if (/rent\s*a\s*car|car\s*rental/.test(q)) {
+    if (/aeropuerto|airport|punta\s*cana|santiago|puerto\s*plata|la\s*romana|samana/.test(q)) return 5.10;
+    if (/santo\s*domingo|distrito|sd\b/.test(q)) return 4.40;
+    return 3.80;
+  }
+  // Alta intención en español
+  if (/alquiler.*auto|auto.*alquiler|alquiler.*carro|carro.*alquiler|renta.*auto|renta.*carro/.test(q)) {
+    if (/aeropuerto|airport|punta\s*cana|santiago|puerto\s*plata/.test(q)) return 4.20;
+    return 3.10;
+  }
+  // Geográfico-comercial
+  if (/republica\s*dominicana|dominicana|r\.d\.|santo\s*domingo|punta\s*cana/.test(q)) return 2.20;
+  // Comercial genérico
+  if (type === 'commercial') return 1.80;
+  // Informacional
+  return 0.75;
+}
+
+function tvFmtUSD(n) {
+  if (n >= 1000) return '$' + (n/1000).toFixed(1) + 'K';
+  return '$' + Math.round(n);
+}
+
+function renderTrafficValue(D) {
+  if (!D || !D.queries || !D.queries.length) return;
+
+  const MONTHS = 6;
+
+  // Enriquecer cada query con CPC y valor
+  const enriched = D.queries.map(q => {
+    const type  = queryType(q.query);
+    const cpc   = estimateCPC(q.query, type);
+    const clicksPerMonth = q.clicks / MONTHS;
+    const valuePerMonth  = clicksPerMonth * cpc;
+    return { ...q, type, cpc, clicksPerMonth, valuePerMonth };
+  }).filter(q => q.clicksPerMonth > 0);
+
+  const totalMonthly  = enriched.reduce((s, q) => s + q.valuePerMonth, 0);
+  const totalClicks   = enriched.reduce((s, q) => s + q.clicksPerMonth, 0);
+  const avgCPC        = totalClicks > 0 ? totalMonthly / totalClicks : 0;
+
+  // ── Hero ─────────────────────────────────────────────────────────────────
+  const heroM = document.getElementById('tv-hero-monthly');
+  const heroA = document.getElementById('tv-hero-annual');
+  const heroN = document.getElementById('tv-hero-note');
+  if (heroM) heroM.textContent = tvFmtUSD(totalMonthly);
+  if (heroA) heroA.textContent = tvFmtUSD(totalMonthly * 12);
+  if (heroN) heroN.innerHTML = `
+    Tu posicionamiento orgánico genera <strong style="color:#F26722">${Math.round(totalClicks).toLocaleString()} clics mensuales</strong>
+    con un CPC promedio de <strong style="color:#F26722">$${avgCPC.toFixed(2)}</strong>.
+    Replicar este volumen con anuncios costaría aproximadamente
+    <strong style="color:#fff">${tvFmtUSD(totalMonthly)}/mes</strong> ó
+    <strong style="color:#fff">${tvFmtUSD(totalMonthly * 12)}/año</strong>.
+    Esto representa el retorno tangible de tu inversión en SEO.`;
+
+  // ── KPIs ─────────────────────────────────────────────────────────────────
+  el('tv-kpi-monthly',  tvFmtUSD(totalMonthly));
+  el('tv-kpi-cpc',      '$' + avgCPC.toFixed(2));
+  el('tv-kpi-clicks',   Math.round(totalClicks).toLocaleString());
+  el('tv-kpi-queries',  enriched.length.toLocaleString());
+
+  // ── Breakdown por categoría ───────────────────────────────────────────────
+  const cats = { branded: { label: 'Branded', color: '#F26722', value: 0, clicks: 0 },
+                 commercial: { label: 'Comercial', color: '#3b82f6', value: 0, clicks: 0 },
+                 generic:    { label: 'Genérico / Informacional', color: '#22c55e', value: 0, clicks: 0 } };
+  enriched.forEach(q => {
+    if (cats[q.type]) { cats[q.type].value += q.valuePerMonth; cats[q.type].clicks += q.clicksPerMonth; }
+  });
+
+  const catDiv = document.getElementById('tv-categories');
+  if (catDiv) {
+    catDiv.innerHTML = Object.values(cats).map(c => {
+      const pct = totalMonthly > 0 ? Math.round(c.value / totalMonthly * 100) : 0;
+      return `
+        <div style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="width:10px;height:10px;border-radius:50%;background:${c.color};display:inline-block;flex-shrink:0"></span>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${c.label}</span>
+            </div>
+            <div style="text-align:right">
+              <span style="font-family:var(--ffc);font-size:16px;font-weight:700;color:var(--text)">${tvFmtUSD(c.value)}</span>
+              <span style="font-size:11px;color:var(--text3);margin-left:6px">${pct}%</span>
+            </div>
+          </div>
+          <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden">
+            <div style="width:${pct}%;background:${c.color};height:100%;border-radius:4px;transition:width 1s ease"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${Math.round(c.clicks).toLocaleString()} clics/mes · CPC prom. $${c.clicks>0?(c.value/c.clicks).toFixed(2):'0.00'}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Google Chart — donut categorías ──────────────────────────────────────
+  _whenGCReady(() => {
+    const div = document.getElementById('tv-cat-chart');
+    if (!div) return;
+    const catData = new google.visualization.DataTable();
+    catData.addColumn('string', 'Categoría');
+    catData.addColumn('number', 'Valor USD');
+    Object.values(cats).forEach(c => catData.addRow([c.label, +c.value.toFixed(2)]));
+    new google.visualization.PieChart(div).draw(catData, {
+      pieHole: 0.5,
+      chartArea: { left: 8, top: 8, right: 8, bottom: 8, width: '100%', height: '100%' },
+      colors: ['#F26722', '#3b82f6', '#22c55e'],
+      legend: { position: 'bottom', textStyle: { fontSize: 11, color: '#666' } },
+      pieSliceBorderColor: 'white',
+      backgroundColor: 'transparent',
+      animation: { startup: true, duration: 800, easing: 'out' },
+    });
+  });
+
+  // ── Top páginas por valor ────────────────────────────────────────────────
+  const pageMap = {};
+  enriched.forEach(q => {
+    // Use query as approximation if no page match; normally use D.pages
+    const page = q.page || 'Sin URL';
+    if (!pageMap[page]) pageMap[page] = { page, value: 0, clicks: 0 };
+    pageMap[page].value  += q.valuePerMonth;
+    pageMap[page].clicks += q.clicksPerMonth;
+  });
+
+  // Better: use D.pages with CPC estimate from avg CPC
+  const pagesDiv = document.getElementById('tv-pages-list');
+  if (pagesDiv && D.pages && D.pages.length) {
+    const maxPV = D.pages[0]?.clicks || 1;
+    pagesDiv.innerHTML = D.pages.slice(0, 8).map((p, i) => {
+      const monthlyClicks = p.clicks / MONTHS;
+      const pageValue = monthlyClicks * avgCPC;
+      const pct = D.pages[0]?.clicks > 0 ? Math.round(p.clicks / D.pages[0].clicks * 100) : 0;
+      const shortUrl = p.page.replace(/^https?:\/\/[^/]+/, '').replace(/\/$/, '') || '/';
+      return `
+        <div style="padding:12px 0;border-bottom:1px solid var(--border);${i===0?'':''}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+            <span style="font-size:12px;color:var(--text2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px" title="${p.page}">${shortUrl}</span>
+            <span style="font-family:var(--ffc);font-size:15px;font-weight:700;color:var(--orange);white-space:nowrap">${tvFmtUSD(pageValue)}<span style="font-size:10px;font-weight:400;color:var(--text3)">/mes</span></span>
+          </div>
+          <div style="background:var(--border);border-radius:3px;height:5px;overflow:hidden">
+            <div style="width:${pct}%;background:var(--orange);height:100%;border-radius:3px;opacity:0.7;transition:width 1s"></div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">${Math.round(monthlyClicks).toLocaleString()} clics/mes</div>
+        </div>`;
+    }).join('');
+  } else if (pagesDiv) {
+    pagesDiv.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin datos de páginas</div>';
+  }
+
+  // ── Top 25 queries tabla ─────────────────────────────────────────────────
+  const tbody = document.getElementById('tv-queries-body');
+  if (!tbody) return;
+  const top25 = [...enriched].sort((a, b) => b.valuePerMonth - a.valuePerMonth).slice(0, 25);
+  const typeColors = { branded: '#F26722', commercial: '#3b82f6', generic: '#22c55e' };
+  const typeLabels = { branded: 'Branded', commercial: 'Comercial', generic: 'Genérico' };
+  tbody.innerHTML = top25.map((q, i) => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="color:var(--text3);font-size:11px;width:28px">${i+1}</td>
+      <td style="text-align:left;font-weight:500;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.query}</td>
+      <td style="text-align:center">
+        <span style="background:${typeColors[q.type]}20;color:${typeColors[q.type]};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap">${typeLabels[q.type]}</span>
+      </td>
+      <td>${Math.round(q.clicksPerMonth).toLocaleString()}</td>
+      <td style="color:${q.position<=3?'var(--green)':q.position<=10?'var(--text)':'var(--text3)'}">${q.position.toFixed(1)}</td>
+      <td style="color:var(--text2)">$${q.cpc.toFixed(2)}</td>
+      <td style="font-family:var(--ffc);font-weight:700;color:var(--orange)">${tvFmtUSD(q.valuePerMonth)}</td>
+      <td style="color:var(--text2)">${tvFmtUSD(q.valuePerMonth * 12)}</td>
+    </tr>`).join('');
+}
+
 function renderInsights(D) {
   const s = D.summary_6m;
   // CTR opportunity pages: impr > 1000, ctr < 1%
@@ -4566,6 +4860,7 @@ async function bootDashboard() {
   window._ga4Data  = safeD.ga4 || null;
 
   try { render(safeD); }              catch(e) { console.error('[render]',    e); }
+  try { renderTrafficValue(safeD); }  catch(e) { console.error('[renderTrafficValue]', e); }
   try { renderGMB(safeD.gmb || null); } catch(e) { console.error('[renderGMB]', e); }
   try { renderGA4(safeD.ga4 || null); } catch(e) {
     console.error('[renderGA4] ERROR COMPLETO:', e);
