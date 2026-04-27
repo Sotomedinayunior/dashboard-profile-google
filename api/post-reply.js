@@ -129,12 +129,20 @@ async function findLocationByPlaceId(targetPlaceId, hdrs) {
       .then(r => r.ok ? r.json() : null)
       .catch(() => null);
 
-  // Get accounts
-  const acctData = await safe(
-    'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
-    { headers: hdrs }
-  );
-  const accounts = acctData?.accounts || [];
+  // Use GMB_ACCOUNT_NAME env var to skip the quota-limited Account Management API
+  const accountNameEnv = (process.env.GMB_ACCOUNT_NAME || '').trim();
+  let accounts = [];
+
+  if (accountNameEnv) {
+    accounts = [{ name: accountNameEnv }];
+  } else {
+    // Fallback: auto-discover (may 429 if quota is low)
+    const acctData = await safe(
+      'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
+      { headers: hdrs }
+    );
+    accounts = acctData?.accounts || [];
+  }
 
   for (const acct of accounts) {
     // Fetch all locations with metadata (includes placeId)
