@@ -62,13 +62,46 @@ module.exports = async function handler(req, res) {
     instructions: null,
   };
 
-  // ── Método 1: v1 accounts ─────────────────────────────────────────────────
-  const v1 = await safe('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
-  result.methods_tried.push({ method: 'v1 accounts API', status: v1.status, ok: v1.ok, rawResponse: v1.data });
-  if (v1.ok && v1.data?.accounts?.length) {
-    const acc = v1.data.accounts[0];
-    result.account_found = acc.name;
+  // ── Método DIRECTO: probar account ID extraído de URL business.google.com ──
+  const CANDIDATE_ACCOUNT = 'accounts/14783610060775958761';
+  const directLocRes = await safe(
+    `https://mybusinessbusinessinformation.googleapis.com/v1/${CANDIDATE_ACCOUNT}/locations?readMask=name,title,metadata`
+  );
+  result.methods_tried.push({
+    method: 'direct candidate account (from business.google.com URL)',
+    account_tested: CANDIDATE_ACCOUNT,
+    status: directLocRes.status,
+    ok: directLocRes.ok,
+    rawResponse: directLocRes.data,
+  });
+  if (directLocRes.ok) {
+    result.account_found = CANDIDATE_ACCOUNT;
+    result.locations_found = (directLocRes.data?.locations || []).map(l => ({
+      locationName: l.name,
+      title: l.title,
+      placeId: l.metadata?.placeId,
+      knownAs: NELLY_NAMES[l.metadata?.placeId] || null,
+    }));
+  }
+
+  // ── Método 0: v4 legacy API (no usa mybusinessaccountmanagement) ──────────
+  const v4 = await safe('https://mybusiness.googleapis.com/v4/accounts');
+  result.methods_tried.push({ method: 'v4 legacy accounts', status: v4.status, ok: v4.ok, rawResponse: v4.data });
+  if (v4.ok && v4.data?.accounts?.length) {
+    const acc = v4.data.accounts[0];
+    result.account_found = acc.name; // formato: accounts/XXXXXXXXXXXXXXXXXX
     result.methods_tried[0].account = acc.name;
+  }
+
+  // ── Método 1: v1 accounts ─────────────────────────────────────────────────
+  if (!result.account_found) {
+    const v1 = await safe('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
+    result.methods_tried.push({ method: 'v1 accounts API', status: v1.status, ok: v1.ok, rawResponse: v1.data });
+    if (v1.ok && v1.data?.accounts?.length) {
+      const acc = v1.data.accounts[0];
+      result.account_found = acc.name;
+      result.methods_tried[result.methods_tried.length - 1].account = acc.name;
+    }
   }
 
   // ── Método 2: googleLocations:search (no necesita account ID) ────────────

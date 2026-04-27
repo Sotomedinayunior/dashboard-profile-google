@@ -41,10 +41,8 @@ module.exports = async function handler(req, res) {
   // Only fetch GMB if GMB_ACCOUNT_NAME is configured — avoids quota exhaustion
   // on mybusinessaccountmanagement.googleapis.com during setup.
   // Set GMB_ACCOUNT_NAME=accounts/XXXXXXXXX in Vercel to enable GMB data.
-  const gmbAccountName = (process.env.GMB_ACCOUNT_NAME || '').trim();
-  const gmbPromise = gmbAccountName
-    ? fetchGMB(auth)
-    : Promise.resolve({ ...EMPTY_GMB, reviewsApiError: 'Agrega GMB_ACCOUNT_NAME=accounts/XXXXXXXXX en Vercel → Settings → Environment Variables para ver reseñas. Visita /api/gmb-debug para obtener el valor.' });
+  // GMB_ACCOUNT_NAME = accounts/14783610060775958761 (fallback hardcoded)
+  const gmbPromise = fetchGMB(auth);
 
   const [gsc, gmb, ga4, serpGmbResult] = await Promise.allSettled([
     fetchGSC(auth, gscProperty),
@@ -479,14 +477,15 @@ async function fetchGMB(auth) {
   // Prefer GMB_ACCOUNT_NAME env var to avoid hitting the Account Management API
   // (which has very low quota limits and causes 429 errors).
   // Format: "accounts/XXXXXXXXX"  — find it in business.google.com URL or Vercel logs.
-  const accountNameEnv = (process.env.GMB_ACCOUNT_NAME || '').trim();
+  // Fallback al account ID conocido de business.google.com/n/14783610060775958761
+  const accountNameEnv = (process.env.GMB_ACCOUNT_NAME || 'accounts/14783610060775958761').trim();
 
   let accounts = [];
 
   if (accountNameEnv) {
     // Use hardcoded account — no API call needed
     accounts = [{ name: accountNameEnv }];
-    console.log('[GMB] using GMB_ACCOUNT_NAME env var:', accountNameEnv);
+    console.log('[GMB] using account:', accountNameEnv);
   } else {
     // Auto-discover via Account Management API (may hit 429 quota)
     const accountsRaw = await fetch(
