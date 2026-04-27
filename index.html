@@ -5185,72 +5185,133 @@ async function publishReply(domId, placeId, googleReviewId, reviewDirectLink) {
   window.open(GMB_REVIEWS_URL, '_blank');
 }
 
-// PageSpeed 
+// PageSpeed — llama PSI directo desde el navegador (sin servidor, sin API key)
+const PS_URLS = [
+  'https://nellyrac.do/',
+  'https://nellyrac.do/reserva/',
+  'https://nellyrac.do/flota/',
+  'https://nellyrac.do/contacto/',
+  'https://nellyrac.do/sobre-nosotros/',
+  'https://nellyrac.do/blog/',
+];
+
 let psStrategy = 'mobile';
 function setPsStrategy(s, btn) {
   psStrategy = s;
   document.querySelectorAll('.strat-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
 }
+
+function _psMetric(audits, key) {
+  const a = audits[key];
+  if (!a) return null;
+  return {
+    value:        a.numericValue != null ? +a.numericValue.toFixed(2) : null,
+    displayValue: a.displayValue || null,
+    score:        a.score != null ? Math.round(a.score * 100) : null,
+  };
+}
+
+async function _checkOnePage(url, strategy) {
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance`;
+  try {
+    const r = await fetch(apiUrl);
+    if (!r.ok) return { url, score: null, error: `HTTP ${r.status}`, cwv: null, opportunities: [] };
+    const data   = await r.json();
+    const cats   = data.lighthouseResult?.categories || {};
+    const audits = data.lighthouseResult?.audits     || {};
+    const score  = cats.performance?.score != null ? Math.round(cats.performance.score * 100) : null;
+    const cwv    = {
+      fcp:  _psMetric(audits, 'first-contentful-paint'),
+      lcp:  _psMetric(audits, 'largest-contentful-paint'),
+      tbt:  _psMetric(audits, 'total-blocking-time'),
+      cls:  _psMetric(audits, 'cumulative-layout-shift'),
+      ttfb: _psMetric(audits, 'server-response-time'),
+      si:   _psMetric(audits, 'speed-index'),
+    };
+    const opportunities = Object.values(audits)
+      .filter(a => a.details?.type === 'opportunity' && a.score != null && a.score < 0.9)
+      .map(a => ({ title: a.title, impact: a.score < 0.5 ? 'high' : 'medium' }))
+      .slice(0, 5);
+    return { url, score, cwv, opportunities, error: null };
+  } catch (err) {
+    return { url, score: null, error: err.message, cwv: null, opportunities: [] };
+  }
+}
+
 async function runPagespeed() {
-  const btn = document.getElementById('ps-run-btn');
+  const btn    = document.getElementById('ps-run-btn');
   const status = document.getElementById('ps-status');
-  const kpis = document.getElementById('ps-kpis');
-  const res = document.getElementById('ps-results');
+  const kpis   = document.getElementById('ps-kpis');
+  const resEl  = document.getElementById('ps-results');
 
   btn.disabled = true;
   btn.textContent = '⏳ Analizando…';
+  kpis.style.display  = 'none';
+  resEl.style.display = 'none';
   status.style.display = 'block';
-  status.innerHTML = `<div style="font-size:28px;margin-bottom:12px">⚡</div><div style="font-size:15px;font-weight:600;color:var(--text)">Analizando rendimiento con PageSpeed Insights…</div><div style="font-size:13px;color:var(--text2);margin-top:6px">Analizando páginas clave de nellyrac.do en paralelo. Puede tardar 20-40 segundos.</div>`;
-  kpis.style.display = 'none';
-  res.style.display = 'none';
+
+  const results   = [];
+  let   completed = 0;
+
+  const showProgress = () => {
+    status.innerHTML = `
+      <div style="font-size:28px;margin-bottom:10px">⚡</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text)">Analizando ${completed} de ${PS_URLS.length} páginas…</div>
+      <div style="margin:12px auto;max-width:260px;background:var(--border);border-radius:6px;height:6px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(completed/PS_URLS.length*100)}%;background:var(--orange);border-radius:6px;transition:width 0.4s"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text3)">Google PageSpeed Insights · directo desde tu navegador</div>`;
+  };
+  showProgress();
 
   try {
-  const r = await fetch(`/api/pagespeed?strategy=${psStrategy}`);
-  if (!r.ok) {
-    let errDetail = `Error del servidor (HTTP ${r.status})`;
-    try { const j = await r.json(); errDetail = j.error || errDetail; } catch {}
-    throw new Error(errDetail);
-  }
-  const data = await r.json();
-  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+    // Analizar todas las páginas en paralelo desde el navegador
+    await Promise.all(PS_URLS.map(async url => {
+      const result = await _checkOnePage(url, psStrategy);
+      results.push(result);
+      completed++;
+      showProgress();
+    }));
 
-  const S = data.summary;
-  document.getElementById('ps-avg').textContent = S.avgScore ?? '—';
-  document.getElementById('ps-good').textContent = S.good;
-  document.getElementById('ps-mid').textContent = S.needsWork;
-  document.getElementById('ps-poor').textContent = S.poor;
-  document.getElementById('ps-total').textContent = S.total;
-  kpis.style.display = 'grid';
+    results.sort((a, b) => (a.score ?? 999) - (b.score ?? 999));
 
-  // Color avg score badge
-  const avgEl = document.getElementById('ps-avg');
-  if (S.avgScore !== null) {
-  avgEl.style.color = S.avgScore >= 90 ? 'var(--green)' : S.avgScore >= 50 ? 'var(--orange)' : 'var(--red)';
-  }
+    const scored = results.filter(r => r.score !== null);
+    const S = {
+      total:     results.length,
+      good:      scored.filter(r => r.score >= 90).length,
+      needsWork: scored.filter(r => r.score >= 50 && r.score < 90).length,
+      poor:      scored.filter(r => r.score < 50).length,
+      avgScore:  scored.length ? Math.round(scored.reduce((s, r) => s + r.score, 0) / scored.length) : null,
+    };
 
-  document.getElementById('ps-timestamp').textContent =
-  'Analizado: ' + new Date(data.checkedAt).toLocaleString('es-DO') + ' · Estrategia: ' + data.strategy;
+    document.getElementById('ps-avg').textContent   = S.avgScore ?? '—';
+    document.getElementById('ps-good').textContent  = S.good;
+    document.getElementById('ps-mid').textContent   = S.needsWork;
+    document.getElementById('ps-poor').textContent  = S.poor;
+    document.getElementById('ps-total').textContent = S.total;
+    kpis.style.display = 'grid';
 
-  window._psData = data; // cache for AI Plan
-  renderPsTable(data.results || []);
-  status.style.display = 'none';
-  res.style.display = 'block';
+    const avgEl = document.getElementById('ps-avg');
+    if (S.avgScore !== null)
+      avgEl.style.color = S.avgScore >= 90 ? 'var(--green)' : S.avgScore >= 50 ? 'var(--orange)' : 'var(--red)';
+
+    document.getElementById('ps-timestamp').textContent =
+      'Analizado: ' + new Date().toLocaleString('es-DO') + ' · Estrategia: ' + psStrategy;
+
+    window._psData = { results, summary: S, strategy: psStrategy, checkedAt: new Date().toISOString() };
+    renderPsTable(results);
+    status.style.display = 'none';
+    resEl.style.display  = 'block';
 
   } catch(e) {
-  const isTimeout = e.message?.includes('504') || e.message?.toLowerCase().includes('timeout');
-  status.innerHTML = `
-    <div style="font-size:28px;margin-bottom:12px">${isTimeout ? '⏱️' : '❌'}</div>
-    <div style="font-size:15px;font-weight:600;color:var(--red)">${isTimeout ? 'Tiempo de espera agotado' : 'Error al analizar'}</div>
-    <div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.7;max-width:380px;margin-left:auto;margin-right:auto">
-      ${isTimeout
-        ? 'La función tardó demasiado. Agrega <code style="background:var(--surface2);padding:1px 5px;border-radius:4px">PAGESPEED_API_KEY</code> en Vercel para respuestas más rápidas.'
-        : e.message}
-      ${isTimeout ? '<br><a href="https://console.cloud.google.com/apis/credentials" target="_blank" style="color:var(--orange);font-weight:600">Crear API Key gratis →</a>' : ''}
-    </div>`;
+    status.innerHTML = `
+      <div style="font-size:28px;margin-bottom:12px">❌</div>
+      <div style="font-size:15px;font-weight:600;color:var(--red)">Error al analizar</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:8px">${e.message}</div>`;
   } finally {
-  btn.disabled = false;
-  btn.textContent = '⚡ Analizar';
+    btn.disabled = false;
+    btn.textContent = '⚡ Analizar';
   }
 }
 
