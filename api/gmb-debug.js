@@ -2,18 +2,15 @@
  * api/gmb-debug.js
  * GET /api/gmb-debug
  *
- * Diagnóstico: lista todas las locaciones del Business Profile
- * usando SOLO mybusinessbusinessinformation (no account management).
+ * Diagnóstico completo de Google Business Profile.
+ * Auto-descubre cuentas y ubicaciones usando el mismo flujo que data.js.
+ * No requiere GMB_LOCATION_NAME.
  *
- * Extrae el account name de GMB_LOCATION_NAME que ya tienes configurado.
- * Devuelve locationName + placeId de cada sucursal → úsalos para GMB_LOCATION_MAP.
- *
- * Requiere: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, GMB_LOCATION_NAME
+ * Visita: https://dashboard-profile-google.vercel.app/api/gmb-debug
  */
 
 const { google } = require('googleapis');
 
-// Nelly RAC — place IDs conocidos (para mostrar nombre amigable en el diagnóstico)
 const KNOWN_PLACES = {
   'ChIJPRzgUXlipY4RTFpdm7Gtz2M': 'Independencia (Santo Domingo)',
   'ChIJBUNVazXRsY4R76jNG9B5mUQ': 'Santiago · Cibao',
@@ -31,120 +28,169 @@ module.exports = async function handler(req, res) {
   const clientId     = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  const gmbLocation  = process.env.GMB_LOCATION_NAME; // e.g. "accounts/123/locations/456"
 
   if (!clientId || !clientSecret || !refreshToken) {
     return res.status(500).json({
-      error: 'Faltan: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET o GOOGLE_REFRESH_TOKEN en Vercel',
-    });
-  }
-
-  if (!gmbLocation) {
-    return res.status(500).json({
-      error: 'Falta GMB_LOCATION_NAME en Vercel. Debe tener el formato: accounts/XXXXXXXXX/locations/YYYYYYYYY',
-    });
-  }
-
-  // Extraer el account name: "accounts/123456789"
-  const accountName = gmbLocation.split('/locations/')[0]; // "accounts/123456789"
-  if (!accountName || !accountName.startsWith('accounts/')) {
-    return res.status(500).json({
-      error: `GMB_LOCATION_NAME tiene formato incorrecto: "${gmbLocation}". Debe ser accounts/XXX/locations/YYY`,
+      error: 'Faltan credenciales de Google en Vercel',
+      missing: [
+        !clientId     && 'GOOGLE_CLIENT_ID',
+        !clientSecret && 'GOOGLE_CLIENT_SECRET',
+        !refreshToken && 'GOOGLE_REFRESH_TOKEN',
+      ].filter(Boolean),
     });
   }
 
   const auth = new google.auth.OAuth2(clientId, clientSecret);
   auth.setCredentials({ refresh_token: refreshToken });
 
+  const result = {
+    step1_token:    null,
+    step2_accounts: null,
+    step3_locations: null,
+    step4_reviews_test: null,
+    diagnosis: [],
+    nelly_coverage: null,
+  };
+
   try {
-    const { token } = await auth.getAccessToken();
-    const hdrs = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type':  'application/json',
-    };
-
-    // ── Obtener todas las locaciones del account (sin Account Management API) ─
-    let pageToken = '';
-    const allLocations = [];
-
-    do {
-      const url =
-        `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations` +
-        `?readMask=name,title,storefrontAddress,metadata&pageSize=100` +
-        (pageToken ? `&pageToken=${pageToken}` : '');
-
-      const locRes = await fetch(url, {
-        headers: hdrs,
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!locRes.ok) {
-        const body = await locRes.text();
-        return res.status(502).json({
-          error: `Error al listar locaciones (${locRes.status})`,
-          accountUsed: accountName,
-          detail: body,
-          hint: locRes.status === 403
-            ? 'El token no tiene permiso. Reconecta en /api/auth para obtener el scope business.manage.'
-            : 'Verifica que GMB_LOCATION_NAME sea correcto en Vercel.',
-        });
-      }
-
-      const data = await locRes.json();
-      (data.locations || []).forEach(loc => {
-        const placeId = loc.metadata?.placeId || null;
-        allLocations.push({
-          locationName: loc.name,
-          title:        loc.title || '(sin nombre)',
-          placeId,
-          knownAs:      placeId ? (KNOWN_PLACES[placeId] || null) : null,
-          mapsUri:      loc.metadata?.mapsUri || null,
-          city:         loc.storefrontAddress?.locality || null,
-          rawMetadata:  loc.metadata || {},
-        });
-      });
-      pageToken = data.nextPageToken || '';
-    } while (pageToken);
-
-    // ── Generar GMB_LOCATION_MAP ──────────────────────────────────────────────
-    const locationMap = {};
-    const missingPlaceId = [];
-
-    for (const loc of allLocations) {
-      if (loc.placeId) {
-        locationMap[loc.placeId] = loc.locationName;
-      } else {
-        missingPlaceId.push(loc.locationName);
-      }
+    // ── Step 1: Get access token ──────────────────────────────────────────────
+    let token;
+    try {
+      const tokenRes = await auth.getAccessToken();
+      token = tokenRes.token;
+      result.step1_token = { ok: true, hint: 'Token obtenido correctamente' };
+    } catch (e) {
+      result.step1_token = { ok: false, error: e.message };
+      result.diagnosis.push('ERROR: No se pudo obtener token. Verifica GOOGLE_REFRESH_TOKEN y que el OAuth client esté configurado correctamente.');
+      return res.status(200).json(result);
     }
 
-    // Verificar cobertura de las 5 sucursales Nelly
-    const nellyPlaceIds = Object.keys(KNOWN_PLACES);
-    const covered   = nellyPlaceIds.filter(p => locationMap[p]);
-    const missing   = nellyPlaceIds.filter(p => !locationMap[p]);
+    const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-    return res.status(200).json({
+    // ── Step 2: List accounts ─────────────────────────────────────────────────
+    const acctRaw = await fetch(
+      'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
+      { headers: hdrs, signal: AbortSignal.timeout(8000) }
+    ).catch(e => ({ ok: false, status: 0, _err: e.message }));
+
+    if (!acctRaw.ok) {
+      const body = await acctRaw.text().catch(() => '');
+      result.step2_accounts = {
+        ok: false,
+        status: acctRaw.status,
+        body: body.slice(0, 300),
+      };
+      if (acctRaw.status === 403) {
+        result.diagnosis.push('ERROR 403 en accounts: El token no tiene el scope "business.manage". Reconecta en /api/auth.');
+      } else {
+        result.diagnosis.push(`ERROR ${acctRaw.status} en accounts API: ${body.slice(0, 150)}`);
+      }
+      return res.status(200).json(result);
+    }
+
+    const acctData = await acctRaw.json();
+    const accounts = acctData.accounts || [];
+    result.step2_accounts = {
       ok: true,
-      accountUsed: accountName,
-      totalLocations: allLocations.length,
+      count: accounts.length,
+      accounts: accounts.map(a => ({ name: a.name, accountName: a.accountName, type: a.type })),
+    };
+
+    if (!accounts.length) {
+      result.diagnosis.push('No se encontraron cuentas de Google Business. La cuenta de Google conectada no tiene ningún Business Profile asociado.');
+      return res.status(200).json(result);
+    }
+
+    // ── Step 3: List locations for each account ───────────────────────────────
+    const allLocations = [];
+    for (const acct of accounts) {
+      const locRaw = await fetch(
+        `https://mybusinessbusinessinformation.googleapis.com/v1/${acct.name}/locations?readMask=name,title,storefrontAddress,metadata&pageSize=100`,
+        { headers: hdrs, signal: AbortSignal.timeout(8000) }
+      ).catch(e => ({ ok: false, status: 0, _err: e.message }));
+
+      if (!locRaw.ok) {
+        const body = await locRaw.text().catch(() => '');
+        allLocations.push({ account: acct.name, error: `${locRaw.status}: ${body.slice(0,150)}` });
+        continue;
+      }
+
+      const locData = await locRaw.json();
+      (locData.locations || []).forEach(loc => {
+        const placeId = loc.metadata?.placeId || null;
+        allLocations.push({
+          account:      acct.name,
+          locationName: loc.name,
+          title:        loc.title || '(sin nombre)',
+          city:         loc.storefrontAddress?.locality || null,
+          placeId,
+          knownAs:      KNOWN_PLACES[placeId] || null,
+          mapsUri:      loc.metadata?.mapsUri || null,
+        });
+      });
+    }
+
+    result.step3_locations = {
+      ok: true,
+      total: allLocations.length,
       locations: allLocations,
+    };
 
-      // ── Copia esto como valor de GMB_LOCATION_MAP en Vercel ──────────────
-      GMB_LOCATION_MAP: JSON.stringify(locationMap),
+    // Check Nelly coverage
+    const foundPlaceIds = allLocations.map(l => l.placeId).filter(Boolean);
+    const nellyEntries  = Object.entries(KNOWN_PLACES);
+    result.nelly_coverage = {
+      total_sucursales: nellyEntries.length,
+      encontradas: nellyEntries.filter(([pid]) => foundPlaceIds.includes(pid)).map(([,name]) => name),
+      no_encontradas: nellyEntries.filter(([pid]) => !foundPlaceIds.includes(pid)).map(([,name]) => name),
+    };
 
-      coverage: {
-        nellySucursales: nellyPlaceIds.length,
-        encontradas: covered.length,
-        encontradasNombres: covered.map(p => KNOWN_PLACES[p]),
-        noEncontradas: missing.map(p => KNOWN_PLACES[p]),
-      },
+    if (result.nelly_coverage.encontradas.length === 0) {
+      result.diagnosis.push('Las sucursales de Nelly RAC no aparecen en la cuenta de Google conectada. Verifica que estés usando la cuenta de Google correcta (la que administra el Business Profile de Nelly RAC).');
+    }
 
-      nextStep: Object.keys(locationMap).length > 0
-        ? '✅ Copia el valor de "GMB_LOCATION_MAP" y agrégalo como variable de entorno en Vercel → Settings → Environment Variables. Luego haz Redeploy.'
-        : '⚠️ No se encontró placeId en las locaciones. Revisa "rawMetadata" de cada una para identificar el campo correcto.',
-    });
+    // ── Step 4: Test reviews API on first matched location ────────────────────
+    const firstNelly = allLocations.find(l => KNOWN_PLACES[l.placeId]);
+    if (firstNelly) {
+      const locationId = firstNelly.locationName.split('/').pop();
+      const revRaw = await fetch(
+        `https://mybusinessreviews.googleapis.com/v1/locations/${locationId}/reviews?pageSize=1`,
+        { headers: hdrs, signal: AbortSignal.timeout(8000) }
+      ).catch(e => ({ ok: false, status: 0, _err: e.message }));
+
+      if (!revRaw.ok) {
+        const body = await revRaw.text().catch(() => '');
+        result.step4_reviews_test = {
+          ok: false, status: revRaw.status,
+          location_tested: firstNelly.title,
+          body: body.slice(0, 300),
+        };
+        if (revRaw.status === 403) {
+          result.diagnosis.push('ERROR 403 en Reviews API: La API de reseñas de Google Business Profile requiere aprobación especial. Solicita acceso en: https://developers.google.com/my-business/content/prereqs');
+        } else if (revRaw.status === 404) {
+          result.diagnosis.push('ERROR 404 en Reviews API: El endpoint de reseñas no reconoce esta ubicación. El locationId puede tener un formato incorrecto.');
+        }
+      } else {
+        const revData = await revRaw.json();
+        result.step4_reviews_test = {
+          ok: true,
+          location_tested: firstNelly.title,
+          reviews_found: (revData.reviews || []).length,
+          total_review_count: revData.totalReviewCount || 0,
+        };
+        result.diagnosis.push('OK: La API de reseñas funciona correctamente.');
+      }
+    } else {
+      result.step4_reviews_test = { skipped: 'No se encontraron sucursales de Nelly RAC para probar' };
+    }
+
+    if (!result.diagnosis.length) {
+      result.diagnosis.push('Todo parece correcto. Si GMB no muestra datos en el dashboard, puede ser un problema de caché. Espera 5 min y recarga.');
+    }
+
+    return res.status(200).json(result);
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message, stack: err.stack?.slice(0, 500) });
   }
 };

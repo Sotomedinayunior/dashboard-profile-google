@@ -444,19 +444,34 @@ async function fetchGMB(auth) {
   const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
   // Step 1: List all Google Business accounts
-  const accountsRes = await fetch(
+  let accountsErrMsg = null;
+  const accountsRaw = await fetch(
     'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
     { headers: hdrs }
-  ).then(r => r.ok ? r.json() : null).catch(() => null);
+  ).catch(e => ({ ok: false, _err: e.message }));
+
+  let accountsRes = null;
+  if (accountsRaw.ok) {
+    accountsRes = await accountsRaw.json().catch(() => null);
+  } else {
+    const status = accountsRaw.status;
+    let body = '';
+    try { body = await accountsRaw.text(); } catch (_) {}
+    let parsed = {};
+    try { parsed = JSON.parse(body); } catch (_) {}
+    const apiMsg = parsed?.error?.message || parsed?.error?.status || body.slice(0, 200) || accountsRaw._err || '';
+    accountsErrMsg = `HTTP ${status || '?'}: ${apiMsg}`;
+    console.error('[GMB] accounts API error:', accountsErrMsg);
+  }
 
   const accounts = accountsRes?.accounts || [];
   console.log('[GMB] accounts found:', accounts.length);
 
   if (!accounts.length) {
-    return {
-      ...EMPTY_GMB, configured: true,
-      reviewsApiError: 'No se encontraron cuentas de Google Business. Verifica permisos del token.',
-    };
+    const detail = accountsErrMsg
+      ? `Error al consultar cuentas de Google Business: ${accountsErrMsg}`
+      : 'No se encontraron cuentas de Google Business. Verifica permisos del token.';
+    return { ...EMPTY_GMB, configured: true, reviewsApiError: detail };
   }
 
   // Step 2: List all locations for each account
