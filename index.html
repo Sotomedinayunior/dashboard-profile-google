@@ -2538,51 +2538,20 @@ let _reviewsState = {
 };
 
 // Switch location tab 
-async function switchLocation(locId, btn) {
+function switchLocation(locId, btn) {
+  // Con datos nativos GMB solo tenemos una ubicación configurada.
+  // Los tabs muestran los mismos datos — la selección es visual solamente.
   document.querySelectorAll('.loc-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   _reviewsState.currentLocId = locId;
   _reviewsState.starFilter = 'all';
-
-  // Reset star filter UI
   document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector('#star-filter-tabs .rf-tab').classList.add('active');
+  document.querySelector('#star-filter-tabs .rf-tab')?.classList.add('active');
 
-  if (locId === 'all') {
-  const data = _reviewsState.allData;
-  if (!data) return;
-  // merge all reviews from summary data
-  const merged = (data.locations || []).flatMap(l =>
-  (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: shortLocName(l.name) }))
-  );
-  updateReviewsKPIs(data.global);
-  updateRevDistBars(data.global, 'Todas');
-  updateRevStats(data.global, merged);
-  updateRevTrendChart(merged);
-  updateLocCompare(data.locations);
-  setVisibleReviews(merged);
+  // Usar los datos nativos ya cargados
+  const reviews = _reviewsState.visibleReviews || [];
+  setVisibleReviews(reviews);
   hideLoadMore();
-  } else {
-  const loc = REVIEW_LOCATIONS.find(l => l.id === locId);
-  if (!loc) return;
-
-  // Check if we have full data cached
-  if (_reviewsState.cache[loc.placeId]) {
-  applyLocationData(locId, _reviewsState.cache[loc.placeId]);
-  return;
-  }
-
-  // Use summary data if available (already full pages)
-  const summaryLoc = _reviewsState.allData?.locations?.find(l => l.id === locId);
-  if (summaryLoc) {
-  applyLocationData(locId, summaryLoc);
-  hideLoadMore();
-  return;
-  }
-
-  // Fetch fresh
-  await loadFullLocation(loc.placeId, locId);
-  }
 }
 
 function applyLocationData(locId, locData) {
@@ -2598,47 +2567,10 @@ function applyLocationData(locId, locData) {
   setVisibleReviews(reviews.map(r => ({ ...r, _locId: locId, _locName: locLabel })));
 }
 
-async function loadFullLocation(placeId, locId) {
-  if (!placeId) {
-  const loc = REVIEW_LOCATIONS.find(l => l.id === (locId || _reviewsState.currentLocId));
-  if (!loc) return;
-  placeId = loc.placeId;
-  locId = loc.id;
-  }
-
-  const list = document.getElementById('gmb-reviews-list');
-  list.innerHTML = `<div class="empty-state" style="padding:30px">⏳ Cargando reseñas…</div>`;
-  hideLoadMore();
-
-  try {
-  const r = await fetch(`/api/reviews?place_id=${placeId}`);
-  const data = await r.json();
-  if (!data.ok) throw new Error(data.error);
-  _reviewsState.cache[placeId] = data;
-  applyLocationData(locId, data);
-  } catch(e) {
-  list.innerHTML = `<div style="padding:14px;background:#fcebeb;border-radius:8px;font-size:12px;color:var(--red)"> ${e.message}</div>`;
-  }
-}
-
-async function reloadCurrentLocation() {
-  // Reset lazy-load flag so next visit to GMB re-fetches fresh data
-  _gmbDataLoaded = false;
-  _reviewsState.allData = null;
-  _reviewsState.cache   = {};
-
-  const locId = _reviewsState.currentLocId;
-  if (locId === 'all') {
-    // Re-trigger full section load
-    _gmbDataLoaded = true;
-    await _loadGmbSection();
-  } else {
-    const loc = REVIEW_LOCATIONS.find(l => l.id === locId);
-    if (loc) {
-      delete _reviewsState.cache[loc.placeId];
-      await loadFullLocation(loc.placeId, loc.id);
-    }
-  }
+function reloadCurrentLocation() {
+  // Refrescar usando datos nativos GMB ya disponibles en memoria
+  const G = window._dashData?.gmb || null;
+  if (G) renderGMB(G);
 }
 
 // Star filter 
@@ -2865,7 +2797,7 @@ function renderReviewsList(reviews) {
   // placeId for direct posting: look up from REVIEW_LOCATIONS by _locId
   const placeIdForPost  = (r._locId ? (REVIEW_LOCATIONS.find(l => l.id === r._locId)?.placeId || '') : '');
   const googleReviewId  = r.id || '';
-  const reviewDirectLink = (r.link || '').replace(/'/g, '%27'); // URL directa a la reseña (SerpAPI)
+  const reviewDirectLink = (r.link || '').replace(/'/g, '%27'); // URL directa a la reseña en Google
   const escapedComment  = rawComment.replace(/'/g, "\\'").replace(/"/g, '&quot;').slice(0, 400);
   const escapedReviewer = (r.reviewer||'Cliente').replace(/'/g, "\\'");
 
@@ -2958,8 +2890,8 @@ function pagePriority(ctr) {
 }
 
 // Navigation 
-// Tracks whether GMB SerpAPI data has been fetched this session
-let _gmbDataLoaded = false;
+// GMB data comes from native Google My Business API (loaded at boot via renderGMB)
+let _gmbDataLoaded = true; // always true — no lazy load needed
 
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2974,11 +2906,8 @@ function showPage(name, el) {
   });
   window.scrollTo(0, 0);
 
-  // Lazy-load SerpAPI data only when entering the GMB section
-  if (name === 'gmb' && !_gmbDataLoaded) {
-    _gmbDataLoaded = true;
-    _loadGmbSection();
-  }
+  // GMB usa datos nativos de Google My Business cargados al inicio (renderGMB)
+  // No requiere lazy-load adicional
 
   // Re-render Google Charts cuando se abre Analytics (el mapa necesita ancho real)
   if (name === 'analytics' && window._ga4FullData) {
@@ -2998,27 +2927,6 @@ function showPage(name, el) {
   }
 }
 
-async function _loadGmbSection() {
-  // Show loading indicators
-  const reviewList = document.getElementById('gmb-reviews-list');
-  if (reviewList) reviewList.innerHTML = '<div class="empty-state" style="padding:30px">Cargando reseñas...</div>';
-
-  // Load reviews + location cards in sequence to avoid SerpAPI 429
-  try {
-    const reviews = await loadReviews();
-    window._reviewsData = reviews;
-    if (reviews) renderSerpReviews(reviews);
-  } catch(e) {
-    console.error('[GMB reviews]', e);
-  }
-
-  // Load location profile cards after reviews to avoid simultaneous calls
-  try {
-    await loadGmbData();
-  } catch(e) {
-    console.error('[GMB data]', e);
-  }
-}
 
 // Chart registry (for destroy on re-render) 
 const charts = {};
@@ -4207,7 +4115,10 @@ function renderGMB(G) {
   ? `Tasa de respuesta: ${replyRate}% (${replied}/${reviews.length} respondidas)`
   : '');
 
-  // Reviews list (uses global renderReviewsList) 
+  // Location card (native GMB data)
+  renderGmbLocationCard(G);
+
+  // Reviews list (uses global renderReviewsList)
   if (!reviews.length) {
   const list = document.getElementById('gmb-reviews-list');
   if (list) {
@@ -4224,57 +4135,6 @@ function renderGMB(G) {
   renderReviewsList(reviews);
 }
 
-// SerpAPI Reviews 
-async function loadReviews() {
-  try {
-  const r = await fetch('/api/reviews');
-  if (!r.ok) { const e = await r.json().catch(()=>{}); throw new Error(e?.error || r.status); }
-  return await r.json();
-  } catch(e) { console.error('[Reviews]', e.message); return { ok: false, error: e.message }; }
-}
-
-function renderSerpReviews(data) {
-  if (!data?.ok) {
-  const list = document.getElementById('gmb-reviews-list');
-  if (list) list.innerHTML = `<div style="padding:14px;background:#fcebeb;border-radius:8px;font-size:12px;color:var(--red)"> ${data?.error || 'Error cargando reseñas'}</div>`;
-  return;
-  }
-
-  // Cache the full summary data
-  _reviewsState.allData = data;
-  window._reviewsData = data;
-
-  // Update top GMB KPIs (header cards)
-  const G = data.global || {};
-  if (G.avgRating) {
-  el('gmb-kpi-rating', G.avgRating.toFixed(1));
-  el('gmb-kpi-stars', ''.repeat(Math.round(G.avgRating)) + ''.repeat(5 - Math.round(G.avgRating)));
-  }
-  el('gmb-kpi-reviews', G.total ?? '—');
-
-  // Update location tab badges
-  (data.locations || []).forEach(loc => {
-  const rEl = document.getElementById(`lt-rating-${loc.id}`);
-  const cEl = document.getElementById(`lt-count-${loc.id}`);
-  if (rEl) rEl.textContent = loc.avgRating ? loc.avgRating.toFixed(1) + '' : '—';
-  if (cEl) cEl.textContent = loc.total ? `(${loc.total})` : '';
-  });
-
-  // Global rating tab badge
-  const allRatingEl = document.getElementById('lt-rating-all');
-  if (allRatingEl && G.avgRating) allRatingEl.textContent = G.avgRating.toFixed(1) + '';
-
-  // Render "All" view by default
-  updateReviewsKPIs(G);
-  updateRevChart(G);
-  updateRevDistBars(G, 'Todas las Sucursales');
-
-  const merged = (data.locations || []).flatMap(l =>
-  (l.reviews || []).map(r => ({ ...r, _locId: l.id, _locName: shortLocName(l.name) }))
-  );
-  setVisibleReviews(merged);
-  hideLoadMore(); // all pages already loaded for each location
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GA4 / ANALYTICS — Google Charts implementation
@@ -4778,7 +4638,7 @@ async function runAIPlan() {
   };
   }
 
-  // Reviews (SerpAPI structure: avgRating, total, distribution)
+  // Reviews data (native GMB: avgRating, total, distribution)
   if (document.getElementById('ai-inc-reviews').checked && window._reviewsData) {
   const R = window._reviewsData;
   payload.reviews = {
@@ -4980,129 +4840,51 @@ function renderActionCards(actions) {
   }).join('');
 }
 
-// GMB Location Data (SerpAPI) 
-async function loadGmbData() {
-  try {
-  const r = await fetch('/api/gmb-data');
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const data = await r.json();
-  if (data.ok) renderGmbLocationCards(data.locations || []);
-  } catch(e) {
-  const c = document.getElementById('gmb-location-cards');
-  if (c) c.innerHTML = `<div style="grid-column:1/-1;padding:14px;background:#fcebeb;border-radius:8px;font-size:12px;color:var(--red)"> ${e.message}</div>`;
-  }
-}
 
-function renderGmbLocationCards(locations) {
+// Tarjeta de ubicación usando datos nativos GMB
+function renderGmbLocationCard(G) {
   const container = document.getElementById('gmb-location-cards');
-  if (!container) return;
+  if (!container || !G) return;
 
-  const ok = locations.filter(l => l.ok && l.rating);
-
-  // Sync names into tab labels and REVIEW_LOCATIONS.
-  // SerpAPI a veces devuelve solo "Nelly Rent A Car" sin sufijo de sucursal.
-  // En ese caso, shortLocName() no puede extraer nada útil y devuelve el nombre
-  // completo del negocio — así que preferimos conservar el nombre original de
-  // REVIEW_LOCATIONS (ej. "Independencia") que ya es correcto.
-  locations.forEach(loc => {
-    if (!loc.name) return;
-    const rl = REVIEW_LOCATIONS.find(r => r.id === loc.id);
-    const cleaned = shortLocName(loc.name);
-    // Solo reemplazar si shortLocName extrajo algo diferente al nombre completo
-    // (es decir, si hay un sufijo de ubicación real, ej. "Independencia")
-    const hasLocationSuffix = cleaned !== loc.name && cleaned.length > 0;
-    const finalName = hasLocationSuffix ? cleaned : (rl?.name || cleaned);
-    // Update tab label
-    const nameEl = document.getElementById(`lt-name-${loc.id}`);
-    if (nameEl) nameEl.textContent = finalName;
-    // Update REVIEW_LOCATIONS in memory
-    if (rl) rl.name = finalName;
-  });
-
-  // Best location by rating
-  const best = ok.slice().sort((a,b) => b.rating - a.rating)[0];
-  if (best) {
-    el('gmb-kpi-best', shortLocName(best.name));
-    el('gmb-kpi-best-rating', `⭐ ${best.rating} · ${best.reviewsCount || '—'} reseñas`);
-    // Show city if available
-    const cityWrap = document.getElementById('gmb-kpi-best-city');
-    const cityText = document.getElementById('gmb-kpi-best-city-text');
-    if (best.address && cityWrap && cityText) {
-      cityText.textContent = best.address;
-      cityWrap.style.display = 'flex';
-      if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-  }
-
-  // Aggregate rating + review count from SerpAPI data
-  // (fills header KPIs even when /api/reviews hasn't loaded yet)
-  if (ok.length) {
-  const totalReviews = ok.reduce((s, l) => s + (l.reviewsCount || 0), 0);
-  const avgRating = +(ok.reduce((s, l) => s + l.rating, 0) / ok.length).toFixed(1);
-  // Only update if the KPI still shows "—" (don't overwrite live reviews data)
-  const ratingEl = document.getElementById('gmb-kpi-rating');
-  const revEl = document.getElementById('gmb-kpi-reviews');
-  if (ratingEl && ratingEl.textContent === '—') {
-  el('gmb-kpi-rating', avgRating.toFixed(1));
-  el('gmb-kpi-stars', ''.repeat(Math.round(avgRating)) + ''.repeat(5 - Math.round(avgRating)));
-  }
-  if (revEl && revEl.textContent === '—') {
-  el('gmb-kpi-reviews', totalReviews.toLocaleString());
-  }
-  }
-
-  // Ícono SVG inline via Lucide (CDN) — se reemplaza tras insertar el HTML
+  const rating    = G.rating     || 0;
+  const revCount  = G.reviewCount || 0;
+  const P         = G.performance || {};
+  const calls     = P.actions?.calls        || 0;
+  const webClicks = P.actions?.websiteClicks|| 0;
+  const dirs      = P.actions?.directions   || 0;
+  const views     = P.views?.total          || 0;
+  const starsHtml = rating ? '⭐'.repeat(Math.round(rating)) : '';
   const ic = (name, size=13, color='currentColor') =>
     `<svg data-lucide="${name}" style="width:${size}px;height:${size}px;color:${color};flex-shrink:0;display:inline-block;vertical-align:middle"></svg>`;
 
-  container.innerHTML = locations.map(loc => {
-  if (!loc.ok) return `
-  <div class="gmb-loc-card">
-  <div class="glc-head">
-  <div class="glc-name" style="display:flex;align-items:center;gap:6px">
-    ${ic('map-pin',14,'var(--orange)')} ${shortLocName(loc.name)}
-  </div>
-  </div>
-  <div class="glc-info" style="color:var(--red);display:flex;align-items:center;gap:5px">
-    ${ic('alert-circle',12,'var(--red)')} ${loc.error || 'Error al cargar'}
-  </div>
-  </div>`;
+  container.innerHTML = `
+    <div class="gmb-loc-card" style="grid-column:1/-1;max-width:440px">
+      <div class="glc-head">
+        <div class="glc-name" style="display:flex;align-items:center;gap:6px">
+          ${ic('map-pin',14,'var(--orange)')} Nelly Rent A Car
+        </div>
+        ${rating ? `<div class="glc-rating">${rating.toFixed(1)} ⭐ <span style="font-weight:400;opacity:0.7">(${revCount.toLocaleString()} reseñas)</span></div>` : ''}
+      </div>
+      <div class="glc-info" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+        <span style="display:flex;align-items:center;gap:5px">${ic('eye',11,'var(--text3)')} <strong>${views.toLocaleString()}</strong>&nbsp;vistas en Maps/Search (últimos 30 días)</span>
+        <span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} <strong>${calls.toLocaleString()}</strong>&nbsp;llamadas · ${ic('globe',11,'var(--blue)')} <strong>${webClicks.toLocaleString()}</strong>&nbsp;clics web · ${ic('navigation',11,'var(--orange)')} <strong>${dirs.toLocaleString()}</strong>&nbsp;cómo llegar</span>
+      </div>
+      <div style="font-size:13px;letter-spacing:1px;margin-top:8px">${starsHtml}</div>
+      <div class="glc-actions" style="margin-top:12px">
+        <a href="https://business.google.com" target="_blank" class="glc-btn glc-btn-primary" style="display:flex;align-items:center;gap:4px">${ic('settings',11,'#fff')} Gestionar en Google</a>
+      </div>
+    </div>
+    <div style="grid-column:2/-1;background:var(--surface2);border-radius:var(--radius);padding:20px 24px;border:1px dashed var(--border)">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px">📍 Datos por sucursal</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8">
+        Los datos detallados por sucursal (Independencia, Santiago, Punta Cana, Las Américas, Puerto Plata)
+        estarán disponibles una vez que la API de Google My Business sea aprobada para esta cuenta.
+        <br><br>
+        Actualmente se muestra la información del perfil principal configurado. Las reseñas individuales ya se
+        están cargando desde la API nativa de Google.
+      </div>
+    </div>`;
 
-  const starsHtml = loc.rating
-    ? '⭐'.repeat(Math.round(loc.rating))
-    : '';
-  const hoursClass  = loc.isOpenNow === true ? 'hours-open' : loc.isOpenNow === false ? 'hours-closed' : '';
-  const hoursIcon   = loc.isOpenNow === true ? ic('clock',11,'#16a34a') : loc.isOpenNow === false ? ic('clock',11,'var(--red)') : ic('clock',11,'var(--text3)');
-  const hoursLabel  = loc.isOpenNow === true ? 'Abierto ahora' : loc.isOpenNow === false ? 'Cerrado' : '';
-  const hoursDetail = loc.todayHours ? ` · ${loc.todayHours}` : '';
-
-  return `
-  <div class="gmb-loc-card">
-  <div class="glc-head">
-  <div class="glc-name" style="display:flex;align-items:center;gap:6px">
-    ${ic('map-pin',14,'var(--orange)')} ${shortLocName(loc.name)}
-  </div>
-  ${loc.rating ? `<div class="glc-rating">${loc.rating} <span style="font-weight:400;opacity:0.7">(${(loc.reviewsCount||0).toLocaleString()})</span></div>` : ''}
-  </div>
-
-  <div class="glc-info" style="display:flex;flex-direction:column;gap:4px">
-  ${loc.address ? `<span style="display:flex;align-items:center;gap:5px">${ic('navigation',11,'var(--text3)')} ${sanitizeText(loc.address)}</span>` : ''}
-  ${loc.phone   ? `<span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'var(--text3)')} ${sanitizeText(loc.phone)}</span>` : ''}
-  ${hoursLabel  ? `<span style="display:flex;align-items:center;gap:5px">${hoursIcon} <span class="glc-hours ${hoursClass}">${hoursLabel}${hoursDetail}</span></span>` : ''}
-  ${loc.photosCount ? `<span style="display:flex;align-items:center;gap:5px">${ic('image',11,'var(--text3)')} ${loc.photosCount} fotos</span>` : ''}
-  </div>
-
-  <div style="font-size:13px;letter-spacing:1px;margin-top:4px">${starsHtml}</div>
-
-  <div class="glc-actions">
-  <a href="${loc.mapsUrl}" target="_blank" class="glc-btn glc-btn-ghost" style="display:flex;align-items:center;gap:4px">${ic('map',11)} Ver en Maps</a>
-  <a href="${loc.gmbUrl}"  target="_blank" class="glc-btn glc-btn-primary" style="display:flex;align-items:center;gap:4px">${ic('settings',11,'#fff')} Gestionar</a>
-  ${loc.website ? `<a href="${loc.website}" target="_blank" class="glc-btn glc-btn-ghost" style="display:flex;align-items:center;gap:4px">${ic('globe',11)} Web</a>` : ''}
-  </div>
-  </div>`;
-  }).join('');
-
-  // Activar todos los íconos Lucide recién insertados
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -5760,7 +5542,7 @@ const TOURS = {
     { element: '#page-gmb .kpi-grid', popover: { title: 'KPIs de Reputación Online', description: 'Calificación promedio de todas las sucursales, total acumulado de reseñas, cantidad de ubicaciones activas y cuál es la sucursal mejor calificada. Estos números afectan directamente qué tan arriba apareces en Google Maps.', side: 'bottom' }},
     { element: '#gmb-kpi-rating', popover: { title: 'Calificación Promedio', description: 'El promedio de estrellas de todas las sucursales. La meta es 4.8 o más — negocios con esa calificación aparecen primero en el Local Pack de Google. Cada reseña negativa sin respuesta baja esta cifra.', side: 'bottom' }},
     { element: '#gmb-location-cards', popover: { title: 'Perfil de Cada Sucursal', description: 'Tarjetas con datos en tiempo real desde Google Maps: dirección, teléfono, si está abierta ahora, horario de hoy y número de fotos. El botón "Ver en Maps" abre la sucursal en Google Maps. "Gestionar" te lleva a Google Business para editar el perfil.', side: 'top' }},
-    { element: '#loc-tabs', popover: { title: 'Filtrar por Sucursal', description: 'Selecciona "Todas las Sucursales" para ver un resumen global, o haz clic en una sucursal específica para ver solo sus reseñas. La calificación aparece en cada pestaña. Las reseñas cargan desde SerpAPI al abrir esta sección.', side: 'bottom' }},
+    { element: '#loc-tabs', popover: { title: 'Filtrar por Sucursal', description: 'Selecciona "Todas las Sucursales" para ver un resumen global, o haz clic en una sucursal específica para ver solo sus reseñas. La calificación aparece en cada pestaña. Las reseñas se cargan desde la API nativa de Google My Business.', side: 'bottom' }},
     { element: '#reviews-kpi-row', popover: { title: 'Estadísticas de Reseñas', description: 'Para la sucursal o grupo seleccionado: calificación promedio, total de reseñas, cuántas son negativas (1-2 estrellas), cuántas son positivas (4-5) y el porcentaje que tiene respuesta del negocio. El objetivo es Reply Rate > 80%.', side: 'bottom' }},
     { element: '#star-filter-tabs', popover: { title: 'Filtrar por Calificación', description: 'Filtra las reseñas por número de estrellas. El filtro "1-2 estrellas" es el más importante — muestra clientes insatisfechos que necesitan respuesta inmediata para recuperar la confianza y evitar que esa queja se quede sin atender.', side: 'bottom' }, fallback: { element: '#page-gmb .rf-tabs' }},
     { element: '#gmb-reviews-list', popover: { title: 'Lista de Reseñas y Opciones de Respuesta', description: 'Cada reseña sin respuesta muestra dos opciones: "Responder con IA" — Claude genera una respuesta profesional en español dominicano adaptada al tono de la reseña, y "Escribir manual" — abre un área de texto para redactar tu propia respuesta. Ambas incluyen el botón "Publicar en Google" para responder directamente sin salir del dashboard.', side: 'top' }},
