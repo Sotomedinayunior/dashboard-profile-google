@@ -24,6 +24,7 @@ module.exports = async function handler(req, res) {
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const gscProperty  = process.env.GSC_PROPERTY;
   const ga4Property  = process.env.GA4_PROPERTY_ID || null;
+  const serpKey      = process.env.SERPAPI_KEY      || null;
   if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET no configurados en Vercel' });
   }
@@ -45,15 +46,31 @@ module.exports = async function handler(req, res) {
     ? fetchGMB(auth)
     : Promise.resolve({ ...EMPTY_GMB, reviewsApiError: 'Agrega GMB_ACCOUNT_NAME=accounts/XXXXXXXXX en Vercel → Settings → Environment Variables para ver reseñas. Visita /api/gmb-debug para obtener el valor.' });
 
-  const [gsc, gmb, ga4] = await Promise.allSettled([
+  const [gsc, gmb, ga4, serpGmbResult] = await Promise.allSettled([
     fetchGSC(auth, gscProperty),
     gmbPromise,
     ga4Property ? fetchGA4(auth, ga4Property) : Promise.resolve(null),
+    serpKey     ? fetchSerpGMBData(serpKey)    : Promise.resolve(null),
   ]);
 
-  const gscData = gsc.status === 'fulfilled' ? gsc.value : { error: gsc.reason?.message };
-  const gmbData = gmb.status === 'fulfilled' ? gmb.value : { ...EMPTY_GMB, error: gmb.reason?.message };
-  const ga4Data = ga4.status === 'fulfilled' ? ga4.value : { error: ga4.reason?.message };
+  const gscData     = gsc.status  === 'fulfilled' ? gsc.value  : { error: gsc.reason?.message };
+  let   gmbData     = gmb.status  === 'fulfilled' ? gmb.value  : { ...EMPTY_GMB, error: gmb.reason?.message };
+  const ga4Data     = ga4.status  === 'fulfilled' ? ga4.value  : { error: ga4.reason?.message };
+  const serpGmbData = serpGmbResult.status === 'fulfilled' ? serpGmbResult.value : null;
+
+  // If native GMB API has no locations yet, use SerpAPI data for KPIs
+  if (serpGmbData && !(gmbData.locations?.length)) {
+    gmbData = {
+      ...gmbData,
+      configured:     true,
+      rating:         serpGmbData.avgRating,
+      reviewCount:    serpGmbData.totalReviews,
+      bestLocation:   serpGmbData.bestLocation,
+      locations:      serpGmbData.locations,
+      serpApiFallback: true,    // tells the frontend to show "API pending" in reviews
+      reviewsApiError: null,    // clear native GMB error since SerpAPI is working
+    };
+  }
 
   // Cache successful responses for 1 hour; never cache errors
   const hasError = gscData.error || ga4Data?.error;
@@ -311,6 +328,12 @@ const NELLY_LOCATIONS = [
   { id: 'puntacana',     name: 'Punta Cana',          shortName: 'Punta Cana',    placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
   { id: 'bocachica',     name: 'Boca Chica',          shortName: 'Boca Chica',    placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
 ];
+
+const EMPTY_PERF = {
+  views:   { maps: null, search: null, total: null },
+  actions: { calls: null, websiteClicks: null, directions: null, total: null },
+  daily:   [],
+};
 
 const EMPTY_GMB = {
   configured: false, rating: null, reviewCount: null, reviews: [],
@@ -599,5 +622,67 @@ async function fetchGMB(auth) {
       actions: aggPerf.actions,
       daily:   Object.values(dailyMerged).sort((a,b) => a.date.localeCompare(b.date)),
     },
+  };
+}
+
+// ── SerpAPI GMB fallback — rating/reviews per location from Google Maps ────────
+async function fetchSerpGMBData(apiKey) {
+  const params = new URLSearchParams({
+    engine:  'google_maps',
+    q:       'Nelly Rent A Car',
+    gl:      'do',
+    hl:      'es',
+    api_key: apiKey,
+  });
+
+  const r = await fetch(`https://serpapi.com/search.json?${params}`, {
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({}));
+    throw new Error(body.error || `SerpAPI HTTP ${r.status}`);
+  }
+
+  const data         = await r.json();
+  const localResults = data.local_results || [];
+
+  // Match each Nelly location by Place ID
+  const locations = NELLY_LOCATIONS.map(nelly => {
+    const match = localResults.find(m => m.place_id === nelly.placeId);
+    if (!match) {
+      return {
+        id: nelly.id, name: nelly.name, shortName: nelly.shortName, placeId: nelly.placeId,
+        configured: false, rating: null, reviewCount: null, reviews: [], performance: EMPTY_PERF,
+      };
+    }
+    return {
+      id:          nelly.id,
+      name:        nelly.name,
+      shortName:   nelly.shortName,
+      placeId:     nelly.placeId,
+      configured:  true,
+      rating:      typeof match.rating  === 'number' ? match.rating  : null,
+      reviewCount: typeof match.reviews === 'number' ? match.reviews : null,
+      address:     match.address || null,
+      phone:       match.phone   || null,
+      isOpen:      match.hours?.current_status || null,
+      reviews:     [],
+      performance: EMPTY_PERF,
+    };
+  });
+
+  const withRating   = locations.filter(l => l.rating !== null);
+  const avgRating    = withRating.length
+    ? +(withRating.reduce((s, l) => s + l.rating, 0) / withRating.length).toFixed(1)
+    : null;
+  const totalReviews = locations.reduce((s, l) => s + (l.reviewCount || 0), 0);
+  const bestLoc      = [...withRating].sort((a, b) => b.rating - a.rating)[0] || null;
+
+  return {
+    avgRating,
+    totalReviews,
+    bestLocation: bestLoc ? { name: bestLoc.shortName, rating: bestLoc.rating } : null,
+    locations,
   };
 }

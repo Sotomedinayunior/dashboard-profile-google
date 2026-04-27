@@ -4166,28 +4166,64 @@ function renderGMB(G) {
   // Location card (native GMB data)
   renderGmbLocationCard(G);
 
-  // Reviews list (uses global renderReviewsList)
+  // Reviews list
   if (!reviews.length) {
   const list = document.getElementById('gmb-reviews-list');
   if (list) {
-  const errMsg = `
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px;text-align:center">
-    <div style="width:56px;height:56px;border-radius:50%;background:rgba(232,97,10,0.1);display:flex;align-items:center;justify-content:center">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F26722" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-    </div>
-    <div>
-      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Estamos configurando esta sección</div>
-      <div style="font-size:12px;color:var(--text2);line-height:1.7;max-width:320px">
-        Las reseñas de Google My Business estarán disponibles en breve.<br>
-        Estamos finalizando la integración con la API de Google Business Profile.
+  let errMsg;
+
+  if (G.serpApiFallback) {
+    // SerpAPI providing KPIs — native GMB reviews pending Google approval
+    errMsg = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:16px;text-align:center">
+      <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,rgba(66,133,244,0.12),rgba(52,168,83,0.12));display:flex;align-items:center;justify-content:center;border:1px solid rgba(66,133,244,0.2)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
       </div>
-    </div>
-    <a href="https://business.google.com/reviews" target="_blank"
-      style="margin-top:4px;font-size:12px;font-weight:600;color:#F26722;text-decoration:none;border:1px solid rgba(242,103,34,0.4);padding:7px 16px;border-radius:20px;transition:background 0.15s"
-      onmouseover="this.style.background='rgba(242,103,34,0.08)'" onmouseout="this.style.background='transparent'">
-      Ver reseñas en Google Business
-    </a>
-  </div>`;
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px">
+          Google está revisando el acceso a las reseñas
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8;max-width:380px">
+          Hemos solicitado acceso a la <strong>Google Business Profile API</strong> para mostrar las reseñas individuales de cada sucursal directamente aquí.<br><br>
+          <span style="color:var(--text3)">Mientras tanto, los KPIs de calificación y conteo de reseñas se muestran con datos de <strong>Google Maps vía SerpAPI</strong>.</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+        <a href="https://business.google.com/reviews" target="_blank"
+          style="font-size:12px;font-weight:600;color:#4285F4;text-decoration:none;border:1px solid rgba(66,133,244,0.35);padding:7px 18px;border-radius:20px;transition:background 0.15s"
+          onmouseover="this.style.background='rgba(66,133,244,0.07)'" onmouseout="this.style.background='transparent'">
+          Ver reseñas en Google Business
+        </a>
+        <a href="https://maps.google.com/search?q=Nelly+Rent+A+Car+Santo+Domingo" target="_blank"
+          style="font-size:12px;font-weight:600;color:var(--text2);text-decoration:none;border:1px solid var(--border2);padding:7px 18px;border-radius:20px;transition:background 0.15s"
+          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+          Ver en Google Maps
+        </a>
+      </div>
+    </div>`;
+  } else if (G.reviewsApiError) {
+    errMsg = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px;text-align:center">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">Error al cargar reseñas</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7;max-width:340px">${G.reviewsApiError}</div>
+      </div>
+    </div>`;
+  } else {
+    errMsg = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px;text-align:center">
+      <div style="width:56px;height:56px;border-radius:50%;background:rgba(232,97,10,0.1);display:flex;align-items:center;justify-content:center">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F26722" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <div style="font-size:13px;color:var(--text2)">
+        ${G.configured ? 'No se encontraron reseñas en esta cuenta.' : 'Conecta Google My Business para ver reseñas reales.'}
+      </div>
+    </div>`;
+  }
+
   list.innerHTML = errMsg;
   }
   return;
@@ -4927,7 +4963,7 @@ function renderGmbLocationCard(G) {
   }
 
   container.innerHTML = locs.map(loc => {
-    const rating    = loc.rating     || 0;
+    const rating    = loc.rating      || 0;
     const revCount  = loc.reviewCount || 0;
     const P         = loc.performance || {};
     const calls     = P.actions?.calls         || 0;
@@ -4935,6 +4971,17 @@ function renderGmbLocationCard(G) {
     const dirs      = P.actions?.directions     || 0;
     const views     = P.views?.total            || 0;
     const starsHtml = rating ? '⭐'.repeat(Math.round(rating)) : '';
+    // SerpAPI extras
+    const address   = loc.address || null;
+    const phone     = loc.phone   || null;
+    const isOpen    = loc.isOpen  || null;
+
+    const infoRows = [];
+    if (address) infoRows.push(`<span style="display:flex;align-items:flex-start;gap:5px">${ic('map-pin',11,'var(--orange)')} <span style="line-height:1.4">${address}</span></span>`);
+    if (phone)   infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} ${phone}</span>`);
+    if (isOpen)  infoRows.push(`<span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:${isOpen.toLowerCase().includes('abierto')||isOpen.toLowerCase().includes('open')?'var(--green)':'var(--red)'}">${isOpen}</span>`);
+    if (views)   infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('eye',11,'var(--text3)')} <strong>${views.toLocaleString()}</strong>&nbsp;vistas (30 días)</span>`);
+    if (calls || webClicks || dirs) infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} <strong>${calls.toLocaleString()}</strong>&nbsp;llamadas · ${ic('globe',11,'var(--blue)')} <strong>${webClicks.toLocaleString()}</strong>&nbsp;clics · ${ic('navigation',11,'var(--orange)')} <strong>${dirs.toLocaleString()}</strong>&nbsp;dirs</span>`);
 
     return `
       <div class="gmb-loc-card">
@@ -4944,11 +4991,10 @@ function renderGmbLocationCard(G) {
           </div>
           ${rating ? `<div class="glc-rating">${rating.toFixed(1)} ⭐ <span style="font-weight:400;opacity:0.7">(${revCount.toLocaleString()})</span></div>` : '<div class="glc-rating" style="background:var(--surface2);color:var(--text3)">Sin datos</div>'}
         </div>
-        <div class="glc-info" style="display:flex;flex-direction:column;gap:5px;margin-top:6px">
-          <span style="display:flex;align-items:center;gap:5px">${ic('eye',11,'var(--text3)')} <strong>${views.toLocaleString()}</strong>&nbsp;vistas (30 días)</span>
-          <span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} <strong>${calls.toLocaleString()}</strong>&nbsp;llamadas · ${ic('globe',11,'var(--blue)')} <strong>${webClicks.toLocaleString()}</strong>&nbsp;clics · ${ic('navigation',11,'var(--orange)')} <strong>${dirs.toLocaleString()}</strong>&nbsp;dirs</span>
+        <div class="glc-info" style="display:flex;flex-direction:column;gap:5px;margin-top:8px;font-size:11px;color:var(--text2)">
+          ${infoRows.join('')}
         </div>
-        <div style="font-size:12px;letter-spacing:1px;margin-top:6px">${starsHtml}</div>
+        ${starsHtml ? `<div style="font-size:12px;letter-spacing:1px;margin-top:6px">${starsHtml}</div>` : ''}
         <div class="glc-actions" style="margin-top:10px">
           <a href="https://business.google.com" target="_blank" class="glc-btn glc-btn-primary" style="display:flex;align-items:center;gap:4px;font-size:11px">${ic('settings',10,'#fff')} Gestionar</a>
         </div>
