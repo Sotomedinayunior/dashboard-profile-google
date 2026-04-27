@@ -4974,15 +4974,25 @@ function renderGmbLocationCard(G) {
     const dirs      = P.actions?.directions     || 0;
     const views     = P.views?.total            || 0;
     const starsHtml = rating ? '⭐'.repeat(Math.round(rating)) : '';
-    // SerpAPI extras
+    // Places API / SerpAPI extras
     const address   = loc.address || null;
     const phone     = loc.phone   || null;
-    const isOpen    = loc.isOpen  || null;
+    // isOpen can be boolean (Places API) or string (SerpAPI) or null
+    const isOpenRaw = loc.isOpen;
+    let isOpenLabel = null;
+    let isOpenColor = 'var(--text3)';
+    if (isOpenRaw === true)  { isOpenLabel = 'Abierto ahora'; isOpenColor = 'var(--green)'; }
+    else if (isOpenRaw === false) { isOpenLabel = 'Cerrado'; isOpenColor = 'var(--red)'; }
+    else if (typeof isOpenRaw === 'string' && isOpenRaw) {
+      const lower = isOpenRaw.toLowerCase();
+      isOpenColor = (lower.includes('abierto') || lower.includes('open')) ? 'var(--green)' : 'var(--red)';
+      isOpenLabel = isOpenRaw;
+    }
 
     const infoRows = [];
-    if (address) infoRows.push(`<span style="display:flex;align-items:flex-start;gap:5px">${ic('map-pin',11,'var(--orange)')} <span style="line-height:1.4">${address}</span></span>`);
-    if (phone)   infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} ${phone}</span>`);
-    if (isOpen)  infoRows.push(`<span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:${isOpen.toLowerCase().includes('abierto')||isOpen.toLowerCase().includes('open')?'var(--green)':'var(--red)'}">${isOpen}</span>`);
+    if (address)     infoRows.push(`<span style="display:flex;align-items:flex-start;gap:5px">${ic('map-pin',11,'var(--orange)')} <span style="line-height:1.4">${address}</span></span>`);
+    if (phone)       infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} ${phone}</span>`);
+    if (isOpenLabel) infoRows.push(`<span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:${isOpenColor}">${isOpenLabel}</span>`);
     if (views)   infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('eye',11,'var(--text3)')} <strong>${views.toLocaleString()}</strong>&nbsp;vistas (30 días)</span>`);
     if (calls || webClicks || dirs) infoRows.push(`<span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} <strong>${calls.toLocaleString()}</strong>&nbsp;llamadas · ${ic('globe',11,'var(--blue)')} <strong>${webClicks.toLocaleString()}</strong>&nbsp;clics · ${ic('navigation',11,'var(--orange)')} <strong>${dirs.toLocaleString()}</strong>&nbsp;dirs</span>`);
 
