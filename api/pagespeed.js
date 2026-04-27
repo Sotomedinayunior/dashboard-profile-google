@@ -10,8 +10,9 @@ const SITEMAPS = [
   'https://nellyrac.do/page-sitemap.xml',
   'https://nellyrac.do/post-sitemap.xml',
 ];
-const CONCURRENCY = 3;
-const TIMEOUT_MS  = 25000;
+const CONCURRENCY = 2;   // lower = safer within Vercel timeout
+const TIMEOUT_MS  = 15000; // 15s per page
+const MAX_URLS    = 15;  // cap at 15 URLs to stay within 60s limit
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -20,8 +21,10 @@ module.exports = async function handler(req, res) {
   const strategy = req.query.strategy === 'desktop' ? 'desktop' : 'mobile';
 
   try {
-    const urls = await getAllUrls();
+    let urls = await getAllUrls();
     if (!urls.length) return res.status(200).json({ ok: false, error: 'No URLs found in sitemaps' });
+    // Cap to avoid Vercel timeout
+    if (urls.length > MAX_URLS) urls = urls.slice(0, MAX_URLS);
 
     const results = await checkBatch(urls, strategy, CONCURRENCY);
 
@@ -70,7 +73,8 @@ async function checkBatch(urls, strategy, concurrency) {
 }
 
 async function checkPage(url, strategy) {
-  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance`;
+  const key = process.env.PAGESPEED_API_KEY ? `&key=${process.env.PAGESPEED_API_KEY}` : '';
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance${key}`;
   try {
     const r = await fetchWithTimeout(apiUrl, TIMEOUT_MS);
     if (!r.ok) return { url, score: null, error: `HTTP ${r.status}`, cwv: null };
