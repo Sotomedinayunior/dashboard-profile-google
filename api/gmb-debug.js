@@ -68,6 +68,51 @@ module.exports = async function handler(req, res) {
     const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
     // ── Step 2: List accounts ─────────────────────────────────────────────────
+    // Use GMB_ACCOUNT_NAME env var if set to skip the quota-limited API call
+    const accountNameEnv = (process.env.GMB_ACCOUNT_NAME || '').trim();
+    if (accountNameEnv) {
+      result.step2_accounts = {
+        ok: true, count: 1,
+        source: 'GMB_ACCOUNT_NAME env var',
+        accounts: [{ name: accountNameEnv }],
+      };
+      // Jump to step 3 directly
+      const locRaw = await fetch(
+        `https://mybusinessbusinessinformation.googleapis.com/v1/${accountNameEnv}/locations?readMask=name,title,storefrontAddress,metadata&pageSize=100`,
+        { headers: hdrs, signal: AbortSignal.timeout(8000) }
+      ).catch(e => ({ ok: false, status: 0, _err: e.message }));
+      if (!locRaw.ok) {
+        const body = await locRaw.text().catch(() => '');
+        result.step3_locations = { ok: false, status: locRaw.status, body: body.slice(0, 300) };
+        result.diagnosis.push(`Error al listar ubicaciones: HTTP ${locRaw.status}`);
+        return res.status(200).json(result);
+      }
+      const locData = await locRaw.json();
+      const allLocations = (locData.locations || []).map(loc => ({
+        account: accountNameEnv,
+        locationName: loc.name,
+        title: loc.title || '(sin nombre)',
+        city: loc.storefrontAddress?.locality || null,
+        placeId: loc.metadata?.placeId || null,
+        knownAs: KNOWN_PLACES[loc.metadata?.placeId] || null,
+        mapsUri: loc.metadata?.mapsUri || null,
+      }));
+      result.step3_locations = { ok: true, total: allLocations.length, locations: allLocations };
+      const foundPlaceIds = allLocations.map(l => l.placeId).filter(Boolean);
+      const nellyEntries = Object.entries(KNOWN_PLACES);
+      result.nelly_coverage = {
+        total_sucursales: nellyEntries.length,
+        encontradas: nellyEntries.filter(([p]) => foundPlaceIds.includes(p)).map(([,n]) => n),
+        no_encontradas: nellyEntries.filter(([p]) => !foundPlaceIds.includes(p)).map(([,n]) => n),
+      };
+      if (!result.nelly_coverage.encontradas.length) {
+        result.diagnosis.push('Las sucursales de Nelly RAC no aparecen bajo esta cuenta. Verifica que GMB_ACCOUNT_NAME sea correcto.');
+      } else {
+        result.diagnosis.push(`OK: Se encontraron ${result.nelly_coverage.encontradas.length} sucursales de Nelly RAC.`);
+      }
+      return res.status(200).json(result);
+    }
+
     const acctRaw = await fetch(
       'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
       { headers: hdrs, signal: AbortSignal.timeout(8000) }

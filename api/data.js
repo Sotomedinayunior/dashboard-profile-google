@@ -438,40 +438,55 @@ async function fetchOneLocation(hdrs, locationResourceName, nellyLoc) {
   };
 }
 
-// Main GMB fetcher — auto-discovers all locations, matches with NELLY_LOCATIONS
+// Main GMB fetcher — uses GMB_ACCOUNT_NAME env var when set (avoids quota-heavy
+// mybusinessaccountmanagement API). Falls back to auto-discovery if not set.
 async function fetchGMB(auth) {
   const { token } = await auth.getAccessToken();
   const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-  // Step 1: List all Google Business accounts
-  let accountsErrMsg = null;
-  const accountsRaw = await fetch(
-    'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
-    { headers: hdrs }
-  ).catch(e => ({ ok: false, _err: e.message }));
+  // ── Step 1: Resolve account name(s) ──────────────────────────────────────
+  // Prefer GMB_ACCOUNT_NAME env var to avoid hitting the Account Management API
+  // (which has very low quota limits and causes 429 errors).
+  // Format: "accounts/XXXXXXXXX"  — find it in business.google.com URL or Vercel logs.
+  const accountNameEnv = (process.env.GMB_ACCOUNT_NAME || '').trim();
 
-  let accountsRes = null;
-  if (accountsRaw.ok) {
-    accountsRes = await accountsRaw.json().catch(() => null);
+  let accounts = [];
+
+  if (accountNameEnv) {
+    // Use hardcoded account — no API call needed
+    accounts = [{ name: accountNameEnv }];
+    console.log('[GMB] using GMB_ACCOUNT_NAME env var:', accountNameEnv);
   } else {
-    const status = accountsRaw.status;
-    let body = '';
-    try { body = await accountsRaw.text(); } catch (_) {}
-    let parsed = {};
-    try { parsed = JSON.parse(body); } catch (_) {}
-    const apiMsg = parsed?.error?.message || parsed?.error?.status || body.slice(0, 200) || accountsRaw._err || '';
-    accountsErrMsg = `HTTP ${status || '?'}: ${apiMsg}`;
-    console.error('[GMB] accounts API error:', accountsErrMsg);
+    // Auto-discover via Account Management API (may hit 429 quota)
+    const accountsRaw = await fetch(
+      'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
+      { headers: hdrs, signal: AbortSignal.timeout(8000) }
+    ).catch(e => ({ ok: false, _err: e.message }));
+
+    if (accountsRaw.ok) {
+      const accountsRes = await accountsRaw.json().catch(() => null);
+      accounts = accountsRes?.accounts || [];
+      console.log('[GMB] auto-discovered accounts:', accounts.length);
+    } else {
+      let body = '';
+      try { body = await accountsRaw.text(); } catch (_) {}
+      let parsed = {};
+      try { parsed = JSON.parse(body); } catch (_) {}
+      const apiMsg = parsed?.error?.message || body.slice(0, 200) || accountsRaw._err || '';
+      const errDetail = `HTTP ${accountsRaw.status || '?'}: ${apiMsg}`;
+      console.error('[GMB] accounts API error:', errDetail);
+
+      const hint = accountsRaw.status === 429
+        ? 'Cuota excedida en mybusinessaccountmanagement API. Agrega GMB_ACCOUNT_NAME en Vercel (formato: accounts/XXXXXXXXX) para evitar esta llamada.'
+        : errDetail;
+
+      return { ...EMPTY_GMB, configured: true, reviewsApiError: hint };
+    }
   }
 
-  const accounts = accountsRes?.accounts || [];
-  console.log('[GMB] accounts found:', accounts.length);
-
   if (!accounts.length) {
-    const detail = accountsErrMsg
-      ? `Error al consultar cuentas de Google Business: ${accountsErrMsg}`
-      : 'No se encontraron cuentas de Google Business. Verifica permisos del token.';
-    return { ...EMPTY_GMB, configured: true, reviewsApiError: detail };
+    return { ...EMPTY_GMB, configured: true,
+      reviewsApiError: 'No se encontraron cuentas. Agrega GMB_ACCOUNT_NAME=accounts/XXXXXXXXX en Vercel.' };
   }
 
   // Step 2: List all locations for each account
@@ -479,7 +494,7 @@ async function fetchGMB(auth) {
   for (const account of accounts) {
     const locRes = await fetch(
       `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title,metadata`,
-      { headers: hdrs }
+      { headers: hdrs, signal: AbortSignal.timeout(8000) }
     ).then(r => r.ok ? r.json() : null).catch(() => null);
 
     const locs = locRes?.locations || [];
