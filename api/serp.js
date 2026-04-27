@@ -11,10 +11,11 @@ const DOMAIN = 'nellyrac.do';
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 's-maxage=3600');
+  // Never cache errors; cache successful results 1 hour
+  res.setHeader('Cache-Control', 'no-store');
 
   const apiKey   = process.env.SERPAPI_KEY;
-  if (!apiKey) return res.status(500).json({ error: 'SERPAPI_KEY no configurada' });
+  if (!apiKey) return res.status(500).json({ error: 'SERPAPI_KEY no configurada en Vercel. Agrega SERPAPI_KEY en Settings → Environment Variables.' });
 
   // Keywords: from query param or use defaults from top GSC queries
   const kwParam = req.query.keywords;
@@ -34,6 +35,18 @@ module.exports = async function handler(req, res) {
   try {
     const results = await Promise.all(keywords.map(kw => checkKeyword(kw, gl, hl, apiKey)));
     const found   = results.filter(r => r.position !== null).length;
+
+    // Check if all failed with 429
+    const all429 = results.every(r => r.error?.includes('429'));
+    if (all429) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.status(429).json({ ok: false, error: 'Cuota de SerpAPI agotada (429). Verifica tu plan en serpapi.com o espera al próximo ciclo mensual.' });
+    }
+
+    // Cache only if at least some succeeded
+    if (found > 0 || results.some(r => !r.error)) {
+      res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
+    }
 
     return res.status(200).json({
       ok: true,
@@ -65,8 +78,14 @@ async function checkKeyword(keyword, gl, hl, apiKey) {
   });
 
   try {
-    const r = await fetch(`https://serpapi.com/search.json?${params}`);
-    if (!r.ok) throw new Error(`SerpAPI ${r.status}`);
+    const r = await fetch(`https://serpapi.com/search.json?${params}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (r.status === 429) throw new Error('429 — Cuota SerpAPI agotada');
+    if (!r.ok) {
+      const errData = await r.json().catch(() => ({}));
+      throw new Error(errData.error || `SerpAPI ${r.status}`);
+    }
     const data = await r.json();
 
     const organic = data.organic_results || [];

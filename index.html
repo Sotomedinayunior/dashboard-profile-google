@@ -5262,10 +5262,16 @@ async function runSerp() {
   res.style.display = 'block';
 
   } catch(e) {
-  status.innerHTML = `<div style="font-size:28px;margin-bottom:12px"></div><div style="font-size:15px;font-weight:600;color:var(--red)">Error al verificar</div><div style="font-size:13px;color:var(--text2);margin-top:6px">${e.message}</div>`;
+  const is429 = e.message?.includes('429') || e.message?.includes('Cuota');
+  status.innerHTML = `
+    <div style="font-size:28px;margin-bottom:12px">${is429 ? '' : ''}</div>
+    <div style="font-size:15px;font-weight:600;color:var(--red)">${is429 ? 'Cuota de SerpAPI agotada' : 'Error al verificar'}</div>
+    <div style="font-size:13px;color:var(--text2);margin-top:6px">${is429
+      ? 'El plan gratuito de SerpAPI (100 búsquedas/mes) está agotado. Activa el plan de $25/mes en <a href="https://serpapi.com/manage-api-key" target="_blank" style="color:var(--orange)">serpapi.com</a> para continuar.'
+      : e.message}</div>`;
   } finally {
   btn.disabled = false;
-  btn.textContent = ' Verificar Posiciones';
+  btn.textContent = 'Verificar Posiciones';
   }
 }
 
