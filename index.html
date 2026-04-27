@@ -5247,44 +5247,20 @@ async function runPagespeed() {
 
   btn.disabled = true;
   btn.textContent = '⏳ Analizando…';
-  kpis.style.display  = 'none';
-  resEl.style.display = 'none';
+  kpis.style.display   = 'none';
+  resEl.style.display  = 'none';
   status.style.display = 'block';
-
-  const results   = [];
-  let   completed = 0;
-
-  const showProgress = () => {
-    status.innerHTML = `
-      <div style="font-size:28px;margin-bottom:10px">⚡</div>
-      <div style="font-size:15px;font-weight:600;color:var(--text)">Analizando ${completed} de ${PS_URLS.length} páginas…</div>
-      <div style="margin:12px auto;max-width:260px;background:var(--border);border-radius:6px;height:6px;overflow:hidden">
-        <div style="height:100%;width:${Math.round(completed/PS_URLS.length*100)}%;background:var(--orange);border-radius:6px;transition:width 0.4s"></div>
-      </div>
-      <div style="font-size:12px;color:var(--text3)">Google PageSpeed Insights · directo desde tu navegador</div>`;
-  };
-  showProgress();
+  status.innerHTML = `
+    <div style="font-size:28px;margin-bottom:10px">⚡</div>
+    <div style="font-size:15px;font-weight:600;color:var(--text)">Analizando páginas con PageSpeed Insights…</div>
+    <div style="font-size:12px;color:var(--text3);margin-top:6px">Puede tardar 10-20 segundos</div>`;
 
   try {
-    // Analizar todas las páginas en paralelo desde el navegador
-    await Promise.all(PS_URLS.map(async url => {
-      const result = await _checkOnePage(url, psStrategy);
-      results.push(result);
-      completed++;
-      showProgress();
-    }));
+    const r = await fetch(`/api/pagespeed?strategy=${psStrategy}`);
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'Error desconocido');
 
-    results.sort((a, b) => (a.score ?? 999) - (b.score ?? 999));
-
-    const scored = results.filter(r => r.score !== null);
-    const S = {
-      total:     results.length,
-      good:      scored.filter(r => r.score >= 90).length,
-      needsWork: scored.filter(r => r.score >= 50 && r.score < 90).length,
-      poor:      scored.filter(r => r.score < 50).length,
-      avgScore:  scored.length ? Math.round(scored.reduce((s, r) => s + r.score, 0) / scored.length) : null,
-    };
-
+    const S = data.summary;
     document.getElementById('ps-avg').textContent   = S.avgScore ?? '—';
     document.getElementById('ps-good').textContent  = S.good;
     document.getElementById('ps-mid').textContent   = S.needsWork;
@@ -5297,10 +5273,10 @@ async function runPagespeed() {
       avgEl.style.color = S.avgScore >= 90 ? 'var(--green)' : S.avgScore >= 50 ? 'var(--orange)' : 'var(--red)';
 
     document.getElementById('ps-timestamp').textContent =
-      'Analizado: ' + new Date().toLocaleString('es-DO') + ' · Estrategia: ' + psStrategy;
+      'Analizado: ' + new Date(data.checkedAt).toLocaleString('es-DO') + ' · ' + data.strategy;
 
-    window._psData = { results, summary: S, strategy: psStrategy, checkedAt: new Date().toISOString() };
-    renderPsTable(results);
+    window._psData = data;
+    renderPsTable(data.results || []);
     status.style.display = 'none';
     resEl.style.display  = 'block';
 
@@ -5308,7 +5284,7 @@ async function runPagespeed() {
     status.innerHTML = `
       <div style="font-size:28px;margin-bottom:12px">❌</div>
       <div style="font-size:15px;font-weight:600;color:var(--red)">Error al analizar</div>
-      <div style="font-size:12px;color:var(--text2);margin-top:8px">${e.message}</div>`;
+      <div style="font-size:12px;color:var(--text2);margin-top:8px;max-width:360px;margin-left:auto;margin-right:auto;line-height:1.6">${e.message}</div>`;
   } finally {
     btn.disabled = false;
     btn.textContent = '⚡ Analizar';

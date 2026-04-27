@@ -2,93 +2,82 @@
  * api/pagespeed.js
  * GET /api/pagespeed?strategy=mobile|desktop
  *
- * Runs Google PageSpeed Insights on all sitemap pages.
- * No API key required (uses public endpoint, rate limited to 25k/day).
+ * Runs Google PageSpeed Insights using PAGESPEED_API_KEY (required).
+ * All pages run in parallel — completes in ~3-5s with a valid key.
  */
 
-const SITEMAPS = [
-  'https://nellyrac.do/page-sitemap.xml',
-  'https://nellyrac.do/post-sitemap.xml',
+const KEY_PAGES = [
+  'https://nellyrac.do/',
+  'https://nellyrac.do/reserva/',
+  'https://nellyrac.do/flota/',
+  'https://nellyrac.do/contacto/',
+  'https://nellyrac.do/sobre-nosotros/',
+  'https://nellyrac.do/blog/',
 ];
-const CONCURRENCY = 3;
-const TIMEOUT_MS  = 25000;
+
+const TIMEOUT_MS = 20000;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Cache-Control', 's-maxage=3600');
+
+  const apiKey = process.env.PAGESPEED_API_KEY;
+  if (!apiKey) {
+    return res.status(500).json({
+      ok: false,
+      error: 'PAGESPEED_API_KEY no configurada en Vercel → Settings → Environment Variables',
+    });
+  }
 
   const strategy = req.query.strategy === 'desktop' ? 'desktop' : 'mobile';
 
-  try {
-    const urls = await getAllUrls();
-    if (!urls.length) return res.status(200).json({ ok: false, error: 'No URLs found in sitemaps' });
+  // All pages in parallel — fast with API key (~3-5s total)
+  const results = await Promise.all(KEY_PAGES.map(url => checkPage(url, strategy, apiKey)));
 
-    const results = await checkBatch(urls, strategy, CONCURRENCY);
+  results.sort((a, b) => (a.score ?? 999) - (b.score ?? 999));
 
-    const summary = {
-      total:   results.length,
-      good:    results.filter(r => r.score >= 90).length,
-      needsWork: results.filter(r => r.score >= 50 && r.score < 90).length,
-      poor:    results.filter(r => r.score < 50 && r.score !== null).length,
-      failed:  results.filter(r => r.score === null).length,
-      avgScore: results.filter(r => r.score !== null).length
-        ? Math.round(results.filter(r => r.score !== null).reduce((s, r) => s + r.score, 0) / results.filter(r => r.score !== null).length)
-        : null,
-    };
+  const scored = results.filter(r => r.score !== null);
+  const summary = {
+    total:     results.length,
+    good:      scored.filter(r => r.score >= 90).length,
+    needsWork: scored.filter(r => r.score >= 50 && r.score < 90).length,
+    poor:      scored.filter(r => r.score < 50).length,
+    failed:    results.filter(r => r.score === null).length,
+    avgScore:  scored.length
+      ? Math.round(scored.reduce((s, r) => s + r.score, 0) / scored.length)
+      : null,
+  };
 
-    results.sort((a, b) => (a.score ?? 999) - (b.score ?? 999));
-
-    return res.status(200).json({ ok: true, strategy, summary, results, checkedAt: new Date().toISOString() });
-
-  } catch (err) {
-    return res.status(500).json({ ok: false, error: err.message });
-  }
+  res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=300');
+  return res.status(200).json({
+    ok: true, strategy, summary, results,
+    checkedAt: new Date().toISOString(),
+  });
 };
 
-async function getAllUrls() {
-  const all = [];
-  for (const sitemapUrl of SITEMAPS) {
-    try {
-      const r = await fetchWithTimeout(sitemapUrl, 8000);
-      if (!r.ok) continue;
-      const xml = await r.text();
-      const matches = [...xml.matchAll(/<loc>\s*(https?:\/\/[^<]+?)\s*<\/loc>/g)];
-      matches.forEach(m => { const u = m[1].trim(); if (!all.includes(u)) all.push(u); });
-    } catch {}
-  }
-  return all;
-}
-
-async function checkBatch(urls, strategy, concurrency) {
-  const results = [];
-  for (let i = 0; i < urls.length; i += concurrency) {
-    const batch = urls.slice(i, i + concurrency);
-    const checked = await Promise.all(batch.map(u => checkPage(u, strategy)));
-    results.push(...checked);
-  }
-  return results;
-}
-
-async function checkPage(url, strategy) {
-  const key = process.env.PAGESPEED_API_KEY ? `&key=${process.env.PAGESPEED_API_KEY}` : '';
-  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance${key}`;
+async function checkPage(url, strategy, apiKey) {
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&key=${apiKey}`;
   try {
-    const r = await fetchWithTimeout(apiUrl, TIMEOUT_MS);
-    if (!r.ok) return { url, score: null, error: `HTTP ${r.status}`, cwv: null };
-    const data = await r.json();
+    const ctrl = new AbortController();
+    const t    = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    const r    = await fetch(apiUrl, { signal: ctrl.signal }).finally(() => clearTimeout(t));
 
-    const cats  = data.lighthouseResult?.categories || {};
-    const audits = data.lighthouseResult?.audits || {};
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      return { url, score: null, error: body?.error?.message || `HTTP ${r.status}`, cwv: null, opportunities: [] };
+    }
 
-    const score = cats.performance?.score != null ? Math.round(cats.performance.score * 100) : null;
+    const data   = await r.json();
+    const cats   = data.lighthouseResult?.categories || {};
+    const audits = data.lighthouseResult?.audits     || {};
+    const score  = cats.performance?.score != null ? Math.round(cats.performance.score * 100) : null;
 
     const cwv = {
-      fcp:  getMetric(audits, 'first-contentful-paint'),
-      lcp:  getMetric(audits, 'largest-contentful-paint'),
-      tbt:  getMetric(audits, 'total-blocking-time'),
-      cls:  getMetric(audits, 'cumulative-layout-shift'),
-      ttfb: getMetric(audits, 'server-response-time'),
-      si:   getMetric(audits, 'speed-index'),
+      fcp:  metric(audits, 'first-contentful-paint'),
+      lcp:  metric(audits, 'largest-contentful-paint'),
+      tbt:  metric(audits, 'total-blocking-time'),
+      cls:  metric(audits, 'cumulative-layout-shift'),
+      ttfb: metric(audits, 'server-response-time'),
+      si:   metric(audits, 'speed-index'),
     };
 
     const opportunities = Object.values(audits)
@@ -99,22 +88,20 @@ async function checkPage(url, strategy) {
     return { url, score, cwv, opportunities, error: null };
 
   } catch (err) {
-    return { url, score: null, error: 'Timeout o error de red', cwv: null, opportunities: [] };
+    return {
+      url, score: null,
+      error: err.name === 'AbortError' ? 'Timeout' : err.message,
+      cwv: null, opportunities: [],
+    };
   }
 }
 
-function getMetric(audits, key) {
+function metric(audits, key) {
   const a = audits[key];
   if (!a) return null;
   return {
-    value:       a.numericValue != null ? +a.numericValue.toFixed(2) : null,
+    value:        a.numericValue != null ? +a.numericValue.toFixed(2) : null,
     displayValue: a.displayValue || null,
-    score:       a.score != null ? Math.round(a.score * 100) : null,
+    score:        a.score != null ? Math.round(a.score * 100) : null,
   };
-}
-
-function fetchWithTimeout(url, ms) {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), ms);
-  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(t));
 }
