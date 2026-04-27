@@ -42,31 +42,72 @@ module.exports = async function handler(req, res) {
   // on mybusinessaccountmanagement.googleapis.com during setup.
   // Set GMB_ACCOUNT_NAME=accounts/XXXXXXXXX in Vercel to enable GMB data.
   // GMB_ACCOUNT_NAME = accounts/14783610060775958761 (fallback hardcoded)
-  const gmbPromise = fetchGMB(auth);
+  const mapsKey = process.env.GOOGLE_MAPS_API_KEY || null;
 
-  const [gsc, gmb, ga4, serpGmbResult] = await Promise.allSettled([
+  const [gsc, gmb, ga4, serpGmbResult, placesResult] = await Promise.allSettled([
     fetchGSC(auth, gscProperty),
-    gmbPromise,
+    fetchGMB(auth),
     ga4Property ? fetchGA4(auth, ga4Property) : Promise.resolve(null),
-    serpKey     ? fetchSerpGMBData(serpKey)    : Promise.resolve(null),
+    serpKey ? fetchSerpGMBData(serpKey)    : Promise.resolve(null),
+    mapsKey ? fetchPlacesData(mapsKey)     : Promise.resolve(null),
   ]);
 
-  const gscData     = gsc.status  === 'fulfilled' ? gsc.value  : { error: gsc.reason?.message };
-  let   gmbData     = gmb.status  === 'fulfilled' ? gmb.value  : { ...EMPTY_GMB, error: gmb.reason?.message };
-  const ga4Data     = ga4.status  === 'fulfilled' ? ga4.value  : { error: ga4.reason?.message };
-  const serpGmbData = serpGmbResult.status === 'fulfilled' ? serpGmbResult.value : null;
+  const gscData      = gsc.status    === 'fulfilled' ? gsc.value    : { error: gsc.reason?.message };
+  let   gmbData      = gmb.status    === 'fulfilled' ? gmb.value    : { ...EMPTY_GMB, error: gmb.reason?.message };
+  const ga4Data      = ga4.status    === 'fulfilled' ? ga4.value    : { error: ga4.reason?.message };
+  const serpGmbData  = serpGmbResult.status === 'fulfilled' ? serpGmbResult.value : null;
+  const placesData   = placesResult.status  === 'fulfilled' ? placesResult.value  : null;
 
-  // If native GMB API has no locations yet, use SerpAPI data for KPIs
-  if (serpGmbData && !(gmbData.locations?.length)) {
+  // Check if GBP API returned real data (locations with actual ratings)
+  const gmbHasRealData = gmbData.locations?.some(l => l.configured && l.rating !== null);
+
+  // Priority 1: Native GBP API (if it has real data)
+  // Priority 2: Google Places API (public, no approval needed — gives ratings by Place ID)
+  // Priority 3: SerpAPI
+  if (!gmbHasRealData && placesData?.locations?.length) {
+    const mergedLocs = (gmbData.locations || []).map(loc => {
+      const pd = placesData.locations.find(p => p.placeId === loc.placeId);
+      if (!pd) return loc;
+      return {
+        ...loc,
+        configured:  true,
+        rating:      pd.rating,
+        reviewCount: pd.reviewCount,
+        address:     pd.address,
+        phone:       pd.phone,
+        isOpen:      pd.isOpen,
+      };
+    });
+    const ratings = mergedLocs.filter(l => l.rating !== null).map(l => l.rating);
+    const avgRating = ratings.length
+      ? +(ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+      : null;
+    const totalReviews = mergedLocs.reduce((a, l) => a + (l.reviewCount || 0), 0);
+    const bestLoc = mergedLocs.reduce((best, l) =>
+      (l.rating || 0) > (best?.rating || 0) ? l : best, null);
+
     gmbData = {
       ...gmbData,
-      configured:     true,
-      rating:         serpGmbData.avgRating,
-      reviewCount:    serpGmbData.totalReviews,
-      bestLocation:   serpGmbData.bestLocation,
-      locations:      serpGmbData.locations,
-      serpApiFallback: true,    // tells the frontend to show "API pending" in reviews
-      reviewsApiError: null,    // clear native GMB error since SerpAPI is working
+      configured:      true,
+      rating:          avgRating,
+      reviewCount:     totalReviews,
+      bestLocation:    bestLoc ? { name: bestLoc.name, rating: bestLoc.rating } : null,
+      locations:       mergedLocs,
+      placesApiFallback: true,   // using Google Places API (public data)
+      serpApiFallback:   false,
+      reviewsApiError:   null,
+    };
+  } else if (!gmbHasRealData && serpGmbData?.locations?.length) {
+    // SerpAPI fallback (last resort)
+    gmbData = {
+      ...gmbData,
+      configured:      true,
+      rating:          serpGmbData.avgRating,
+      reviewCount:     serpGmbData.totalReviews,
+      bestLocation:    serpGmbData.bestLocation,
+      locations:       serpGmbData.locations,
+      serpApiFallback: true,
+      reviewsApiError: null,
     };
   }
 
@@ -715,4 +756,45 @@ async function fetchSerpGMBData(apiKey) {
     bestLocation: bestLoc ? { name: bestLoc.shortName, rating: bestLoc.rating } : null,
     locations,
   };
+}
+
+// ── Google Places API fallback ────────────────────────────────────────────────
+// Uses public Place Details API to get rating + review count for each branch.
+// No OAuth or Business Profile API approval needed — works immediately with
+// any Maps API key that has the "Places API" enabled.
+// Enable at: console.cloud.google.com → APIs → Places API (New) → Enable
+// Then create a server API key (no restrictions) and add as GOOGLE_MAPS_API_KEY in Vercel.
+async function fetchPlacesData(apiKey) {
+  const results = await Promise.all(
+    NELLY_LOCATIONS.map(loc => fetchOnePlace(loc, apiKey))
+  );
+  return { locations: results };
+}
+
+async function fetchOnePlace(loc, apiKey) {
+  try {
+    const url = `https://maps.googleapis.com/maps/api/place/details/json` +
+      `?place_id=${encodeURIComponent(loc.placeId)}` +
+      `&fields=name,rating,user_ratings_total,formatted_address,formatted_phone_number,opening_hours` +
+      `&key=${apiKey}`;
+
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) return { ...loc, rating: null, reviewCount: null };
+
+    const data = await r.json();
+    const p = data?.result;
+    if (!p) return { ...loc, rating: null, reviewCount: null };
+
+    return {
+      ...loc,
+      configured:  true,
+      rating:      p.rating       ?? null,
+      reviewCount: p.user_ratings_total ?? null,
+      address:     p.formatted_address  ?? null,
+      phone:       p.formatted_phone_number ?? null,
+      isOpen:      p.opening_hours?.open_now ?? null,
+    };
+  } catch (_) {
+    return { ...loc, rating: null, reviewCount: null };
+  }
 }
