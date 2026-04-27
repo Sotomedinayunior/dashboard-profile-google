@@ -1241,7 +1241,23 @@ html,body{overflow-x:hidden;width:100%}
   <button class="rf-tab" onclick="filterByStars(1,this)" style="color:var(--red)">1 <span class="rf-count" id="sfc-1"></span></button>
   </div>
   <div id="gmb-reviews-list" style="max-height:520px;overflow-y:auto;padding-right:4px">
-  <div class="empty-state">Cargando reseñas…</div>
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px;text-align:center">
+    <div style="width:56px;height:56px;border-radius:50%;background:rgba(232,97,10,0.1);display:flex;align-items:center;justify-content:center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F26722" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Estamos configurando esta sección</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;max-width:320px">
+        Las reseñas de Google My Business estarán disponibles en breve.<br>
+        Estamos finalizando la integración con la API de Google Business Profile.
+      </div>
+    </div>
+    <a href="https://business.google.com/reviews" target="_blank"
+      style="margin-top:4px;font-size:12px;font-weight:600;color:#F26722;text-decoration:none;border:1px solid rgba(242,103,34,0.4);padding:7px 16px;border-radius:20px"
+      onmouseover="this.style.background='rgba(242,103,34,0.08)'" onmouseout="this.style.background='transparent'">
+      Ver reseñas en Google Business
+    </a>
+  </div>
   </div>
   <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center" id="reviews-load-more-wrap" style="display:none">
   <button id="reviews-load-more" onclick="loadFullLocation()" style="background:none;border:1px solid var(--border2);padding:6px 16px;border-radius:20px;font-size:11px;cursor:pointer;color:var(--text2);font-family:var(--ff)">
@@ -4149,12 +4165,24 @@ function renderGMB(G) {
   if (!reviews.length) {
   const list = document.getElementById('gmb-reviews-list');
   if (list) {
-  const errMsg = G.reviewsApiError
-  ? `<div style="padding:14px;background:#2a1515;border:1px solid #5c1a1a;border-radius:8px;font-size:12px;color:#f87171;line-height:1.6">
-  <strong>Error al cargar reseñas:</strong> ${G.reviewsApiError}<br>
-  <span style="color:#888;font-size:11px;margin-top:4px;display:block">Verifica que el scope <code>business.manage</code> esté autorizado y reconecta tu cuenta con el botón "Cambiar sitio / reconectar".</span>
-  </div>`
-  : `<div class="empty-state">${G.configured ? 'No se encontraron reseñas en esta cuenta.' : 'Conecta Google My Business para ver reseñas reales.'}</div>`;
+  const errMsg = `
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px;text-align:center">
+    <div style="width:56px;height:56px;border-radius:50%;background:rgba(232,97,10,0.1);display:flex;align-items:center;justify-content:center">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#F26722" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">Estamos configurando esta sección</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;max-width:320px">
+        Las reseñas de Google My Business estarán disponibles en breve.<br>
+        Estamos finalizando la integración con la API de Google Business Profile.
+      </div>
+    </div>
+    <a href="https://business.google.com/reviews" target="_blank"
+      style="margin-top:4px;font-size:12px;font-weight:600;color:#F26722;text-decoration:none;border:1px solid rgba(242,103,34,0.4);padding:7px 16px;border-radius:20px;transition:background 0.15s"
+      onmouseover="this.style.background='rgba(242,103,34,0.08)'" onmouseout="this.style.background='transparent'">
+      Ver reseñas en Google Business
+    </a>
+  </div>`;
   list.innerHTML = errMsg;
   }
   return;
