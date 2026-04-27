@@ -64,7 +64,7 @@ module.exports = async function handler(req, res) {
 
   // ── Método 1: v1 accounts ─────────────────────────────────────────────────
   const v1 = await safe('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
-  result.methods_tried.push({ method: 'v1 accounts API', status: v1.status, ok: v1.ok });
+  result.methods_tried.push({ method: 'v1 accounts API', status: v1.status, ok: v1.ok, rawResponse: v1.data });
   if (v1.ok && v1.data?.accounts?.length) {
     const acc = v1.data.accounts[0];
     result.account_found = acc.name;
@@ -77,19 +77,38 @@ module.exports = async function handler(req, res) {
       'https://mybusinessbusinessinformation.googleapis.com/v1/googleLocations:search',
       { method: 'POST', body: JSON.stringify({ query: 'Nelly Rent A Car' }) }
     );
-    result.methods_tried.push({ method: 'googleLocations:search', status: searchRes.status, ok: searchRes.ok });
+    // Log raw response so we can debug the exact structure
+    result.methods_tried.push({
+      method: 'googleLocations:search',
+      status: searchRes.status,
+      ok: searchRes.ok,
+      rawResponse: searchRes.data,           // ← full raw response
+    });
 
-    if (searchRes.ok && searchRes.data?.googleLocations?.length) {
-      // El resource name de la ubicación tiene formato: accounts/{id}/locations/{id}
-      for (const gl of searchRes.data.googleLocations) {
-        const locName = gl.location?.name || gl.name || '';
-        const match = locName.match(/^(accounts\/\d+)\//);
-        if (match) {
-          result.account_found = match[1];
-          result.methods_tried[result.methods_tried.length - 1].account = match[1];
-          result.methods_tried[result.methods_tried.length - 1].rawLocation = locName;
-          break;
+    if (searchRes.ok && searchRes.data) {
+      const d = searchRes.data;
+      // Try multiple possible structures Google may return
+      const locations = d.googleLocations || d.locations || [];
+      for (const gl of locations) {
+        // Structure A: gl.location.name = "accounts/123/locations/456"
+        // Structure B: gl.name = "googleLocations/ChIJ..."
+        // Structure C: gl.requestAdminRightsUrl contains account info
+        const candidates = [
+          gl.location?.name,
+          gl.name,
+          gl.requestAdminRightsUrl,
+        ].filter(Boolean);
+
+        for (const candidate of candidates) {
+          const match = candidate.match(/accounts\/(\d+)/);
+          if (match) {
+            result.account_found = `accounts/${match[1]}`;
+            result.methods_tried[result.methods_tried.length - 1].account = result.account_found;
+            result.methods_tried[result.methods_tried.length - 1].extractedFrom = candidate;
+            break;
+          }
         }
+        if (result.account_found) break;
       }
     }
   }
@@ -101,19 +120,66 @@ module.exports = async function handler(req, res) {
         `https://mybusinessbusinessinformation.googleapis.com/v1/googleLocations:search`,
         { method: 'POST', body: JSON.stringify({ placeId }) }
       );
-      result.methods_tried.push({ method: `placeId search: ${placeId}`, status: placeRes.status, ok: placeRes.ok });
-      if (placeRes.ok && placeRes.data?.googleLocations?.length) {
-        const locName = placeRes.data.googleLocations[0]?.location?.name || '';
-        const match = locName.match(/^(accounts\/\d+)\//);
-        if (match) {
-          result.account_found = match[1];
-          break;
+      result.methods_tried.push({
+        method: `placeId search: ${placeId}`,
+        status: placeRes.status,
+        ok: placeRes.ok,
+        rawResponse: placeRes.data,          // ← full raw response
+      });
+      if (placeRes.ok && placeRes.data) {
+        const d = placeRes.data;
+        const locations = d.googleLocations || d.locations || [];
+        for (const gl of locations) {
+          const candidates = [
+            gl.location?.name,
+            gl.name,
+            gl.requestAdminRightsUrl,
+          ].filter(Boolean);
+          for (const candidate of candidates) {
+            const match = candidate.match(/accounts\/(\d+)/);
+            if (match) {
+              result.account_found = `accounts/${match[1]}`;
+              result.methods_tried[result.methods_tried.length - 1].account = result.account_found;
+              result.methods_tried[result.methods_tried.length - 1].extractedFrom = candidate;
+              break;
+            }
+          }
+          if (result.account_found) break;
         }
       }
     }
   }
 
-  // ── Método 4: Si ya tenemos account, listar ubicaciones ──────────────────
+  // ── Método 4b: businessprofileperformance accounts (alternativo) ─────────
+  if (!result.account_found) {
+    // Intenta la nueva API de Business Profile Performance que a veces lista cuentas
+    const bppRes = await safe('https://businessprofileperformance.googleapis.com/v1/accounts');
+    result.methods_tried.push({
+      method: 'businessprofileperformance accounts',
+      status: bppRes.status,
+      ok: bppRes.ok,
+      rawResponse: bppRes.data,
+    });
+    if (bppRes.ok && bppRes.data?.accounts?.length) {
+      result.account_found = bppRes.data.accounts[0].name;
+    }
+  }
+
+  // ── Método 4c: mybusinessaccountmanagement con parámetros adicionales ────
+  if (!result.account_found) {
+    const v1b = await safe('https://mybusinessaccountmanagement.googleapis.com/v1/accounts?pageSize=20&filter=type=PERSONAL');
+    result.methods_tried.push({
+      method: 'v1 accounts (type=PERSONAL filter)',
+      status: v1b.status,
+      ok: v1b.ok,
+      rawResponse: v1b.data,
+    });
+    if (v1b.ok && v1b.data?.accounts?.length) {
+      result.account_found = v1b.data.accounts[0].name;
+    }
+  }
+
+  // ── Método 5: Si ya tenemos account, listar ubicaciones ──────────────────
   if (result.account_found) {
     const locRes = await safe(
       `https://mybusinessbusinessinformation.googleapis.com/v1/${result.account_found}/locations?readMask=name,title,metadata`
