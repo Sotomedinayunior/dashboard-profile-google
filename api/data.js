@@ -24,8 +24,6 @@ module.exports = async function handler(req, res) {
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const gscProperty  = process.env.GSC_PROPERTY;
   const ga4Property  = process.env.GA4_PROPERTY_ID || null;
-  const gmbLocation  = process.env.GMB_LOCATION_NAME || null;
-
   if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET no configurados en Vercel' });
   }
@@ -41,7 +39,7 @@ module.exports = async function handler(req, res) {
 
   const [gsc, gmb, ga4] = await Promise.allSettled([
     fetchGSC(auth, gscProperty),
-    gmbLocation ? fetchGMB(auth, gmbLocation) : Promise.resolve(EMPTY_GMB),
+    fetchGMB(auth),
     ga4Property ? fetchGA4(auth, ga4Property) : Promise.resolve(null),
   ]);
 
@@ -296,89 +294,87 @@ async function fetchGA4(auth, propertyId) {
 }
 
 // ── GMB ───────────────────────────────────────────────────────────────────────
+
+// Las 5 sucursales de Nelly RAC con sus Place IDs de Google Maps
+const NELLY_LOCATIONS = [
+  { id: 'independencia', name: 'Independencia',       shortName: 'Independencia', placeId: 'ChIJPRzgUXlipY4RTFpdm7Gtz2M' },
+  { id: 'cibao',         name: 'Aeropuerto Cibao',    shortName: 'Cibao STI',     placeId: 'ChIJBUNVazXRsY4R76jNG9B5mUQ' },
+  { id: 'puertoplata',   name: 'Gregorio Luperón',    shortName: 'Pto. Plata',    placeId: 'ChIJNSahrlDksY4RdDGaHelddiY' },
+  { id: 'puntacana',     name: 'Punta Cana',          shortName: 'Punta Cana',    placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
+  { id: 'bocachica',     name: 'Boca Chica',          shortName: 'Boca Chica',    placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
+];
+
 const EMPTY_GMB = {
   configured: false, rating: null, reviewCount: null, reviews: [],
+  locations: [],
   performance: { views: { maps: null, search: null, total: null },
                  actions: { calls: null, websiteClicks: null, directions: null, total: null }, daily: [] },
 };
 
-async function fetchGMB(auth, locationName) {
-  console.log('[GMB] locationName:', locationName);
-  const { token } = await auth.getAccessToken();
-  const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-  // locationName format: "accounts/{accountId}/locations/{locationId}"
-  const parts = locationName.split('/');
-  const locationId = parts[3] || parts[1];
-  console.log('[GMB] locationId:', locationId);
-
-  // locationName = "accounts/{accountId}/locations/{locationId}"
-  // New Reviews API needs just "locations/{locationId}"
-  const locSegment = locationName.includes('/locations/')
-    ? 'locations/' + locationName.split('/locations/')[1]
-    : locationName;
-
-  // Try all known API patterns in order
-  const fetchReviews = async () => {
-    const attempts = [
-      // New API (2022+) - with just locations/{id}
-      `https://mybusinessreviews.googleapis.com/v1/${locSegment}/reviews?pageSize=50`,
-      // New API - with full accounts/.../locations/... path
-      `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews?pageSize=50`,
-      // Old v4 API (deprecated but may still work)
-      `https://mybusiness.googleapis.com/v4/${locationName}/reviews?pageSize=50`,
-    ];
-    for (const url of attempts) {
-      try {
-        const r = await fetch(url, { headers: hdrs });
-        if (r.ok) {
-          const data = await r.json();
-          console.log('[GMB Reviews] OK:', url.split('googleapis.com')[1]);
-          return data;
-        }
-        const errBody = await r.text().catch(() => '');
-        console.log('[GMB Reviews] failed', r.status, url.split('googleapis.com')[1], errBody.slice(0, 120));
-      } catch (e) {
-        console.log('[GMB Reviews] exception:', url.split('googleapis.com')[1], e.message);
-      }
-    }
-    return null;
+// Fecha helper para GMB performance
+function gmbDateRange(daysBack) {
+  const end = new Date(), start = new Date();
+  start.setDate(start.getDate() - daysBack);
+  return {
+    startDate: { year: start.getFullYear(), month: start.getMonth()+1, day: start.getDate() },
+    endDate:   { year: end.getFullYear(),   month: end.getMonth()+1,   day: end.getDate() },
   };
+}
 
-  const [reviewsRes, perfRes] = await Promise.all([
-    fetchReviews().catch(() => null),
-    (() => {
-      const end = new Date(), start = new Date();
-      start.setDate(start.getDate() - 90);
-      return fetch(
-        `https://businessprofileperformance.googleapis.com/v1/locations/${locationId}:fetchMultiDailyMetricsTimeSeries`,
-        {
-          method: 'POST', headers: hdrs,
-          body: JSON.stringify({
-            dailyMetrics: ['BUSINESS_IMPRESSIONS_DESKTOP_MAPS','BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
-                           'BUSINESS_IMPRESSIONS_MOBILE_MAPS','BUSINESS_IMPRESSIONS_MOBILE_SEARCH',
-                           'CALL_CLICKS','WEBSITE_CLICKS','BUSINESS_DIRECTION_REQUESTS'],
-            dailyRange: {
-              startDate: { year: start.getFullYear(), month: start.getMonth()+1, day: start.getDate() },
-              endDate:   { year: end.getFullYear(),   month: end.getMonth()+1,   day: end.getDate() },
-            },
-          }),
-        }
-      ).then(r => r.ok ? r.json() : null).catch(() => null);
-    })(),
-  ]);
+// Fetch reviews for one location trying multiple URL patterns
+async function fetchLocationReviews(hdrs, locationResourceName) {
+  const locationId = locationResourceName.split('/').pop();
+  const attempts = [
+    `https://mybusinessreviews.googleapis.com/v1/locations/${locationId}/reviews?pageSize=50`,
+    `https://mybusinessreviews.googleapis.com/v1/${locationResourceName}/reviews?pageSize=50`,
+    `https://mybusiness.googleapis.com/v4/${locationResourceName}/reviews?pageSize=50`,
+  ];
+  for (const url of attempts) {
+    try {
+      const r = await fetch(url, { headers: hdrs });
+      if (r.ok) {
+        console.log('[GMB Reviews] OK:', url.split('googleapis.com')[1]);
+        return r.json();
+      }
+      const txt = await r.text().catch(() => '');
+      console.log('[GMB Reviews] failed', r.status, url.split('googleapis.com')[1], txt.slice(0,120));
+    } catch (e) {
+      console.log('[GMB Reviews] exception:', e.message);
+    }
+  }
+  return null;
+}
 
+// Fetch performance metrics for one location
+async function fetchLocationPerformance(hdrs, locationId) {
+  const range = gmbDateRange(90);
+  try {
+    const r = await fetch(
+      `https://businessprofileperformance.googleapis.com/v1/locations/${locationId}:fetchMultiDailyMetricsTimeSeries`,
+      {
+        method: 'POST', headers: hdrs,
+        body: JSON.stringify({
+          dailyMetrics: [
+            'BUSINESS_IMPRESSIONS_DESKTOP_MAPS','BUSINESS_IMPRESSIONS_DESKTOP_SEARCH',
+            'BUSINESS_IMPRESSIONS_MOBILE_MAPS','BUSINESS_IMPRESSIONS_MOBILE_SEARCH',
+            'CALL_CLICKS','WEBSITE_CLICKS','BUSINESS_DIRECTION_REQUESTS',
+          ],
+          dailyRange: range,
+        }),
+      }
+    );
+    return r.ok ? r.json() : null;
+  } catch (e) { return null; }
+}
+
+// Parse performance response into views/actions/daily
+function parsePerformance(perfRes) {
   const STARS = { ONE:1, TWO:2, THREE:3, FOUR:4, FIVE:5 };
-  const reviews = (reviewsRes?.reviews || []).map(r => ({
-    id: r.reviewId, reviewer: r.reviewer?.displayName || 'Anónimo',
-    stars: STARS[r.starRating] || 0, comment: r.comment || '',
-    date: r.createTime?.split('T')[0] || '', replied: !!r.reviewReply,
-  }));
-
-  const series   = perfRes?.multiDailyMetricTimeSeries || [];
+  const series = perfRes?.multiDailyMetricTimeSeries || [];
   const metricMap = {};
   series.forEach(s => { metricMap[s.dailyMetric] = s.timeSeries?.datedValues || []; });
 
-  const sumMetric = key => (metricMap[key] || []).slice(-30).reduce((a,v) => a+(parseInt(v.value)||0), 0);
+  const sumMetric = key => (metricMap[key]||[]).slice(-30).reduce((a,v)=>a+(parseInt(v.value)||0),0);
   const mapsViews   = sumMetric('BUSINESS_IMPRESSIONS_DESKTOP_MAPS')  + sumMetric('BUSINESS_IMPRESSIONS_MOBILE_MAPS');
   const searchViews = sumMetric('BUSINESS_IMPRESSIONS_DESKTOP_SEARCH') + sumMetric('BUSINESS_IMPRESSIONS_MOBILE_SEARCH');
   const calls = sumMetric('CALL_CLICKS'), webClicks = sumMetric('WEBSITE_CLICKS'), dirs = sumMetric('BUSINESS_DIRECTION_REQUESTS');
@@ -390,25 +386,180 @@ async function fetchGMB(auth, locationName) {
     dailyIdx[d][field] = (dailyIdx[d][field]||0) + (parseInt(v.value)||0);
   });
   ['BUSINESS_IMPRESSIONS_DESKTOP_MAPS','BUSINESS_IMPRESSIONS_MOBILE_MAPS',
-   'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH','BUSINESS_IMPRESSIONS_MOBILE_SEARCH'].forEach(k => addMetric(k,'views'));
-  ['CALL_CLICKS','WEBSITE_CLICKS','BUSINESS_DIRECTION_REQUESTS'].forEach(k => addMetric(k,'actions'));
-
-  // averageRating can be a string ("4.5") or number depending on API version
-  const avgRating = reviewsRes?.averageRating != null ? parseFloat(reviewsRes.averageRating) : null;
-  const totalCount = reviewsRes?.totalReviewCount != null ? parseInt(reviewsRes.totalReviewCount) : (reviews.length || null);
+   'BUSINESS_IMPRESSIONS_DESKTOP_SEARCH','BUSINESS_IMPRESSIONS_MOBILE_SEARCH'].forEach(k=>addMetric(k,'views'));
+  ['CALL_CLICKS','WEBSITE_CLICKS','BUSINESS_DIRECTION_REQUESTS'].forEach(k=>addMetric(k,'actions'));
 
   return {
-    configured: true,
-    rating:      isNaN(avgRating) ? null : avgRating,
+    views:   { maps: mapsViews, search: searchViews, total: mapsViews+searchViews },
+    actions: { calls, websiteClicks: webClicks, directions: dirs, total: calls+webClicks+dirs },
+    daily:   Object.values(dailyIdx).sort((a,b)=>a.date.localeCompare(b.date)),
+  };
+}
+
+// Fetch one location's full data (reviews + performance)
+async function fetchOneLocation(hdrs, locationResourceName, nellyLoc) {
+  const locationId = locationResourceName.split('/').pop();
+  const STARS = { ONE:1, TWO:2, THREE:3, FOUR:4, FIVE:5 };
+
+  const [reviewsRes, perfRes] = await Promise.all([
+    fetchLocationReviews(hdrs, locationResourceName),
+    fetchLocationPerformance(hdrs, locationId),
+  ]);
+
+  const reviews = (reviewsRes?.reviews || []).map(r => ({
+    id: r.reviewId,
+    reviewer: r.reviewer?.displayName || 'Anónimo',
+    stars: STARS[r.starRating] || 0,
+    comment: r.comment || '',
+    date: r.createTime?.split('T')[0] || '',
+    replied: !!r.reviewReply,
+    _locId: nellyLoc.id,
+    locationName: nellyLoc.shortName,
+  }));
+
+  const avgRating  = reviewsRes?.averageRating  != null ? parseFloat(reviewsRes.averageRating)  : null;
+  const totalCount = reviewsRes?.totalReviewCount != null ? parseInt(reviewsRes.totalReviewCount) : (reviews.length || null);
+  const perf = parsePerformance(perfRes);
+
+  return {
+    id:          nellyLoc.id,
+    name:        nellyLoc.name,
+    shortName:   nellyLoc.shortName,
+    placeId:     nellyLoc.placeId,
+    resourceName: locationResourceName,
+    configured:  true,
+    rating:      isNaN(avgRating)  ? null : avgRating,
     reviewCount: isNaN(totalCount) ? null : totalCount,
     reviews,
     reviewsApiError: reviewsRes === null
-      ? `API de reseñas norespondió. Location: ${locSegment}. Verifica en Vercel logs.`
+      ? `Reseñas no disponibles para ${nellyLoc.name}.`
       : null,
+    performance: perf,
+  };
+}
+
+// Main GMB fetcher — auto-discovers all locations, matches with NELLY_LOCATIONS
+async function fetchGMB(auth) {
+  const { token } = await auth.getAccessToken();
+  const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+  // Step 1: List all Google Business accounts
+  const accountsRes = await fetch(
+    'https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
+    { headers: hdrs }
+  ).then(r => r.ok ? r.json() : null).catch(() => null);
+
+  const accounts = accountsRes?.accounts || [];
+  console.log('[GMB] accounts found:', accounts.length);
+
+  if (!accounts.length) {
+    return {
+      ...EMPTY_GMB, configured: true,
+      reviewsApiError: 'No se encontraron cuentas de Google Business. Verifica permisos del token.',
+    };
+  }
+
+  // Step 2: List all locations for each account
+  let allApiLocations = [];
+  for (const account of accounts) {
+    const locRes = await fetch(
+      `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title,metadata`,
+      { headers: hdrs }
+    ).then(r => r.ok ? r.json() : null).catch(() => null);
+
+    const locs = locRes?.locations || [];
+    console.log('[GMB] locations in', account.name, ':', locs.length);
+    allApiLocations.push(...locs);
+  }
+
+  // Step 3: Match discovered locations with NELLY_LOCATIONS by placeId
+  const knownPlaceIds = new Set(NELLY_LOCATIONS.map(l => l.placeId));
+  const matchedPairs = [];
+
+  for (const nellyLoc of NELLY_LOCATIONS) {
+    const apiLoc = allApiLocations.find(l => l.metadata?.placeId === nellyLoc.placeId);
+    if (apiLoc) {
+      matchedPairs.push({ apiLoc, nellyLoc });
+    } else {
+      console.log('[GMB] no match for:', nellyLoc.name, '(placeId:', nellyLoc.placeId, ')');
+    }
+  }
+
+  // If no matches (API not yet approved), return configured but empty
+  if (!matchedPairs.length) {
+    // Try with all discovered locations as fallback (first 5)
+    const fallback = allApiLocations.slice(0, 5);
+    if (!fallback.length) {
+      return {
+        ...EMPTY_GMB, configured: true,
+        reviewsApiError: 'Google Business API conectada pero sin ubicaciones accesibles. La aprobación puede estar pendiente.',
+      };
+    }
+    // Use fallback locations with generic names
+    matchedPairs.push(...fallback.map((apiLoc, i) => ({
+      apiLoc,
+      nellyLoc: NELLY_LOCATIONS[i] || { id: `loc${i}`, name: apiLoc.title || `Sucursal ${i+1}`, shortName: `Sucursal ${i+1}`, placeId: '' },
+    })));
+  }
+
+  console.log('[GMB] processing', matchedPairs.length, 'locations');
+
+  // Step 4: Fetch reviews + performance for each matched location in parallel
+  const locationData = await Promise.all(
+    matchedPairs.map(({ apiLoc, nellyLoc }) =>
+      fetchOneLocation(hdrs, apiLoc.name, nellyLoc)
+    )
+  );
+
+  // Step 5: Aggregate totals across all locations
+  const allReviews   = locationData.flatMap(l => l.reviews);
+  const ratedLocs    = locationData.filter(l => l.rating !== null);
+  const avgRating    = ratedLocs.length
+    ? +(ratedLocs.reduce((s,l) => s + l.rating, 0) / ratedLocs.length).toFixed(1)
+    : null;
+  const totalReviews = locationData.reduce((s,l) => s + (l.reviewCount || 0), 0);
+  const bestLoc      = ratedLocs.length
+    ? ratedLocs.reduce((best,l) => l.rating > best.rating ? l : best)
+    : null;
+
+  const aggPerf = locationData.reduce((agg, l) => ({
+    views: {
+      maps:   (agg.views.maps   || 0) + (l.performance.views.maps   || 0),
+      search: (agg.views.search || 0) + (l.performance.views.search || 0),
+      total:  (agg.views.total  || 0) + (l.performance.views.total  || 0),
+    },
+    actions: {
+      calls:         (agg.actions.calls         || 0) + (l.performance.actions.calls         || 0),
+      websiteClicks: (agg.actions.websiteClicks || 0) + (l.performance.actions.websiteClicks || 0),
+      directions:    (agg.actions.directions    || 0) + (l.performance.actions.directions    || 0),
+      total:         (agg.actions.total         || 0) + (l.performance.actions.total         || 0),
+    },
+  }), { views: {}, actions: {} });
+
+  // Merge daily timeseries across all locations
+  const dailyMerged = {};
+  locationData.forEach(l => {
+    (l.performance.daily || []).forEach(d => {
+      if (!dailyMerged[d.date]) dailyMerged[d.date] = { date: d.date, views: 0, actions: 0 };
+      dailyMerged[d.date].views   += d.views   || 0;
+      dailyMerged[d.date].actions += d.actions || 0;
+    });
+  });
+
+  const anyError = locationData.filter(l => l.reviewsApiError).map(l => l.reviewsApiError).join(' | ');
+
+  return {
+    configured:  true,
+    rating:      avgRating,
+    reviewCount: totalReviews || null,
+    bestLocation: bestLoc ? { name: bestLoc.name, rating: bestLoc.rating } : null,
+    reviews:     allReviews,
+    reviewsApiError: anyError || null,
+    locations:   locationData,
     performance: {
-      views:   { maps: mapsViews, search: searchViews, total: mapsViews+searchViews },
-      actions: { calls, websiteClicks: webClicks, directions: dirs, total: calls+webClicks+dirs },
-      daily:   Object.values(dailyIdx).sort((a,b) => a.date.localeCompare(b.date)),
+      views:   aggPerf.views,
+      actions: aggPerf.actions,
+      daily:   Object.values(dailyMerged).sort((a,b) => a.date.localeCompare(b.date)),
     },
   };
 }

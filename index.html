@@ -1182,10 +1182,10 @@ html,body{overflow-x:hidden;width:100%}
   <span class="loc-tab-rating" id="lt-rating-independencia">—</span>
   <span class="loc-tab-count" id="lt-count-independencia"></span>
   </button>
-  <button class="loc-tab" data-locid="santiago" onclick="switchLocation('santiago',this)">
-  <span id="lt-name-santiago">Santiago</span>
-  <span class="loc-tab-rating" id="lt-rating-santiago">—</span>
-  <span class="loc-tab-count" id="lt-count-santiago"></span>
+  <button class="loc-tab" data-locid="cibao" onclick="switchLocation('cibao',this)">
+  <span id="lt-name-cibao">Cibao STI</span>
+  <span class="loc-tab-rating" id="lt-rating-cibao">—</span>
+  <span class="loc-tab-count" id="lt-count-cibao"></span>
   </button>
   <button class="loc-tab" data-locid="puertoplata" onclick="switchLocation('puertoplata',this)">
   <span id="lt-name-puertoplata">Pto. Plata</span>
@@ -2539,8 +2539,6 @@ let _reviewsState = {
 
 // Switch location tab 
 function switchLocation(locId, btn) {
-  // Con datos nativos GMB solo tenemos una ubicación configurada.
-  // Los tabs muestran los mismos datos — la selección es visual solamente.
   document.querySelectorAll('.loc-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   _reviewsState.currentLocId = locId;
@@ -2548,9 +2546,14 @@ function switchLocation(locId, btn) {
   document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
   document.querySelector('#star-filter-tabs .rf-tab')?.classList.add('active');
 
-  // Usar los datos nativos ya cargados
-  const reviews = _reviewsState.visibleReviews || [];
-  setVisibleReviews(reviews);
+  const G = window._dashData?.gmb;
+  const allRevs = (G?.reviews || []);
+
+  const filtered = (locId === 'all')
+    ? allRevs
+    : allRevs.filter(r => r._locId === locId);
+
+  setVisibleReviews(filtered);
   hideLoadMore();
 }
 
@@ -3994,6 +3997,30 @@ function renderGMB(G) {
   }
   if (G.reviewCount !== null) el('gmb-kpi-reviews', G.reviewCount.toLocaleString());
 
+  // Best location KPI
+  if (G.bestLocation) {
+    el('gmb-kpi-best', G.bestLocation.name || '—');
+    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'} ⭐ mejor calificada`);
+    const cityEl = document.getElementById('gmb-kpi-best-city');
+    const cityText = document.getElementById('gmb-kpi-best-city-text');
+    if (cityEl && cityText) { cityText.textContent = G.bestLocation.name; cityEl.style.display = 'flex'; }
+  }
+
+  // Active locations count
+  const locCount = (G.locations || []).length;
+  if (locCount > 0) el('gmb-kpi-locations', locCount.toString());
+
+  // Populate loc-tabs with live data
+  el('lt-rating-all', G.rating ? G.rating.toFixed(1) : '—');
+  (G.locations || []).forEach(loc => {
+    const ratingEl = document.getElementById(`lt-rating-${loc.id}`);
+    const countEl  = document.getElementById(`lt-count-${loc.id}`);
+    const nameEl   = document.getElementById(`lt-name-${loc.id}`);
+    if (ratingEl) ratingEl.textContent = loc.rating ? loc.rating.toFixed(1) : '—';
+    if (countEl)  countEl.textContent  = loc.reviewCount ? `(${loc.reviewCount})` : '';
+    if (nameEl)   nameEl.textContent   = loc.shortName || loc.name;
+  });
+
   // Views
   const P = G.performance;
   if (P.views.total !== null) {
@@ -4841,49 +4868,59 @@ function renderActionCards(actions) {
 }
 
 
-// Tarjeta de ubicación usando datos nativos GMB
+// Tarjeta de ubicación usando datos nativos GMB — renderiza las 5 sucursales
 function renderGmbLocationCard(G) {
   const container = document.getElementById('gmb-location-cards');
   if (!container || !G) return;
 
-  const rating    = G.rating     || 0;
-  const revCount  = G.reviewCount || 0;
-  const P         = G.performance || {};
-  const calls     = P.actions?.calls        || 0;
-  const webClicks = P.actions?.websiteClicks|| 0;
-  const dirs      = P.actions?.directions   || 0;
-  const views     = P.views?.total          || 0;
-  const starsHtml = rating ? '⭐'.repeat(Math.round(rating)) : '';
   const ic = (name, size=13, color='currentColor') =>
     `<svg data-lucide="${name}" style="width:${size}px;height:${size}px;color:${color};flex-shrink:0;display:inline-block;vertical-align:middle"></svg>`;
 
-  container.innerHTML = `
-    <div class="gmb-loc-card" style="grid-column:1/-1;max-width:440px">
-      <div class="glc-head">
-        <div class="glc-name" style="display:flex;align-items:center;gap:6px">
-          ${ic('map-pin',14,'var(--orange)')} Nelly Rent A Car
+  const locs = G.locations || [];
+
+  if (!locs.length) {
+    // Sin ubicaciones conectadas — mostrar mensaje de estado
+    container.innerHTML = `
+      <div style="grid-column:1/-1;background:var(--surface2);border-radius:var(--radius);padding:24px;border:1px dashed var(--border);text-align:center">
+        <div style="font-size:28px;margin-bottom:10px">🔍</div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Sin sucursales conectadas</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">
+          No se encontraron ubicaciones en la cuenta de Google Business.<br>
+          Verifica que la API esté aprobada y que el token tenga el scope <code>business.manage</code>.
         </div>
-        ${rating ? `<div class="glc-rating">${rating.toFixed(1)} ⭐ <span style="font-weight:400;opacity:0.7">(${revCount.toLocaleString()} reseñas)</span></div>` : ''}
-      </div>
-      <div class="glc-info" style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
-        <span style="display:flex;align-items:center;gap:5px">${ic('eye',11,'var(--text3)')} <strong>${views.toLocaleString()}</strong>&nbsp;vistas en Maps/Search (últimos 30 días)</span>
-        <span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} <strong>${calls.toLocaleString()}</strong>&nbsp;llamadas · ${ic('globe',11,'var(--blue)')} <strong>${webClicks.toLocaleString()}</strong>&nbsp;clics web · ${ic('navigation',11,'var(--orange)')} <strong>${dirs.toLocaleString()}</strong>&nbsp;cómo llegar</span>
-      </div>
-      <div style="font-size:13px;letter-spacing:1px;margin-top:8px">${starsHtml}</div>
-      <div class="glc-actions" style="margin-top:12px">
-        <a href="https://business.google.com" target="_blank" class="glc-btn glc-btn-primary" style="display:flex;align-items:center;gap:4px">${ic('settings',11,'#fff')} Gestionar en Google</a>
-      </div>
-    </div>
-    <div style="grid-column:2/-1;background:var(--surface2);border-radius:var(--radius);padding:20px 24px;border:1px dashed var(--border)">
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px">📍 Datos por sucursal</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.8">
-        Los datos detallados por sucursal (Independencia, Santiago, Punta Cana, Las Américas, Puerto Plata)
-        estarán disponibles una vez que la API de Google My Business sea aprobada para esta cuenta.
-        <br><br>
-        Actualmente se muestra la información del perfil principal configurado. Las reseñas individuales ya se
-        están cargando desde la API nativa de Google.
-      </div>
-    </div>`;
+      </div>`;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    return;
+  }
+
+  container.innerHTML = locs.map(loc => {
+    const rating    = loc.rating     || 0;
+    const revCount  = loc.reviewCount || 0;
+    const P         = loc.performance || {};
+    const calls     = P.actions?.calls         || 0;
+    const webClicks = P.actions?.websiteClicks  || 0;
+    const dirs      = P.actions?.directions     || 0;
+    const views     = P.views?.total            || 0;
+    const starsHtml = rating ? '⭐'.repeat(Math.round(rating)) : '';
+
+    return `
+      <div class="gmb-loc-card">
+        <div class="glc-head">
+          <div class="glc-name" style="display:flex;align-items:center;gap:6px">
+            ${ic('map-pin',13,'var(--orange)')} ${loc.name}
+          </div>
+          ${rating ? `<div class="glc-rating">${rating.toFixed(1)} ⭐ <span style="font-weight:400;opacity:0.7">(${revCount.toLocaleString()})</span></div>` : '<div class="glc-rating" style="background:var(--surface2);color:var(--text3)">Sin datos</div>'}
+        </div>
+        <div class="glc-info" style="display:flex;flex-direction:column;gap:5px;margin-top:6px">
+          <span style="display:flex;align-items:center;gap:5px">${ic('eye',11,'var(--text3)')} <strong>${views.toLocaleString()}</strong>&nbsp;vistas (30 días)</span>
+          <span style="display:flex;align-items:center;gap:5px">${ic('phone',11,'#27a663')} <strong>${calls.toLocaleString()}</strong>&nbsp;llamadas · ${ic('globe',11,'var(--blue)')} <strong>${webClicks.toLocaleString()}</strong>&nbsp;clics · ${ic('navigation',11,'var(--orange)')} <strong>${dirs.toLocaleString()}</strong>&nbsp;dirs</span>
+        </div>
+        <div style="font-size:12px;letter-spacing:1px;margin-top:6px">${starsHtml}</div>
+        <div class="glc-actions" style="margin-top:10px">
+          <a href="https://business.google.com" target="_blank" class="glc-btn glc-btn-primary" style="display:flex;align-items:center;gap:4px;font-size:11px">${ic('settings',10,'#fff')} Gestionar</a>
+        </div>
+      </div>`;
+  }).join('');
 
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
