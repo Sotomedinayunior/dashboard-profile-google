@@ -10,9 +10,8 @@ const SITEMAPS = [
   'https://nellyrac.do/page-sitemap.xml',
   'https://nellyrac.do/post-sitemap.xml',
 ];
-const CONCURRENCY = 2;   // lower = safer within Vercel timeout
-const TIMEOUT_MS  = 15000; // 15s per page
-const MAX_URLS    = 15;  // cap at 15 URLs to stay within 60s limit
+const CONCURRENCY = 3;
+const TIMEOUT_MS  = 25000;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -21,10 +20,8 @@ module.exports = async function handler(req, res) {
   const strategy = req.query.strategy === 'desktop' ? 'desktop' : 'mobile';
 
   try {
-    let urls = await getAllUrls();
+    const urls = await getAllUrls();
     if (!urls.length) return res.status(200).json({ ok: false, error: 'No URLs found in sitemaps' });
-    // Cap to avoid Vercel timeout
-    if (urls.length > MAX_URLS) urls = urls.slice(0, MAX_URLS);
 
     const results = await checkBatch(urls, strategy, CONCURRENCY);
 
