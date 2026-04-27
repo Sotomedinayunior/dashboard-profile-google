@@ -650,26 +650,41 @@ async function fetchOneBranch(nelly, q, apiKey) {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
 
-    // Buscar en local_results por place_id o por título que incluya "nelly"
-    const local = (data.local_results || []).find(
-      m => m.place_id === nelly.placeId ||
-           m.title?.toLowerCase().includes('nelly')
-    );
+    // SerpAPI puede devolver local_results (lista) o place_results (lugar específico)
+    let match = null;
 
-    if (local) {
+    // 1. Buscar en local_results
+    if (!match && data.local_results?.length) {
+      match = data.local_results.find(
+        m => m.place_id === nelly.placeId || m.title?.toLowerCase().includes('nelly')
+      ) || data.local_results[0]; // primer resultado si no hay match exacto
+    }
+
+    // 2. Buscar en place_results (resultado único de negocio específico)
+    if (!match && data.place_results) {
+      const p = data.place_results;
+      if (p.place_id === nelly.placeId || p.title?.toLowerCase().includes('nelly') || p.title?.toLowerCase().includes('rent')) {
+        match = p;
+      }
+    }
+
+    if (match) {
       return {
         id: nelly.id, name: nelly.name, shortName: nelly.shortName, placeId: nelly.placeId,
         configured:  true,
-        rating:      typeof local.rating  === 'number' ? local.rating  : null,
-        reviewCount: typeof local.reviews === 'number' ? local.reviews : null,
-        address:     local.address || null,
-        phone:       local.phone   || null,
-        isOpen:      local.hours?.current_status || null,
+        rating:      typeof match.rating  === 'number' ? match.rating  : null,
+        reviewCount: typeof match.reviews === 'number' ? match.reviews :
+                     typeof match.reviews_count === 'number' ? match.reviews_count : null,
+        address:     match.address || null,
+        phone:       match.phone   || null,
+        isOpen:      match.hours?.current_status || match.open_state || null,
         reviews:     [],
         performance: EMPTY_PERF,
       };
     }
-  } catch {}
+  } catch (e) {
+    console.error('[SerpAPI branch]', nelly.id, e.message);
+  }
 
   // Sin resultado para esta sucursal
   return {
