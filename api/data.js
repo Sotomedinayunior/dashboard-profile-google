@@ -65,9 +65,19 @@ module.exports = async function handler(req, res) {
   // Priority 2: Google Places API (public, no approval needed — gives ratings by Place ID)
   // Priority 3: SerpAPI
   if (!gmbHasRealData && placesData?.locations?.length) {
-    const mergedLocs = (gmbData.locations || []).map(loc => {
+    // Base: use existing gmbData.locations if populated, otherwise fall back to NELLY_LOCATIONS
+    // (GBP API failure leaves gmbData.locations as empty array)
+    const baseLocations = (gmbData.locations?.length > 0)
+      ? gmbData.locations
+      : NELLY_LOCATIONS.map(nl => ({
+          id: nl.id, name: nl.name, shortName: nl.shortName, placeId: nl.placeId,
+          configured: false, rating: null, reviewCount: null, reviews: [],
+          performance: { ...EMPTY_PERF },
+        }));
+
+    const mergedLocs = baseLocations.map(loc => {
       const pd = placesData.locations.find(p => p.placeId === loc.placeId);
-      if (!pd) return loc;
+      if (!pd || pd.rating === null) return loc;
       return {
         ...loc,
         configured:  true,
@@ -111,9 +121,15 @@ module.exports = async function handler(req, res) {
     };
   }
 
-  // Cache successful responses for 1 hour; never cache errors
+  // Cache: 5 min when using fallback APIs, 1 hour when using native GBP, never cache errors
   const hasError = gscData.error || ga4Data?.error;
-  res.setHeader('Cache-Control', hasError ? 'no-store' : 's-maxage=3600, stale-while-revalidate=600');
+  const usingFallback = gmbData.placesApiFallback || gmbData.serpApiFallback;
+  const cacheHeader = hasError
+    ? 'no-store'
+    : usingFallback
+      ? 's-maxage=300, stale-while-revalidate=60'
+      : 's-maxage=3600, stale-while-revalidate=600';
+  res.setHeader('Cache-Control', cacheHeader);
 
   return res.status(200).json({ ...gscData, gmb: gmbData, ga4: ga4Data });
 };
