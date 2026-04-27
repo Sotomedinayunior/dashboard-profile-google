@@ -625,52 +625,68 @@ async function fetchGMB(auth) {
   };
 }
 
-// ── SerpAPI GMB fallback — rating/reviews per location from Google Maps ────────
-async function fetchSerpGMBData(apiKey) {
+// ── SerpAPI GMB fallback — una búsqueda por sucursal para máxima fiabilidad ────
+const SERP_SEARCHES = [
+  { locId: 'independencia', q: 'Nelly Rent A Car Independencia Santo Domingo' },
+  { locId: 'cibao',         q: 'Nelly Rent A Car Aeropuerto Cibao Santiago'   },
+  { locId: 'puertoplata',   q: 'Nelly Rent A Car Puerto Plata'                },
+  { locId: 'puntacana',     q: 'Nelly Rent A Car Punta Cana'                  },
+  { locId: 'bocachica',     q: 'Nelly Rent A Car Boca Chica'                  },
+];
+
+async function fetchOneBranch(nelly, q, apiKey) {
   const params = new URLSearchParams({
-    engine:  'google_maps',
-    q:       'Nelly Rent A Car',
+    engine: 'google_maps',
+    q,
     gl:      'do',
     hl:      'es',
     api_key: apiKey,
   });
 
-  const r = await fetch(`https://serpapi.com/search.json?${params}`, {
-    signal: AbortSignal.timeout(10000),
-  });
+  try {
+    const r = await fetch(`https://serpapi.com/search.json?${params}`, {
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
 
-  if (!r.ok) {
-    const body = await r.json().catch(() => ({}));
-    throw new Error(body.error || `SerpAPI HTTP ${r.status}`);
-  }
+    // Buscar en local_results por place_id o por título que incluya "nelly"
+    const local = (data.local_results || []).find(
+      m => m.place_id === nelly.placeId ||
+           m.title?.toLowerCase().includes('nelly')
+    );
 
-  const data         = await r.json();
-  const localResults = data.local_results || [];
-
-  // Match each Nelly location by Place ID
-  const locations = NELLY_LOCATIONS.map(nelly => {
-    const match = localResults.find(m => m.place_id === nelly.placeId);
-    if (!match) {
+    if (local) {
       return {
         id: nelly.id, name: nelly.name, shortName: nelly.shortName, placeId: nelly.placeId,
-        configured: false, rating: null, reviewCount: null, reviews: [], performance: EMPTY_PERF,
+        configured:  true,
+        rating:      typeof local.rating  === 'number' ? local.rating  : null,
+        reviewCount: typeof local.reviews === 'number' ? local.reviews : null,
+        address:     local.address || null,
+        phone:       local.phone   || null,
+        isOpen:      local.hours?.current_status || null,
+        reviews:     [],
+        performance: EMPTY_PERF,
       };
     }
-    return {
-      id:          nelly.id,
-      name:        nelly.name,
-      shortName:   nelly.shortName,
-      placeId:     nelly.placeId,
-      configured:  true,
-      rating:      typeof match.rating  === 'number' ? match.rating  : null,
-      reviewCount: typeof match.reviews === 'number' ? match.reviews : null,
-      address:     match.address || null,
-      phone:       match.phone   || null,
-      isOpen:      match.hours?.current_status || null,
-      reviews:     [],
-      performance: EMPTY_PERF,
-    };
-  });
+  } catch {}
+
+  // Sin resultado para esta sucursal
+  return {
+    id: nelly.id, name: nelly.name, shortName: nelly.shortName, placeId: nelly.placeId,
+    configured: false, rating: null, reviewCount: null,
+    reviews: [], performance: EMPTY_PERF,
+  };
+}
+
+async function fetchSerpGMBData(apiKey) {
+  // Todas las sucursales en paralelo
+  const locations = await Promise.all(
+    NELLY_LOCATIONS.map(nelly => {
+      const search = SERP_SEARCHES.find(s => s.locId === nelly.id);
+      return fetchOneBranch(nelly, search?.q || `Nelly Rent A Car ${nelly.name}`, apiKey);
+    })
+  );
 
   const withRating   = locations.filter(l => l.rating !== null);
   const avgRating    = withRating.length
