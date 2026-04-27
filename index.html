@@ -4173,35 +4173,56 @@ function renderGMB(G) {
   let errMsg;
 
   if (G.placesApiFallback || G.serpApiFallback) {
-    // Ratings from Google Places API or SerpAPI — native review text pending GBP API approval
-    const sourceLabel = G.placesApiFallback
-      ? 'Google Places API (datos públicos de Google Maps)'
-      : 'Google Maps vía SerpAPI';
+    // Show per-branch review cards with direct links to Google Maps / Business
+    const PLACE_IDS = {
+      independencia: 'ChIJPRzgUXlipY4RTFpdm7Gtz2M',
+      cibao:         'ChIJBUNVazXRsY4R76jNG9B5mUQ',
+      puertoplata:   'ChIJNSahrlDksY4RdDGaHelddiY',
+      puntacana:     'ChIJPZ6a5d6TqI4R5-DvEC5384M',
+      bocachica:     'ChIJIfF1mPt_pY4RDB9kOOVbvz0',
+    };
+    const reviewLocs = (G.locations || []).filter(l => l.configured && l.rating);
+    const locCards = reviewLocs.map(loc => {
+      const stars = '⭐'.repeat(Math.round(loc.rating || 0));
+      const pid   = PLACE_IDS[loc.id] || loc.placeId || '';
+      const mapsUrl     = pid ? `https://www.google.com/maps/place/?q=place_id:${pid}` : 'https://maps.google.com/search?q=Nelly+Rent+A+Car';
+      const replyUrl    = `https://business.google.com/reviews`;
+      const writeRevUrl = pid ? `https://search.google.com/local/writereview?placeid=${pid}` : '#';
+      return `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="font-size:13px;font-weight:700;color:var(--text)">${loc.name}</div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <span style="font-size:18px;font-weight:800;color:var(--orange)">${loc.rating.toFixed(1)}</span>
+              <span style="font-size:11px">${stars}</span>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text2)">
+            <strong style="color:var(--text)">${(loc.reviewCount||0).toLocaleString()}</strong> reseñas en Google Maps
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+            <a href="${mapsUrl}" target="_blank"
+              style="flex:1;min-width:120px;text-align:center;font-size:11px;font-weight:600;color:#4285F4;text-decoration:none;border:1px solid rgba(66,133,244,0.3);padding:7px 10px;border-radius:20px;transition:background 0.15s"
+              onmouseover="this.style.background='rgba(66,133,244,0.07)'" onmouseout="this.style.background='transparent'">
+              Ver reseñas
+            </a>
+            <a href="${replyUrl}" target="_blank"
+              style="flex:1;min-width:120px;text-align:center;font-size:11px;font-weight:600;color:#fff;text-decoration:none;background:var(--orange);padding:7px 10px;border-radius:20px;border:none;transition:opacity 0.15s"
+              onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+              Responder
+            </a>
+          </div>
+        </div>`;
+    }).join('');
+
     errMsg = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:16px;text-align:center">
-      <div style="width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,rgba(66,133,244,0.12),rgba(52,168,83,0.12));display:flex;align-items:center;justify-content:center;border:1px solid rgba(66,133,244,0.2)">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4285F4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+    <div style="padding:8px 0 4px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;display:flex;align-items:center;gap:6px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        Datos de Google Maps · Las reseñas individuales estarán disponibles próximamente vía Google Business Profile API
       </div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:8px">
-          Reseñas individuales pendientes de aprobación
-        </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.8;max-width:380px">
-          Las calificaciones y conteos de reseñas provienen de <strong>${sourceLabel}</strong>.<br><br>
-          <span style="color:var(--text3)">Para mostrar el texto de las reseñas individuales se requiere aprobación de cuota en la <strong>Google Business Profile API</strong>. Solicitala en Google Cloud Console.</span>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px">
-        <a href="https://business.google.com/reviews" target="_blank"
-          style="font-size:12px;font-weight:600;color:#4285F4;text-decoration:none;border:1px solid rgba(66,133,244,0.35);padding:7px 18px;border-radius:20px;transition:background 0.15s"
-          onmouseover="this.style.background='rgba(66,133,244,0.07)'" onmouseout="this.style.background='transparent'">
-          Ver reseñas en Google Business
-        </a>
-        <a href="https://maps.google.com/search?q=Nelly+Rent+A+Car+Santo+Domingo" target="_blank"
-          style="font-size:12px;font-weight:600;color:var(--text2);text-decoration:none;border:1px solid var(--border2);padding:7px 18px;border-radius:20px;transition:background 0.15s"
-          onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
-          Ver en Google Maps
-        </a>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">
+        ${locCards || '<div style="grid-column:1/-1;text-align:center;color:var(--text3);font-size:12px;padding:24px">Sin datos de sucursales disponibles</div>'}
       </div>
     </div>`;
   } else if (G.reviewsApiError) {
