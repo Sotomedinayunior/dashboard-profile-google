@@ -62,26 +62,63 @@ module.exports = async function handler(req, res) {
     instructions: null,
   };
 
-  // ── Método 1: v1 accounts (quota per minute — wait 2+ min between calls) ──
+  // ── Método 1: v1 accounts ─────────────────────────────────────────────────
   const v1 = await safe('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
   result.methods_tried.push({ method: 'v1 accounts API', status: v1.status, ok: v1.ok });
-
   if (v1.ok && v1.data?.accounts?.length) {
     const acc = v1.data.accounts[0];
     result.account_found = acc.name;
     result.methods_tried[0].account = acc.name;
-    result.methods_tried[0].accountName = acc.accountName;
-  } else if (v1.status === 429) {
-    result.methods_tried[0].note = 'Cuota agotada. Espera 2 minutos y vuelve a intentar. O usa Google APIs Explorer: https://developers.google.com/my-business/reference/accountmanagement/rest/v1/accounts/list#try-it';
   }
 
-  // ── Método 2: Si ya tenemos el account, listar sus ubicaciones ────────────
+  // ── Método 2: googleLocations:search (no necesita account ID) ────────────
+  if (!result.account_found) {
+    const searchRes = await safe(
+      'https://mybusinessbusinessinformation.googleapis.com/v1/googleLocations:search',
+      { method: 'POST', body: JSON.stringify({ query: 'Nelly Rent A Car' }) }
+    );
+    result.methods_tried.push({ method: 'googleLocations:search', status: searchRes.status, ok: searchRes.ok });
+
+    if (searchRes.ok && searchRes.data?.googleLocations?.length) {
+      // El resource name de la ubicación tiene formato: accounts/{id}/locations/{id}
+      for (const gl of searchRes.data.googleLocations) {
+        const locName = gl.location?.name || gl.name || '';
+        const match = locName.match(/^(accounts\/\d+)\//);
+        if (match) {
+          result.account_found = match[1];
+          result.methods_tried[result.methods_tried.length - 1].account = match[1];
+          result.methods_tried[result.methods_tried.length - 1].rawLocation = locName;
+          break;
+        }
+      }
+    }
+  }
+
+  // ── Método 3: buscar por Place ID ─────────────────────────────────────────
+  if (!result.account_found) {
+    for (const placeId of NELLY_PLACE_IDS.slice(0, 2)) {
+      const placeRes = await safe(
+        `https://mybusinessbusinessinformation.googleapis.com/v1/googleLocations:search`,
+        { method: 'POST', body: JSON.stringify({ placeId }) }
+      );
+      result.methods_tried.push({ method: `placeId search: ${placeId}`, status: placeRes.status, ok: placeRes.ok });
+      if (placeRes.ok && placeRes.data?.googleLocations?.length) {
+        const locName = placeRes.data.googleLocations[0]?.location?.name || '';
+        const match = locName.match(/^(accounts\/\d+)\//);
+        if (match) {
+          result.account_found = match[1];
+          break;
+        }
+      }
+    }
+  }
+
+  // ── Método 4: Si ya tenemos account, listar ubicaciones ──────────────────
   if (result.account_found) {
     const locRes = await safe(
       `https://mybusinessbusinessinformation.googleapis.com/v1/${result.account_found}/locations?readMask=name,title,metadata`
     );
     result.methods_tried.push({ method: 'list locations', status: locRes.status, ok: locRes.ok });
-
     if (locRes.ok) {
       result.locations_found = (locRes.data?.locations || []).map(l => ({
         locationName: l.name,
@@ -96,26 +133,23 @@ module.exports = async function handler(req, res) {
   if (result.account_found) {
     result.instructions = [
       `✅ Account ID encontrado: ${result.account_found}`,
+      ``,
       `➡️  Agrega en Vercel → Settings → Environment Variables:`,
       `   GMB_ACCOUNT_NAME = ${result.account_found}`,
-      `➡️  Luego haz Redeploy en Vercel.`,
+      ``,
+      `➡️  Luego haz Redeploy en Vercel para activar las reseñas.`,
     ].join('\n');
   } else {
     result.instructions = [
-      '⚠️  No se pudo obtener el account ID automáticamente.',
+      '⚠️  No se pudo detectar el account ID automáticamente.',
       '',
-      'OPCIÓN A — Aumentar cuota (recomendado, permanente):',
-      '  1. Ve a: https://console.cloud.google.com/apis/api/mybusinessaccountmanagement.googleapis.com/quotas?project=868126352484',
-      '  2. Busca "Requests per minute"',
-      '  3. Haz clic en el lapicero → solicita 100 req/min',
-      '  4. Espera aprobación (~24h) y el 429 desaparece para siempre.',
-      '',
-      'OPCIÓN B — Encontrar manualmente:',
-      '  1. Ve a https://business.google.com con la cuenta de Google correcta',
-      '  2. Abre DevTools → Network → filtra por "mybusiness"',
-      '  3. Recarga la página',
-      '  4. Busca un request con URL que incluya "accounts/XXXXXXXXX"',
-      '  5. Copia ese número y ponlo como GMB_ACCOUNT_NAME en Vercel',
+      'Verifica que el Refresh Token tenga el scope business.manage:',
+      '  1. Ve a: https://developers.google.com/oauthplayground',
+      '  2. ⚙️ → Use your own OAuth credentials → Client ID + Secret',
+      '  3. Scope: https://www.googleapis.com/auth/business.manage',
+      '  4. Authorize → Exchange → copia el nuevo Refresh token',
+      '  5. Actualiza GOOGLE_REFRESH_TOKEN en Vercel → Redeploy',
+      '  6. Llama /api/gmb-debug de nuevo',
     ].join('\n');
   }
 
