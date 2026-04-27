@@ -2113,46 +2113,26 @@ html,body{overflow-x:hidden;width:100%}
   <div class="page-header">
   <div>
   <div class="page-title">SERP & Posiciones Google</div>
-  <div class="page-sub">Checker de posiciones en Google · Requiere SERPAPI_KEY</div>
-  </div>
-  <button class="run-btn" id="serp-run-btn" onclick="runSerp()"> Verificar Posiciones</button>
-  </div>
-
-  <!-- Custom keywords input -->
-  <div class="card" style="margin-bottom:20px;padding:14px 18px">
-  <div class="card-title">Keywords a rastrear</div>
-  <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-  <div style="flex:1;min-width:240px">
-  <div style="font-size:11px;color:var(--text2);margin-bottom:5px">Separadas por coma (dejar vacío para usar las 5 por defecto)</div>
-  <input id="serp-kw-input" type="text" placeholder="ej: rent a car santo domingo, nelly rac..." style="width:100%;padding:8px 12px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--ff);background:var(--surface);color:var(--text)">
-  </div>
-  <div style="display:flex;gap:8px;align-items:center">
-  <select id="serp-gl-select" style="padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--ff);background:var(--surface);color:var(--text)">
-  <option value="do" selected> DO</option>
-  <option value="us"> US</option>
-  <option value="es"> ES</option>
-  <option value="mx"> MX</option>
-  </select>
-  </div>
+  <div class="page-sub">Datos reales de Google Search Console · Sin SerpAPI</div>
   </div>
   </div>
 
-  <!-- KPI summary -->
-  <div class="kpi-grid" id="serp-kpis" style="display:none;grid-template-columns:repeat(5,minmax(0,1fr))">
+  <!-- KPI summary — auto-populated from GSC data -->
+  <div class="kpi-grid" id="serp-kpis" style="grid-template-columns:repeat(5,minmax(0,1fr))">
   <div class="kpi-card">
-  <div class="kpi-label">Keywords Rastreadas</div>
+  <div class="kpi-label">Keywords con datos</div>
   <div class="kpi-value" id="serp-total">—</div>
-  <div class="kpi-sub">keywords</div>
+  <div class="kpi-sub">en GSC</div>
   </div>
   <div class="kpi-card">
-  <div class="kpi-label">Posicionadas</div>
+  <div class="kpi-label">Top 20</div>
   <div class="kpi-value" id="serp-ranking" style="color:var(--green)">—</div>
-  <div class="kpi-sub">en top 20</div>
+  <div class="kpi-sub">con clics</div>
   </div>
   <div class="kpi-card">
   <div class="kpi-label">Top 3</div>
   <div class="kpi-value" id="serp-top3" style="color:var(--orange)">—</div>
-  <div class="kpi-sub">keywords</div>
+  <div class="kpi-sub">posición media</div>
   </div>
   <div class="kpi-card">
   <div class="kpi-label">Top 10</div>
@@ -2162,32 +2142,52 @@ html,body{overflow-x:hidden;width:100%}
   <div class="kpi-card">
   <div class="kpi-label">Posición Media</div>
   <div class="kpi-value" id="serp-avgpos">—</div>
-  <div class="kpi-sub">promedio</div>
+  <div class="kpi-sub">global GSC</div>
   </div>
   </div>
 
-  <!-- Status -->
-  <div id="serp-status" style="display:none;text-align:center;padding:50px 20px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px"></div>
+  <!-- Filter bar -->
+  <div style="display:flex;gap:8px;align-items:center;margin:16px 0;flex-wrap:wrap">
+  <input id="serp-kw-filter" type="text" placeholder="Filtrar keywords..."
+    oninput="renderSerpFromGSC()"
+    style="flex:1;min-width:200px;padding:8px 12px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--ff);background:var(--surface);color:var(--text)">
+  <select id="serp-pos-filter" onchange="renderSerpFromGSC()"
+    style="padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--ff);background:var(--surface);color:var(--text)">
+  <option value="all">Todas las posiciones</option>
+  <option value="top3">Top 3</option>
+  <option value="top10">Top 10 (pág. 1)</option>
+  <option value="top20">Top 11-20 (pág. 2)</option>
+  <option value="beyond">Más de 20</option>
+  </select>
+  <select id="serp-sort-filter" onchange="renderSerpFromGSC()"
+    style="padding:8px 10px;font-size:13px;border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--ff);background:var(--surface);color:var(--text)">
+  <option value="clicks">Ordenar: Clics</option>
+  <option value="impressions">Ordenar: Impresiones</option>
+  <option value="position">Ordenar: Posición</option>
+  <option value="ctr">Ordenar: CTR</option>
+  </select>
+  </div>
 
-  <!-- Results -->
-  <div id="serp-results" style="display:none">
+  <!-- Results table -->
   <div class="card" style="padding:0;overflow:hidden">
   <div style="overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:12px">
   <thead>
   <tr style="background:var(--surface2);border-bottom:2px solid var(--border)">
   <th style="text-align:left;padding:10px 14px;color:var(--text2);font-weight:700">Keyword</th>
-  <th style="text-align:center;padding:10px 14px;color:var(--text2);font-weight:700;width:80px">Pos.</th>
-  <th style="text-align:left;padding:10px 14px;color:var(--text2);font-weight:700">URL nuestra</th>
-  <th style="text-align:left;padding:10px 14px;color:var(--text2);font-weight:700">Competidores (Top 5)</th>
+  <th style="text-align:center;padding:10px 14px;color:var(--text2);font-weight:700;width:80px">Posición</th>
+  <th style="text-align:right;padding:10px 14px;color:var(--text2);font-weight:700;width:70px">Clics</th>
+  <th style="text-align:right;padding:10px 14px;color:var(--text2);font-weight:700;width:90px">Impresiones</th>
+  <th style="text-align:right;padding:10px 14px;color:var(--text2);font-weight:700;width:60px">CTR</th>
   </tr>
   </thead>
-  <tbody id="serp-tbody"><tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">Presiona "Verificar Posiciones" para iniciar.</td></tr></tbody>
+  <tbody id="serp-tbody">
+  <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Cargando datos de Search Console…</td></tr>
+  </tbody>
   </table>
   </div>
   </div>
-  <div style="font-size:11px;color:var(--text3);margin-top:10px;text-align:right" id="serp-timestamp"></div>
-  </div>
+  <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:right" id="serp-timestamp"></div>
 </div>
 
 <!-- =========== PAGE: ON-PAGE SEO =========== -->
@@ -2931,6 +2931,11 @@ function showPage(name, el) {
   // Re-render Google Charts cuando se abre Analytics (el mapa necesita ancho real)
   if (name === 'analytics' && window._ga4FullData) {
     setTimeout(() => _renderGA4D3Charts(window._ga4FullData), 80);
+  }
+
+  // SERP: load from GSC data automatically when opening the tab
+  if (name === 'serp' && window._dashData?.queries?.length) {
+    setTimeout(renderSerpFromGSC, 50);
   }
 
   // Cargar Google Trends iframes solo al abrir la pestaña (lazy load)
@@ -5221,88 +5226,97 @@ function renderPsTable(rows) {
 }
 
 // SERP Checker 
-async function runSerp() {
-  const btn = document.getElementById('serp-run-btn');
-  const status = document.getElementById('serp-status');
-  const kpis = document.getElementById('serp-kpis');
-  const res = document.getElementById('serp-results');
-  const kwVal = document.getElementById('serp-kw-input').value.trim();
-  const gl = document.getElementById('serp-gl-select').value;
+// Legacy function kept for backward compatibility — now uses GSC data
+function runSerp() { renderSerpFromGSC(); }
 
-  let url = `/api/serp?gl=${gl}&hl=es`;
-  if (kwVal) url += '&keywords=' + encodeURIComponent(kwVal);
+// ── Render SERP from GSC data (no SerpAPI needed) ────────────────────────────
+function renderSerpFromGSC() {
+  const D = window._dashData;
+  const queries = D?.queries || [];
 
-  btn.disabled = true;
-  btn.textContent = '⏳ Buscando…';
-  status.style.display = 'block';
-  status.innerHTML = `<div style="font-size:28px;margin-bottom:12px"></div><div style="font-size:15px;font-weight:600;color:var(--text)">Verificando posiciones en Google…</div><div style="font-size:13px;color:var(--text2);margin-top:6px">Consultando SerpAPI para cada keyword</div>`;
-  kpis.style.display = 'none';
-  res.style.display = 'none';
-
-  try {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('Error del servidor');
-  const data = await r.json();
-  if (!data.ok) throw new Error(data.error || 'Error desconocido');
-
-  const S = data.summary;
-  document.getElementById('serp-total').textContent = S.total;
-  document.getElementById('serp-ranking').textContent = S.ranking;
-  document.getElementById('serp-top3').textContent = S.top3;
-  document.getElementById('serp-top10').textContent = S.top10;
-  document.getElementById('serp-avgpos').textContent = S.avgPos ?? '—';
-  kpis.style.display = 'grid';
-
-  document.getElementById('serp-timestamp').textContent =
-  'Verificado: ' + new Date(data.checkedAt).toLocaleString('es-DO') + ' · Dominio: ' + data.domain;
-
-  window._serpData = data; // cache for AI Plan
-  renderSerpTable(data.keywords || []);
-  status.style.display = 'none';
-  res.style.display = 'block';
-
-  } catch(e) {
-  const is429 = e.message?.includes('429') || e.message?.includes('Cuota');
-  status.innerHTML = `
-    <div style="font-size:28px;margin-bottom:12px">${is429 ? '' : ''}</div>
-    <div style="font-size:15px;font-weight:600;color:var(--red)">${is429 ? 'Cuota de SerpAPI agotada' : 'Error al verificar'}</div>
-    <div style="font-size:13px;color:var(--text2);margin-top:6px">${is429
-      ? 'El plan gratuito de SerpAPI (100 búsquedas/mes) está agotado. Activa el plan de $25/mes en <a href="https://serpapi.com/manage-api-key" target="_blank" style="color:var(--orange)">serpapi.com</a> para continuar.'
-      : e.message}</div>`;
-  } finally {
-  btn.disabled = false;
-  btn.textContent = 'Verificar Posiciones';
+  if (!queries.length) {
+    document.getElementById('serp-tbody').innerHTML =
+      '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Datos de Search Console no cargados. Recarga el dashboard.</td></tr>';
+    return;
   }
+
+  const filterText = (document.getElementById('serp-kw-filter')?.value || '').toLowerCase().trim();
+  const posFilter  = document.getElementById('serp-pos-filter')?.value  || 'all';
+  const sortBy     = document.getElementById('serp-sort-filter')?.value || 'clicks';
+
+  // Filter
+  let rows = queries.filter(q => {
+    if (filterText && !q.query.toLowerCase().includes(filterText)) return false;
+    const pos = q.position || 100;
+    if (posFilter === 'top3'   && pos > 3)  return false;
+    if (posFilter === 'top10'  && pos > 10) return false;
+    if (posFilter === 'top20'  && (pos <= 10 || pos > 20)) return false;
+    if (posFilter === 'beyond' && pos <= 20) return false;
+    return true;
+  });
+
+  // Sort
+  rows.sort((a, b) => {
+    if (sortBy === 'position')    return (a.position||999) - (b.position||999);
+    if (sortBy === 'impressions') return (b.impressions||0) - (a.impressions||0);
+    if (sortBy === 'ctr')         return (b.ctr||0) - (a.ctr||0);
+    return (b.clicks||0) - (a.clicks||0); // default: clicks
+  });
+
+  const top3  = queries.filter(q => q.position <= 3).length;
+  const top10 = queries.filter(q => q.position <= 10).length;
+  const top20 = queries.filter(q => q.position <= 20).length;
+  const avgPos = queries.length
+    ? +(queries.reduce((s,q) => s + (q.position||0), 0) / queries.length).toFixed(1)
+    : null;
+
+  document.getElementById('serp-total').textContent   = queries.length.toLocaleString('es-DO');
+  document.getElementById('serp-ranking').textContent = top20;
+  document.getElementById('serp-top3').textContent    = top3;
+  document.getElementById('serp-top10').textContent   = top10;
+  document.getElementById('serp-avgpos').textContent  = avgPos ?? '—';
+
+  // Store for AI Plan compatibility
+  window._serpData = {
+    ok: true, domain: 'nellyrac.do',
+    summary: { total: queries.length, ranking: top20, top3, top10, avgPos },
+    keywords: queries.map(q => ({ keyword: q.query, position: Math.round(q.position||0) })),
+    checkedAt: new Date().toISOString(),
+  };
+
+  const meta = D?.meta;
+  document.getElementById('serp-timestamp').textContent =
+    `Datos de Google Search Console · ${meta?.date_start || ''} → ${meta?.date_end || ''} · ${queries.length.toLocaleString('es-DO')} keywords con datos`;
+
+  renderSerpTable(rows.slice(0, 200));
 }
 
 function renderSerpTable(rows) {
   const tbody = document.getElementById('serp-tbody');
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">Sin resultados.</td></tr>'; return; }
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Sin resultados con ese filtro.</td></tr>';
+    return;
+  }
 
   const rankBadge = pos => {
-  if (!pos) return `<span class="rank-badge rank-none">No encontrado</span>`;
-  if (pos <= 3) return `<span class="rank-badge rank-top3"> #${pos}</span>`;
-  if (pos <= 10) return `<span class="rank-badge rank-top10">#${pos}</span>`;
-  return `<span class="rank-badge rank-other">#${pos}</span>`;
+    const p = Math.round(pos || 0);
+    if (!p)    return `<span class="rank-badge rank-none">—</span>`;
+    if (p <= 3) return `<span class="rank-badge rank-top3">#${p}</span>`;
+    if (p <= 10) return `<span class="rank-badge rank-top10">#${p}</span>`;
+    if (p <= 20) return `<span class="rank-badge rank-other">#${p}</span>`;
+    return `<span class="rank-badge rank-none">#${p}</span>`;
   };
 
+  const fmtN = n => n >= 1000 ? (n/1000).toFixed(1)+'K' : String(n||0);
+
   tbody.innerHTML = rows.map(r => `
-  <tr style="border-bottom:1px solid var(--border);transition:background 0.1s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
-  <td style="padding:10px 14px;font-weight:600;color:var(--text)">${sanitizeText(r.keyword)}</td>
+  <tr style="border-bottom:1px solid var(--border);transition:background 0.1s"
+    onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+  <td style="padding:10px 14px;font-weight:600;color:var(--text);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${sanitizeText(r.query)}">${sanitizeText(r.query)}</td>
   <td style="padding:10px 14px;text-align:center">${rankBadge(r.position)}</td>
-  <td style="padding:10px 14px;max-width:200px">
-  ${r.url ? `<a href="${r.url}" target="_blank" style="color:var(--blue);font-size:11px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.url}">${r.url.replace('https://nellyrac.do','') || '/'}</a>` : '<span style="color:var(--text3);font-size:12px">—</span>'}
-  ${r.title ? `<span style="font-size:11px;color:var(--text2);display:block;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sanitizeText(r.title)}</span>` : ''}
-  </td>
-  <td style="padding:10px 14px">
-  <div style="display:flex;flex-wrap:wrap;gap:4px">
-  ${(r.competitors||[]).slice(0,4).map(c => `
-  <span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface2);border-radius:20px;padding:3px 10px;font-size:10px;white-space:nowrap">
-  <span class="comp-pos">#${c.position}</span>
-  <span class="comp-domain">${c.domain}</span>
-  </span>`).join('')||'<span style="color:var(--text3);font-size:12px">—</span>'}
-  </div>
-  </td>
+  <td style="padding:10px 14px;text-align:right;font-weight:600">${fmtN(r.clicks)}</td>
+  <td style="padding:10px 14px;text-align:right;color:var(--text2)">${fmtN(r.impressions)}</td>
+  <td style="padding:10px 14px;text-align:right;color:${(r.ctr||0)>=3?'var(--green)':'var(--text2)'}">${(r.ctr||0).toFixed(1)}%</td>
   </tr>`).join('');
 }
 
@@ -5439,6 +5453,8 @@ async function bootDashboard() {
     }
   }
   // Reviews + GMB cards loaded lazily when user opens that section
+  // Pre-populate SERP table with GSC data (available immediately)
+  setTimeout(renderSerpFromGSC, 200);
 }
 
 bootDashboard();
