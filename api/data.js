@@ -37,9 +37,17 @@ module.exports = async function handler(req, res) {
   const auth = new google.auth.OAuth2(clientId, clientSecret);
   auth.setCredentials({ refresh_token: refreshToken });
 
+  // Only fetch GMB if GMB_ACCOUNT_NAME is configured — avoids quota exhaustion
+  // on mybusinessaccountmanagement.googleapis.com during setup.
+  // Set GMB_ACCOUNT_NAME=accounts/XXXXXXXXX in Vercel to enable GMB data.
+  const gmbAccountName = (process.env.GMB_ACCOUNT_NAME || '').trim();
+  const gmbPromise = gmbAccountName
+    ? fetchGMB(auth)
+    : Promise.resolve({ ...EMPTY_GMB, reviewsApiError: 'Agrega GMB_ACCOUNT_NAME=accounts/XXXXXXXXX en Vercel → Settings → Environment Variables para ver reseñas. Visita /api/gmb-debug para obtener el valor.' });
+
   const [gsc, gmb, ga4] = await Promise.allSettled([
     fetchGSC(auth, gscProperty),
-    fetchGMB(auth),
+    gmbPromise,
     ga4Property ? fetchGA4(auth, ga4Property) : Promise.resolve(null),
   ]);
 

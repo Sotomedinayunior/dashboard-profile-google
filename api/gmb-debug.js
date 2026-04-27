@@ -62,45 +62,20 @@ module.exports = async function handler(req, res) {
     instructions: null,
   };
 
-  // ── Método 1: API v4 (quota separada de v1) ───────────────────────────────
-  const v4 = await safe('https://mybusiness.googleapis.com/v4/accounts');
-  result.methods_tried.push({ method: 'v4 accounts API', status: v4.status, ok: v4.ok });
+  // ── Método 1: v1 accounts (quota per minute — wait 2+ min between calls) ──
+  const v1 = await safe('https://mybusinessaccountmanagement.googleapis.com/v1/accounts');
+  result.methods_tried.push({ method: 'v1 accounts API', status: v1.status, ok: v1.ok });
 
-  if (v4.ok && v4.data?.accounts?.length) {
-    const acc = v4.data.accounts[0];
-    result.account_found = acc.name; // "accounts/XXXXXXXXX"
+  if (v1.ok && v1.data?.accounts?.length) {
+    const acc = v1.data.accounts[0];
+    result.account_found = acc.name;
     result.methods_tried[0].account = acc.name;
     result.methods_tried[0].accountName = acc.accountName;
+  } else if (v1.status === 429) {
+    result.methods_tried[0].note = 'Cuota agotada. Espera 2 minutos y vuelve a intentar. O usa Google APIs Explorer: https://developers.google.com/my-business/reference/accountmanagement/rest/v1/accounts/list#try-it';
   }
 
-  // ── Método 2: googleLocations:search (busca por placeId directamente) ─────
-  // Funciona sin saber el account — y nos da el resourceName con account incluido
-  if (!result.account_found) {
-    for (const placeId of NELLY_PLACE_IDS) {
-      const search = await fetch(
-        'https://mybusinessbusinessinformation.googleapis.com/v1/googleLocations:search',
-        {
-          method: 'POST',
-          headers: hdrs,
-          body: JSON.stringify({ pageSize: 5, query: NELLY_NAMES[placeId] }),
-          signal: AbortSignal.timeout(8000),
-        }
-      ).then(r => r.json()).catch(() => null);
-
-      const matched = (search?.googleLocations || []).find(l =>
-        l.location?.metadata?.placeId === placeId ||
-        l.requestAdminRightsUri?.includes(placeId)
-      );
-
-      if (matched?.name) {
-        // name format: "googleLocations/locations/XXXXXXXXX" or similar
-        result.methods_tried.push({ method: `googleLocations:search for ${NELLY_NAMES[placeId]}`, found: matched.name });
-        break;
-      }
-    }
-  }
-
-  // ── Método 3: Si ya tenemos el account, listar sus ubicaciones ────────────
+  // ── Método 2: Si ya tenemos el account, listar sus ubicaciones ────────────
   if (result.account_found) {
     const locRes = await safe(
       `https://mybusinessbusinessinformation.googleapis.com/v1/${result.account_found}/locations?readMask=name,title,metadata`
