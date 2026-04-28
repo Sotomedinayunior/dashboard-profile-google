@@ -368,18 +368,111 @@ async function fetchGA4(auth, propertyId) {
     users:    Math.round(metVal(r, 1)),
   }));
 
+  // ── Merge GA4 pages with sitemap pages ──
+  // Fetch sitemap to get complete URL list; fill 0s for pages without GA4 data
+  const sitemapPages = await fetchSitemapPages(prop).catch(() => []);
+  const mergedPages  = mergePagesWithSitemap(pageRows, sitemapPages);
+
   return {
     configured: true,
     property:   prop,
     summary,
     channels:   channelRows,
-    pages:      pageRows,
+    pages:      mergedPages,
     devices:    deviceRows,
     countries:  countryRows,
     daily7d:    fmtDaily(daily7d),
     daily28d:   fmtDaily(daily28d),
     daily6m:    fmtDaily(daily6m),
   };
+}
+
+// ── Fetch & parse sitemap ─────────────────────────────────────────────────────
+// Derives sitemap URL from GA4 property by reading GSC_PROPERTY env var.
+async function fetchSitemapPages(ga4Prop) {
+  // Use GSC_PROPERTY env var to build sitemap URL (e.g. https://nellyrac.do/)
+  const siteBase = (process.env.GSC_PROPERTY || '').replace(/\/$/, '');
+  if (!siteBase) return [];
+
+  const sitemapUrls = [
+    `${siteBase}/page-sitemap.xml`,
+    `${siteBase}/sitemap.xml`,
+    `${siteBase}/wp-sitemap.xml`,
+  ];
+
+  for (const sitemapUrl of sitemapUrls) {
+    try {
+      const r = await fetch(sitemapUrl, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) continue;
+      const xml = await r.text();
+
+      // Parse <loc> tags — works for both urlset and sitemapindex
+      const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1].trim());
+      if (!locs.length) continue;
+
+      // If it's a sitemapindex, recursively fetch each child sitemap
+      if (xml.includes('<sitemapindex')) {
+        const childPages = [];
+        for (const childUrl of locs.slice(0, 10)) {
+          try {
+            const cr = await fetch(childUrl, { signal: AbortSignal.timeout(6000) });
+            if (!cr.ok) continue;
+            const cxml = await cr.text();
+            const clocs = [...cxml.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1].trim());
+            childPages.push(...clocs);
+          } catch {}
+        }
+        return childPages;
+      }
+
+      return locs;
+    } catch {}
+  }
+  return [];
+}
+
+// ── Merge GA4 rows with sitemap URL list ──────────────────────────────────────
+function mergePagesWithSitemap(ga4Pages, sitemapUrls) {
+  if (!sitemapUrls.length) return ga4Pages;
+
+  // Build lookup: path → GA4 row
+  const ga4Map = new Map();
+  for (const p of ga4Pages) {
+    ga4Map.set(p.page, p);
+    // Also index without trailing slash
+    const noSlash = p.page.replace(/\/$/, '') || '/';
+    ga4Map.set(noSlash, p);
+  }
+
+  // Derive path from full URL
+  const toPath = (url) => {
+    try {
+      const u = new URL(url);
+      return u.pathname || '/';
+    } catch {
+      return url;
+    }
+  };
+
+  const merged = [...ga4Pages]; // start with GA4 data (already sorted by pageViews)
+  const seenPaths = new Set(ga4Pages.map(p => p.page));
+
+  for (const fullUrl of sitemapUrls) {
+    const path = toPath(fullUrl);
+    if (seenPaths.has(path)) continue;
+    // Not in GA4 — add with 0 metrics
+    merged.push({
+      page:           path,
+      pageViews:      0,
+      sessions:       0,
+      avgDuration:    0,
+      engagementRate: 0,
+      inSitemapOnly:  true,
+    });
+    seenPaths.add(path);
+  }
+
+  return merged;
 }
 
 // ── GMB ───────────────────────────────────────────────────────────────────────

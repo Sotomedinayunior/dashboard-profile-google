@@ -1565,7 +1565,7 @@ html,body{overflow-x:hidden;width:100%}
 
   <!-- Top Páginas -->
   <div class="card" style="margin-bottom:20px">
-  <div class="card-title">Top Páginas</div>
+  <div class="card-title">Top Páginas <span id="ga4-pages-count" style="font-weight:400;color:var(--text3);font-size:11px"></span></div>
   <div style="overflow-x:auto">
   <table style="width:100%;border-collapse:collapse;font-size:12px" id="ga4-pages-table">
   <thead>
@@ -4686,21 +4686,27 @@ function renderGA4(G) {
     _gcRenderDevices(G.devices   || []);
   });
 
-  // Top pages table
+  // Top pages table — includes sitemap-only pages (0 traffic) at the bottom
   try {
-    const pages = (G.pages || []).slice(0, 15);
+    const pages = (G.pages || []);
     const tbody = document.getElementById('ga4-pages-body');
+    // Update table header count
+    const pagesCountEl = document.getElementById('ga4-pages-count');
+    if (pagesCountEl) pagesCountEl.textContent = pages.length ? `(${pages.length})` : '';
     if (tbody) {
       tbody.innerHTML = pages.length ? pages.map(p => {
-        const dur = p.avgDuration >= 60
+        const isGA4 = !p.inSitemapOnly;
+        const dur = isGA4 && p.avgDuration >= 60
           ? Math.floor(p.avgDuration/60)+'m '+String(p.avgDuration%60).padStart(2,'0')+'s'
-          : p.avgDuration+'s';
-        return `<tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:8px 6px;color:var(--text);max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.page}</td>
-          <td style="padding:8px 6px;text-align:right;font-weight:600">${_ga4Fmt(p.pageViews)}</td>
-          <td style="padding:8px 6px;text-align:right">${_ga4Fmt(p.sessions)}</td>
+          : isGA4 ? p.avgDuration+'s' : '—';
+        const rowStyle = p.inSitemapOnly ? 'border-bottom:1px solid var(--border);opacity:0.55' : 'border-bottom:1px solid var(--border)';
+        const sitemapBadge = p.inSitemapOnly ? ' <span style="font-size:9px;background:#e6f1fb;color:var(--blue);border-radius:3px;padding:1px 4px;margin-left:4px;vertical-align:middle">sitemap</span>' : '';
+        return `<tr style="${rowStyle}">
+          <td style="padding:8px 6px;color:var(--text);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.page}${sitemapBadge}</td>
+          <td style="padding:8px 6px;text-align:right;font-weight:600">${isGA4 ? _ga4Fmt(p.pageViews) : '—'}</td>
+          <td style="padding:8px 6px;text-align:right">${isGA4 ? _ga4Fmt(p.sessions) : '—'}</td>
           <td style="padding:8px 6px;text-align:right;color:var(--text2)">${dur}</td>
-          <td style="padding:8px 6px;text-align:right;color:${p.engagementRate>=50?'#22c55e':'var(--text2)'}">${p.engagementRate}%</td>
+          <td style="padding:8px 6px;text-align:right;color:${isGA4 && p.engagementRate>=50?'#22c55e':'var(--text2)'}">${isGA4 ? p.engagementRate+'%' : '—'}</td>
         </tr>`;
       }).join('') : '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">Sin datos — verifica GA4_PROPERTY_ID en Vercel</td></tr>';
     }
