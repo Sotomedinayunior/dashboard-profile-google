@@ -208,6 +208,7 @@ async function fetchGSC(auth, property) {
 }
 
 // ── GA4 ───────────────────────────────────────────────────────────────────────
+// Uses batchRunReports: 8 individual calls → 2 batch calls (much faster, avoids timeout)
 async function fetchGA4(auth, propertyId) {
   const { token } = await auth.getAccessToken();
   const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -217,92 +218,100 @@ async function fetchGA4(auth, propertyId) {
     ? propertyId
     : `properties/${propertyId}`;
 
-  const url = `https://analyticsdata.googleapis.com/v1beta/${prop}:runReport`;
+  const batchUrl = `https://analyticsdata.googleapis.com/v1beta/${prop}:batchRunReports`;
 
-  const dateEnd   = daysAgo(1);
-  const date6M    = daysAgo(182);
-  const date28D   = daysAgo(28);
-  const date7D    = daysAgo(7);
+  const dateEnd = daysAgo(1);
+  const date6M  = daysAgo(182);
+  const date28D = daysAgo(28);
+  const date7D  = daysAgo(7);
 
-  const TIMEOUT = AbortSignal.timeout(7000);
-
-  // Primera llamada sin silenciar errores para detectar el problema real
-  const runFirst = async (body) => {
-    const r = await fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(body), signal: AbortSignal.timeout(7000) });
+  const runBatch = async (requests) => {
+    const r = await fetch(batchUrl, {
+      method:  'POST',
+      headers: hdrs,
+      body:    JSON.stringify({ requests }),
+      signal:  AbortSignal.timeout(25000),
+    });
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e?.error?.message || `GA4 HTTP ${r.status}`);
     }
-    return r.json();
+    const json = await r.json();
+    return json.reports || [];
   };
-  const run = (body) =>
-    fetch(url, { method: 'POST', headers: hdrs, body: JSON.stringify(body), signal: AbortSignal.timeout(7000) })
-      .then(r => r.ok ? r.json() : r.json().then(e => { throw new Error(e?.error?.message || 'GA4 error'); }))
-      .catch(() => null);
 
-  const [overview, channels, pages, devices, countries, daily7d, daily28d, daily6m] = await Promise.all([
-    // Overview: usa runFirst para que el error sea visible
-    runFirst({
-      dateRanges: [{ startDate: date6M, endDate: dateEnd }],
-      metrics: [
-        { name: 'sessions' }, { name: 'totalUsers' }, { name: 'newUsers' },
-        { name: 'engagementRate' }, { name: 'averageSessionDuration' }, { name: 'screenPageViews' },
-        { name: 'bounceRate' },
-      ],
-    }),
-    // Traffic channels
-    run({
-      dateRanges: [{ startDate: date6M, endDate: dateEnd }],
-      dimensions: [{ name: 'sessionDefaultChannelGroup' }],
-      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
-      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-      limit: 10,
-    }),
-    // Top pages
-    run({
-      dateRanges: [{ startDate: date6M, endDate: dateEnd }],
-      dimensions: [{ name: 'pagePath' }],
-      metrics: [{ name: 'screenPageViews' }, { name: 'sessions' }, { name: 'averageSessionDuration' }, { name: 'engagementRate' }],
-      orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-      limit: 20,
-    }),
-    // Devices
-    run({
-      dateRanges: [{ startDate: date6M, endDate: dateEnd }],
-      dimensions: [{ name: 'deviceCategory' }],
-      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
-      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-    }),
-    // Countries
-    run({
-      dateRanges: [{ startDate: date6M, endDate: dateEnd }],
-      dimensions: [{ name: 'country' }],
-      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
-      orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-      limit: 20,
-    }),
-    // Daily chart 7 days
-    run({
-      dateRanges: [{ startDate: date7D, endDate: dateEnd }],
-      dimensions: [{ name: 'date' }],
-      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
-      orderBys: [{ dimension: { dimensionName: 'date' } }],
-    }),
-    // Daily chart 28 days
-    run({
-      dateRanges: [{ startDate: date28D, endDate: dateEnd }],
-      dimensions: [{ name: 'date' }],
-      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
-      orderBys: [{ dimension: { dimensionName: 'date' } }],
-    }),
-    // Daily chart 6 months
-    run({
-      dateRanges: [{ startDate: date6M, endDate: dateEnd }],
-      dimensions: [{ name: 'date' }],
-      metrics: [{ name: 'sessions' }, { name: 'totalUsers' }],
-      orderBys: [{ dimension: { dimensionName: 'date' } }],
-    }),
+  // ── Batch 1: overview + channels + pages + devices + countries (5 reports) ──
+  // ── Batch 2: daily7d + daily28d + daily6m (3 reports) ──
+  const [batch1, batch2] = await Promise.all([
+    runBatch([
+      // [0] Overview summary
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        metrics: [
+          { name: 'sessions' }, { name: 'totalUsers' }, { name: 'newUsers' },
+          { name: 'engagementRate' }, { name: 'averageSessionDuration' },
+          { name: 'screenPageViews' }, { name: 'bounceRate' },
+        ],
+      },
+      // [1] Traffic channels
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+        metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
+        orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit: 10,
+      },
+      // [2] Top pages (50)
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        dimensions: [{ name: 'pagePath' }],
+        metrics:    [{ name: 'screenPageViews' }, { name: 'sessions' }, { name: 'averageSessionDuration' }, { name: 'engagementRate' }],
+        orderBys:   [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+        limit: 50,
+      },
+      // [3] Devices
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        dimensions: [{ name: 'deviceCategory' }],
+        metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
+        orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      },
+      // [4] Countries (top 30)
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        dimensions: [{ name: 'country' }],
+        metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
+        orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+        limit: 30,
+      },
+    ]),
+    runBatch([
+      // [0] Daily 7 days
+      {
+        dateRanges: [{ startDate: date7D, endDate: dateEnd }],
+        dimensions: [{ name: 'date' }],
+        metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }],
+        orderBys:   [{ dimension: { dimensionName: 'date' } }],
+      },
+      // [1] Daily 28 days
+      {
+        dateRanges: [{ startDate: date28D, endDate: dateEnd }],
+        dimensions: [{ name: 'date' }],
+        metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }],
+        orderBys:   [{ dimension: { dimensionName: 'date' } }],
+      },
+      // [2] Daily 6 months
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        dimensions: [{ name: 'date' }],
+        metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }],
+        orderBys:   [{ dimension: { dimensionName: 'date' } }],
+      },
+    ]).catch(() => [null, null, null]),
   ]);
+
+  const [overview, channels, pages, devices, countries] = batch1;
+  const [daily7d, daily28d, daily6m] = batch2;
 
   const metVal = (row, idx) => parseFloat(row?.metricValues?.[idx]?.value || 0);
   const dimVal = (row, idx) => row?.dimensionValues?.[idx]?.value || '';
@@ -310,46 +319,46 @@ async function fetchGA4(auth, propertyId) {
   // Overview
   const ov = overview?.rows?.[0];
   const summary = {
-    sessions:        Math.round(metVal(ov, 0)),
-    users:           Math.round(metVal(ov, 1)),
-    newUsers:        Math.round(metVal(ov, 2)),
-    engagementRate:  +(metVal(ov, 3) * 100).toFixed(1),
-    avgSessionDur:   +metVal(ov, 4).toFixed(0),
-    pageViews:       Math.round(metVal(ov, 5)),
-    bounceRate:      +(metVal(ov, 6) * 100).toFixed(1),
+    sessions:       Math.round(metVal(ov, 0)),
+    users:          Math.round(metVal(ov, 1)),
+    newUsers:       Math.round(metVal(ov, 2)),
+    engagementRate: +(metVal(ov, 3) * 100).toFixed(1),
+    avgSessionDur:  +metVal(ov, 4).toFixed(0),
+    pageViews:      Math.round(metVal(ov, 5)),
+    bounceRate:     +(metVal(ov, 6) * 100).toFixed(1),
   };
 
   // Channels
   const channelRows = (channels?.rows || []).map(r => ({
-    channel:         dimVal(r, 0),
-    sessions:        Math.round(metVal(r, 0)),
-    users:           Math.round(metVal(r, 1)),
-    engagementRate:  +(metVal(r, 2) * 100).toFixed(1),
+    channel:        dimVal(r, 0),
+    sessions:       Math.round(metVal(r, 0)),
+    users:          Math.round(metVal(r, 1)),
+    engagementRate: +(metVal(r, 2) * 100).toFixed(1),
   }));
 
-  // Pages
+  // Pages (up to 50)
   const pageRows = (pages?.rows || []).map(r => ({
-    page:            dimVal(r, 0),
-    pageViews:       Math.round(metVal(r, 0)),
-    sessions:        Math.round(metVal(r, 1)),
-    avgDuration:     +metVal(r, 2).toFixed(0),
-    engagementRate:  +(metVal(r, 3) * 100).toFixed(1),
+    page:           dimVal(r, 0),
+    pageViews:      Math.round(metVal(r, 0)),
+    sessions:       Math.round(metVal(r, 1)),
+    avgDuration:    +metVal(r, 2).toFixed(0),
+    engagementRate: +(metVal(r, 3) * 100).toFixed(1),
   }));
 
   // Devices
   const deviceRows = (devices?.rows || []).map(r => ({
-    device:          dimVal(r, 0),
-    sessions:        Math.round(metVal(r, 0)),
-    users:           Math.round(metVal(r, 1)),
-    engagementRate:  +(metVal(r, 2) * 100).toFixed(1),
+    device:         dimVal(r, 0),
+    sessions:       Math.round(metVal(r, 0)),
+    users:          Math.round(metVal(r, 1)),
+    engagementRate: +(metVal(r, 2) * 100).toFixed(1),
   }));
 
   // Countries
   const countryRows = (countries?.rows || []).map(r => ({
-    country:         dimVal(r, 0),
-    sessions:        Math.round(metVal(r, 0)),
-    users:           Math.round(metVal(r, 1)),
-    engagementRate:  +(metVal(r, 2) * 100).toFixed(1),
+    country:        dimVal(r, 0),
+    sessions:       Math.round(metVal(r, 0)),
+    users:          Math.round(metVal(r, 1)),
+    engagementRate: +(metVal(r, 2) * 100).toFixed(1),
   }));
 
   // Daily charts

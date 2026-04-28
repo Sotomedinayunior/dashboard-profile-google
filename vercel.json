@@ -4,11 +4,19 @@
     {
       "source": "/api/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin", "value": "*" }
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
       ]
     }
   ],
   "functions": {
-    "api/pagespeed.js": { "maxDuration": 60 }
+    "api/pagespeed.js": {
+      "maxDuration": 60
+    },
+    "api/data.js": {
+      "maxDuration": 30
+    }
   }
 }
