@@ -1590,36 +1590,19 @@ html,body{overflow-x:hidden;width:100%}
 <div id="page-trafficvalue" class="page">
   <div class="page-header">
     <div>
-      <div class="page-title">Valor del Tráfico Orgánico</div>
-      <div class="page-sub">Equivalente en inversión publicitaria Google Ads · Últimos 6 meses</div>
+      <div class="page-title">ROI Orgánico</div>
+      <div class="page-sub">Valor equivalente en Google Ads · Últimos 6 meses</div>
     </div>
   </div>
 
-  <!-- Hero Banner -->
-  <div style="background:linear-gradient(135deg,#111 0%,#1c1c1c 50%,#1a1200 100%);border-radius:var(--radius);border:1px solid #2a2a2a;padding:32px 36px;margin-bottom:28px;position:relative;overflow:hidden">
-    <div style="position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(232,97,10,0.10) 0%,transparent 70%);pointer-events:none"></div>
-    <div style="position:absolute;bottom:-40px;left:30%;width:200px;height:200px;background:radial-gradient(circle,rgba(255,180,0,0.05) 0%,transparent 70%);pointer-events:none"></div>
-    <div style="font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--orange);margin-bottom:10px">Tu SEO equivale a gastar en Google Ads</div>
-    <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
-      <div>
-        <div id="tv-hero-monthly" style="font-family:var(--ffc);font-size:64px;font-weight:800;color:#fff;line-height:1;letter-spacing:-1px">$—</div>
-        <div style="font-size:14px;color:#666;margin-top:6px">valor mensual estimado</div>
-      </div>
-      <div style="padding-bottom:12px;color:#444;font-size:28px;font-weight:300">/</div>
-      <div style="padding-bottom:10px">
-        <div id="tv-hero-annual" style="font-family:var(--ffc);font-size:36px;font-weight:700;color:#aaa;line-height:1">$—</div>
-        <div style="font-size:12px;color:#555;margin-top:4px">valor anual</div>
-      </div>
-    </div>
-    <div id="tv-hero-note" style="font-size:12px;color:#555;margin-top:16px;line-height:1.6;max-width:680px"></div>
-  </div>
-
-  <!-- KPI Cards -->
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:28px">
-    <div class="kpi-card">
-      <div class="kpi-label">Valor Mensual</div>
-      <div class="kpi-value" id="tv-kpi-monthly">—</div>
-      <div class="kpi-sub">en Google Ads equivalente</div>
+  <!-- KPI Cards — misma estructura que Analytics/Overview -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    <!-- Hero KPI: valor mensual más grande -->
+    <div class="kpi-card" style="background:linear-gradient(135deg,rgba(242,103,34,0.12),rgba(242,103,34,0.04));border-color:rgba(242,103,34,0.3)">
+      <div class="kpi-label" style="color:var(--orange)">Valor Mensual</div>
+      <div class="kpi-value" id="tv-kpi-monthly" style="font-size:28px;color:var(--orange)">—</div>
+      <div class="kpi-sub">equiv. Google Ads / mes</div>
+      <div class="kpi-trend trend-up" id="tv-kpi-annual-small">— / año</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">CPC Promedio</div>
@@ -1629,14 +1612,25 @@ html,body{overflow-x:hidden;width:100%}
     <div class="kpi-card">
       <div class="kpi-label">Clics Mensuales</div>
       <div class="kpi-value" id="tv-kpi-clicks">—</div>
-      <div class="kpi-sub">promedio últimos 6 meses</div>
+      <div class="kpi-sub">promedio 6 meses</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Queries con Valor</div>
+      <div class="kpi-label">Keywords Activas</div>
       <div class="kpi-value" id="tv-kpi-queries">—</div>
-      <div class="kpi-sub">keywords activas</div>
+      <div class="kpi-sub">con clics registrados</div>
     </div>
   </div>
+
+  <!-- Nota explicativa — estilo card estándar -->
+  <div class="card" style="margin:20px 0;padding:14px 18px;border-left:3px solid var(--orange)">
+    <div id="tv-hero-note" style="font-size:13px;color:var(--text2);line-height:1.7">
+      Cargando análisis de valor…
+    </div>
+  </div>
+
+  <!-- Elementos ocultos para retrocompatibilidad del JS -->
+  <span id="tv-hero-monthly" style="display:none"></span>
+  <span id="tv-hero-annual"  style="display:none"></span>
 
   <!-- Breakdown + Top Queries -->
   <div class="grid-65" style="margin-bottom:28px">
@@ -3541,25 +3535,25 @@ function renderTrafficValue(D) {
   const totalClicks   = enriched.reduce((s, q) => s + q.clicksPerMonth, 0);
   const avgCPC        = totalClicks > 0 ? totalMonthly / totalClicks : 0;
 
-  // ── Hero ─────────────────────────────────────────────────────────────────
-  const heroM = document.getElementById('tv-hero-monthly');
-  const heroA = document.getElementById('tv-hero-annual');
-  const heroN = document.getElementById('tv-hero-note');
-  if (heroM) heroM.textContent = tvFmtUSD(totalMonthly);
-  if (heroA) heroA.textContent = tvFmtUSD(totalMonthly * 12);
-  if (heroN) heroN.innerHTML = `
-    Tu posicionamiento orgánico genera <strong style="color:#F26722">${Math.round(totalClicks).toLocaleString()} clics mensuales</strong>
-    con un CPC promedio de <strong style="color:#F26722">$${avgCPC.toFixed(2)}</strong>.
-    Replicar este volumen con anuncios costaría aproximadamente
-    <strong style="color:#fff">${tvFmtUSD(totalMonthly)}/mes</strong> ó
-    <strong style="color:#fff">${tvFmtUSD(totalMonthly * 12)}/año</strong>.
-    Esto representa el retorno tangible de tu inversión en SEO.`;
-
-  // ── KPIs ─────────────────────────────────────────────────────────────────
+  // ── KPIs (card grid) ─────────────────────────────────────────────────────
   el('tv-kpi-monthly',  tvFmtUSD(totalMonthly));
   el('tv-kpi-cpc',      '$' + avgCPC.toFixed(2));
   el('tv-kpi-clicks',   Math.round(totalClicks).toLocaleString());
   el('tv-kpi-queries',  enriched.length.toLocaleString());
+
+  // Valor anual en el trend del KPI hero
+  const annualEl = document.getElementById('tv-kpi-annual-small');
+  if (annualEl) annualEl.textContent = tvFmtUSD(totalMonthly * 12) + ' / año';
+
+  // ── Nota explicativa ─────────────────────────────────────────────────────
+  const heroN = document.getElementById('tv-hero-note');
+  if (heroN) heroN.innerHTML = `
+    Tu SEO genera <strong style="color:var(--orange)">${Math.round(totalClicks).toLocaleString()} clics mensuales</strong>
+    con un CPC promedio estimado de <strong style="color:var(--text)">$${avgCPC.toFixed(2)}</strong>.
+    Replicar este tráfico con anuncios de Google Ads costaría
+    <strong style="color:var(--text)">${tvFmtUSD(totalMonthly)}/mes</strong> ó
+    <strong style="color:var(--text)">${tvFmtUSD(totalMonthly * 12)}/año</strong> —
+    ese es el retorno tangible de tu inversión en SEO.`;
 
   // ── Breakdown por categoría ───────────────────────────────────────────────
   const cats = { branded: { label: 'Branded', color: '#F26722', value: 0, clicks: 0 },
