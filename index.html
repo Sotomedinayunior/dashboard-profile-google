@@ -1489,7 +1489,7 @@ html,body{overflow-x:hidden;width:100%}
   <!-- Actividad diaria -->
   <div class="card" style="margin-bottom:20px">
   <div class="card-title" style="margin-bottom:12px">Actividad Diaria · Últimos 6 meses</div>
-  <div id="ga4-heatmap-gc" style="width:100%;height:190px"></div>
+  <div style="height:190px;position:relative"><canvas id="ga4-daily-chart"></canvas></div>
   </div>
 
   <!-- Top Páginas -->
@@ -4425,58 +4425,76 @@ function _gcRenderCountries(data) {
 
 // ── Daily ColumnChart con intensidad de color (Google Charts) ─────────────────
 function _gcRenderHeatmap(dailyData) {
-  const div = document.getElementById('ga4-heatmap-gc');
-  if (!div) return;
+  const canvas = document.getElementById('ga4-daily-chart');
+  if (!canvas) return;
+
   if (!dailyData?.length) {
-    div.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:30px;text-align:center">Sin datos de actividad diaria</div>';
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.parentElement.insertAdjacentHTML('beforeend',
+      '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;color:#999">Sin datos de actividad diaria</div>');
     return;
   }
 
-  // Muestra los últimos 90 días — cada barra es 1 día
-  const last90 = dailyData.slice(-90);
-  const maxV   = Math.max(...last90.map(d => d.sessions || 0), 1);
+  const maxV = Math.max(...dailyData.map(d => d.sessions || 0), 1);
 
-  // Usar 'string' en lugar de 'date' para evitar eje continuo en Google Charts
-  const data = new google.visualization.DataTable();
-  data.addColumn('string', 'Fecha');
-  data.addColumn('number', 'Sesiones');
-  data.addColumn({ type: 'string', role: 'style' });
-  data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
+  const labels  = dailyData.map(d => {
+    const dt = _ga4Date(d.date);
+    // Mostrar etiqueta solo el día 1 de cada mes
+    return dt.getDate() === 1
+      ? dt.toLocaleDateString('es-DO', { month: 'short', day: 'numeric' })
+      : '';
+  });
 
-  data.addRows(last90.map(d => {
-    const pct   = (d.sessions || 0) / maxV;
-    const alpha = pct < 0.15 ? 0.15 : pct < 0.40 ? 0.40 : pct < 0.70 ? 0.68 : 0.92;
-    const dt    = _ga4Date(d.date);
-    // Solo mostrar etiqueta cada ~15 días para no saturar el eje
-    const label = (dt.getDate() === 1 || dt.getDate() === 15) ? `${dt.getDate()}/${dt.getMonth()+1}` : '';
-    return [
-      label,
-      d.sessions || 0,
-      `color:rgba(242,103,34,${alpha});stroke-width:0`,
-      `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}: ${(d.sessions||0).toLocaleString()} sesiones`,
-    ];
-  }));
+  const colors = dailyData.map(d => {
+    const pct = (d.sessions || 0) / maxV;
+    const alpha = pct < 0.10 ? 0.12 : pct < 0.30 ? 0.35 : pct < 0.60 ? 0.62 : pct < 0.85 ? 0.82 : 1;
+    return `rgba(242,103,34,${alpha})`;
+  });
 
-  new google.visualization.ColumnChart(div).draw(data, {
-    chartArea: { left: 40, top: 8, right: 8, bottom: 30, width: '100%', height: '100%' },
-    legend:    { position: 'none' },
-    hAxis: {
-      textStyle:    { fontSize: 9, color: '#999' },
-      gridlines:    { count: 0 },
-      baselineColor: 'transparent',
-      showTextEvery: 1,
+  // Destruir chart previo si existe
+  if (window._ga4DailyChart) { window._ga4DailyChart.destroy(); }
+
+  window._ga4DailyChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data:            dailyData.map(d => d.sessions || 0),
+        backgroundColor: colors,
+        borderWidth:     0,
+        borderRadius:    2,
+      }],
     },
-    vAxis: {
-      textStyle:     { fontSize: 9, color: '#aaa' },
-      gridlines:     { color: '#f0f0f0', count: 3 },
-      baselineColor: '#e8e8e8',
-      minValue: 0,
-      format: 'short',
+    options: {
+      responsive:          true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const d = dailyData[items[0].dataIndex];
+              const dt = _ga4Date(d.date);
+              return dt.toLocaleDateString('es-DO', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+            },
+            label: (item) => ` ${item.raw.toLocaleString()} sesiones`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { font: { size: 9 }, color: '#aaa', maxRotation: 0 },
+          grid:  { display: false },
+          border: { display: false },
+        },
+        y: {
+          ticks: { font: { size: 9 }, color: '#aaa', maxTicksLimit: 4 },
+          grid:  { color: 'rgba(0,0,0,0.05)' },
+          border: { display: false },
+        },
+      },
     },
-    bar:         { groupWidth: '88%' },
-    backgroundColor: 'transparent',
-    animation:   { startup: true, duration: 500, easing: 'out' },
-    tooltip:     { isHtml: false, trigger: 'focus' },
   });
 }
 
@@ -4602,12 +4620,14 @@ function _renderGA4D3Charts(G) {
   if (!G) return;
   const analyticsPage = document.getElementById('page-analytics');
   if (!analyticsPage?.classList.contains('active')) { window._ga4FullData = G; return; }
+  // Actividad diaria — Chart.js (no necesita esperar Google Charts)
+  try { _gcRenderHeatmap(G.daily6m || []); }
+  catch(e) { console.error('[GA4 Daily]', e); }
+
+  // Países, sesiones, canales, dispositivos — Google Charts
   _whenGCReady(() => {
     try { _gcRenderCountries((G.countries || []).slice(0, 20)); }
     catch(e) { console.error('[GA4 Countries]', e); _showChartError('ga4-countries-list', e, 'Países'); }
-    try { _gcRenderHeatmap(G.daily6m || []); }
-    catch(e) { console.error('[GA4 Heatmap]', e); const d = document.getElementById('ga4-heatmap-gc'); if (d) d.innerHTML = `<div style="font-size:11px;color:#c0392b;background:#fdf0ef;border:1px solid #f5c6c2;border-radius:6px;padding:8px 10px">⚠️ Actividad diaria: ${e?.message || e}</div>`; }
-    // Re-render sessions/channels/devices too (need real width when tab opens)
     if (G.daily28d) _gcRenderSessions({ '7d': G.daily7d || [], '28d': G.daily28d || [], '6m': G.daily6m || [] }[GA4_PERIOD] || G.daily28d);
     _gcRenderChannels(G.channels || []);
     _gcRenderDevices(G.devices   || []);
