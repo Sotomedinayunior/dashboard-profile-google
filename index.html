@@ -79,6 +79,9 @@ html,body{overflow-x:hidden;width:100%}
 .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:8px;font-weight:600}
 .kpi-value{font-family:var(--ffc);font-size:32px;font-weight:700;color:var(--text);line-height:1}
 .kpi-sub{font-size:12px;color:var(--text3);margin-top:6px}
+.li{display:inline-block;vertical-align:-3px;flex-shrink:0}
+@keyframes li-spin{to{transform:rotate(360deg)}}
+.li-spin{animation:li-spin 1.2s linear infinite}
 .kpi-trend{font-size:12px;font-weight:600;margin-top:6px;display:flex;align-items:center;gap:4px}
 .trend-up{color:var(--green)}.trend-down{color:var(--red)}.trend-neutral{color:var(--text3)}
 
@@ -751,7 +754,7 @@ html,body{overflow-x:hidden;width:100%}
         <input type="date" id="exec-date-end"   style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)">
         <button onclick="execApplyCustom()" style="font-size:12px;padding:4px 12px;background:var(--orange);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Aplicar</button>
       </div>
-      <span id="exec-loading-badge" style="display:none;font-size:11px;color:var(--text3);padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px">⏳ Cargando...</span>
+      <span id="exec-loading-badge" style="display:none;font-size:11px;color:var(--text3);padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px"><svg data-lucide="loader-circle" width="12" height="12" class="li li-spin" style="margin-right:4px"></svg>Cargando...</span>
     </div>
     <!-- <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
       <div style="position:relative;width:72px;height:72px;flex-shrink:0">
@@ -807,17 +810,17 @@ html,body{overflow-x:hidden;width:100%}
   <div class="section-label" style="margin-bottom:16px">Posicionamiento: Orgánico vs Pagado</div>
   <div class="grid-3" style="margin-bottom:12px">
     <div class="kpi-card" style="text-align:center">
-      <div class="kpi-label">🌿 Orgánico (Google / GSC)</div>
+      <div class="kpi-label"><svg data-lucide="leaf" width="12" height="12" class="li" style="margin-right:4px;stroke:var(--green)"></svg>Orgánico (Google / GSC)</div>
       <div class="kpi-value" id="etraf-organic" style="color:var(--green)">—</div>
       <div class="kpi-sub" id="etraf-organic-sub">sesiones sin costo</div>
     </div>
     <div class="kpi-card" style="text-align:center">
-      <div class="kpi-label">💰 Pagado (Google Ads)</div>
+      <div class="kpi-label"><svg data-lucide="dollar-sign" width="12" height="12" class="li" style="margin-right:4px;stroke:#f39c12"></svg>Pagado (Google Ads)</div>
       <div class="kpi-value" id="etraf-paid" style="color:#f39c12">—</div>
       <div class="kpi-sub" id="etraf-paid-sub">sesiones de pago</div>
     </div>
     <div class="kpi-card" style="text-align:center">
-      <div class="kpi-label">🔗 Otros canales</div>
+      <div class="kpi-label"><svg data-lucide="link" width="12" height="12" class="li" style="margin-right:4px;stroke:var(--text2)"></svg>Otros canales</div>
       <div class="kpi-value" id="etraf-other">—</div>
       <div class="kpi-sub" id="etraf-other-sub">directo, social, referral</div>
     </div>
@@ -1394,7 +1397,7 @@ html,body{overflow-x:hidden;width:100%}
   <!-- Location cards grid -->
   <div id="gmb-location-cards" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:20px">
   <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text3);font-size:13px">
-  <span style="font-size:28px;display:block;margin-bottom:8px">⏳</span>Cargando perfiles de sucursales…
+  <span style="display:block;margin-bottom:8px">${licon('loader-circle',32,'var(--text3)',true)}</span>Cargando perfiles de sucursales…
   </div>
   </div>
 
@@ -2654,7 +2657,19 @@ async function loadData() {
   }catch(e){console.error('[loadData] Error cargando datos:',e.message);return empty;}
 }
 
-// Helper: sanitize text for safe HTML insertion 
+// ── Icon helpers (Lucide) ─────────────────────────────────────────────────────
+function licon(name, size=14, color='currentColor', spin=false) {
+  return `<svg data-lucide="${name}" width="${size}" height="${size}" stroke="${color}" class="li${spin?' li-spin':''}"></svg>`;
+}
+function starRow(rating, size=13) {
+  const full = Math.round(rating || 0);
+  return Array.from({length:5}, (_,i) =>
+    `<svg data-lucide="star" width="${size}" height="${size}" class="li" style="fill:${i<full?'#f39c12':'none'};stroke:#f39c12"></svg>`
+  ).join('');
+}
+function liIcons() { if(typeof lucide!=='undefined') lucide.createIcons(); }
+
+// Helper: sanitize text for safe HTML insertion
 function sanitizeText(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -2789,7 +2804,7 @@ function updateRevDistBars(stats, label) {
     const pctOf = total ? Math.round(count / total * 100) : 0;
     const color = s >= 4 ? '#27a663' : s === 3 ? 'var(--orange)' : '#e24b4a';
     return `<div class="star-row" style="margin-bottom:4px">
-      <div class="star-label" style="color:${color};font-weight:700;width:14px">${s}⭐</div>
+      <div class="star-label" style="color:${color};font-weight:700;width:14px">${s} ${licon('star',11,'#f39c12')}</div>
       <div class="star-bar-wrap" style="flex:1"><div class="star-bar" style="width:${pct}%;background:${color};height:8px;border-radius:4px"></div></div>
       <div class="star-count" style="min-width:42px;text-align:right;font-size:10px;color:var(--text3)">${count} <span style="color:var(--text4)">(${pctOf}%)</span></div>
     </div>`;
@@ -2915,7 +2930,7 @@ function updateLocCompare(locationsData) {
       return `<div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
           <span style="font-size:11px;font-weight:600;color:var(--text2)">${name}</span>
-          <span style="font-size:10px;color:var(--text3)">${l.avgRating?.toFixed(1)} ⭐ · ${total} reseñas · <span style="color:${rate>=50?'#27a663':'var(--orange)'}">↩${rate}%</span></span>
+          <span style="font-size:10px;color:var(--text3)">${l.avgRating?.toFixed(1)} ${licon('star',10,'#f39c12')} · ${total} reseñas · <span style="color:${rate>=50?'#27a663':'var(--orange)'}">${licon('corner-down-left',10)}${rate}%</span></span>
         </div>
         <div style="background:var(--border);border-radius:4px;height:7px;overflow:hidden">
           <div style="width:${pct}%;background:${color};height:100%;border-radius:4px;transition:width 0.4s"></div>
@@ -4178,7 +4193,7 @@ function renderGMB(G) {
   // Best location KPI
   if (G.bestLocation) {
     el('gmb-kpi-best', G.bestLocation.name || '—');
-    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'} ⭐ mejor calificada`);
+    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'} ${licon('star',13,'#f39c12')} mejor calificada`);
     const cityEl = document.getElementById('gmb-kpi-best-city');
     const cityText = document.getElementById('gmb-kpi-best-city-text');
     if (cityEl && cityText) { cityText.textContent = G.bestLocation.name; cityEl.style.display = 'flex'; }
@@ -4326,12 +4341,12 @@ function renderGMB(G) {
   // ── Overview canal strip — GMB ──
   if (G.rating !== null) {
     el('ov-gmb-rating', G.rating.toFixed(1));
-    el('ov-gmb-stars',  '⭐'.repeat(Math.round(G.rating)));
+    el('ov-gmb-stars',  starRow(G.rating, 14)); liIcons();
   }
   if (G.reviewCount !== null) el('ov-gmb-reviews', (G.reviewCount||0).toLocaleString());
   const ovLocCount = (G.locations||[]).filter(l => l.configured).length || (G.locations||[]).length;
   if (ovLocCount) el('ov-gmb-locs', ovLocCount);
-  if (G.bestLocation?.name) el('ov-gmb-best', `${G.bestLocation.name} ${G.bestLocation.rating?.toFixed(1)||''} ⭐`);
+  if (G.bestLocation?.name) el('ov-gmb-best', `${G.bestLocation.name} ${G.bestLocation.rating?.toFixed(1)||''} ${licon('star',12,'#f39c12')}`);
 
   // Mini strip de ratings por sucursal en el overview
   const locsStrip = document.getElementById('ov-locs-strip');
@@ -4340,7 +4355,7 @@ function renderGMB(G) {
       <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
         <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">${loc.shortName || loc.name}</span>
         <span style="font-weight:700;color:${!loc.rating ? 'var(--text3)' : loc.rating >= 4.5 ? 'var(--green)' : loc.rating >= 4.0 ? 'var(--orange)' : 'var(--red)'}">
-          ${loc.rating ? loc.rating.toFixed(1)+' ⭐' : '—'}
+          ${loc.rating ? loc.rating.toFixed(1)+' '+licon('star',12,'#f39c12') : '—'}
         </span>
       </div>`).join('');
   }
@@ -4362,7 +4377,7 @@ function renderGMB(G) {
     };
     const reviewLocs = (G.locations || []).filter(l => l.configured && l.rating);
     const locCards = reviewLocs.map(loc => {
-      const stars = '⭐'.repeat(Math.round(loc.rating || 0));
+      const stars = starRow(loc.rating || 0);
       const pid   = PLACE_IDS[loc.id] || loc.placeId || '';
       const mapsUrl     = pid ? `https://www.google.com/maps/place/?q=place_id:${pid}` : 'https://maps.google.com/search?q=Nelly+Rent+A+Car';
       const replyUrl    = `https://business.google.com/reviews`;
@@ -4792,7 +4807,7 @@ function renderGA4(G) {
   } catch(e) {
     console.error('[GA4 Pages]', e);
     const tbody = document.getElementById('ga4-pages-body');
-    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="padding:12px;color:#c0392b">⚠️ Error páginas: ${e?.message || e}</td></tr>`;
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="padding:12px;color:#c0392b">${licon('triangle-alert',14,'#c0392b')} Error páginas: ${e?.message || e}</td></tr>`;
   }
 
   window._ga4FullData = G;
@@ -4809,7 +4824,7 @@ function renderGA4(G) {
 function _showChartError(id, err, label) {
   const e = document.getElementById(id);
   if (!e) return;
-  e.innerHTML = `<div style="font-size:11px;color:#c0392b;background:#fdf0ef;border:1px solid #f5c6c2;border-radius:6px;padding:8px 10px;margin-top:4px">⚠️ <strong>${label}</strong>: ${err?.message || String(err)}</div>`;
+  e.innerHTML = `<div style="font-size:11px;color:#c0392b;background:#fdf0ef;border:1px solid #f5c6c2;border-radius:6px;padding:8px 10px;margin-top:4px;display:flex;align-items:flex-start;gap:6px">${licon('triangle-alert',13,'#c0392b')}<span><strong>${label}</strong>: ${err?.message || String(err)}</span></div>`;
 }
 
 // Render Google Charts que necesitan el ancho real (llamado al abrir la pestaña)
@@ -4842,9 +4857,10 @@ async function runAudit() {
   const kpis = document.getElementById('audit-kpis');
 
   btn.disabled = true;
-  btn.textContent = '⏳ Rastreando…';
+  btn.innerHTML = `${licon('loader-circle',14,'currentColor',true)} Rastreando…`;
   status.style.display = 'block';
-  status.innerHTML = `<div style="font-size:28px;margin-bottom:12px">⏳</div><div style="font-size:15px;font-weight:600;color:var(--text)">Rastreando 18 páginas…</div><div style="font-size:13px;color:var(--text2);margin-top:6px">Puede tomar 10-20 segundos</div>`;
+  status.innerHTML = `<div style="margin-bottom:12px">${licon('loader-circle',32,'var(--text3)',true)}</div><div style="font-size:15px;font-weight:600;color:var(--text)">Rastreando 18 páginas…</div><div style="font-size:13px;color:var(--text2);margin-top:6px">Puede tomar 10-20 segundos</div>`;
+  liIcons();
   filters.style.display = 'none';
   results.style.display = 'none';
 
@@ -4941,7 +4957,7 @@ async function runAIPlan() {
   const resEl = document.getElementById('aiplan-results');
 
   btn.disabled = true;
-  btn.textContent = '⏳ Analizando…';
+  btn.innerHTML = `${licon('loader-circle',14,'currentColor',true)} Analizando…`;
   status.style.display = 'block';
   resEl.style.display = 'none';
   stCont.innerHTML = `<div style="font-size:32px;margin-bottom:14px"></div>
@@ -5209,7 +5225,7 @@ function renderGmbLocationCard(G) {
     // Sin ubicaciones conectadas — mostrar mensaje de estado
     container.innerHTML = `
       <div style="grid-column:1/-1;background:var(--surface2);border-radius:var(--radius);padding:24px;border:1px dashed var(--border);text-align:center">
-        <div style="font-size:28px;margin-bottom:10px">🔍</div>
+        <div style="margin-bottom:10px">${licon('search',28,'var(--text3)')}</div>
         <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Sin sucursales conectadas</div>
         <div style="font-size:12px;color:var(--text2);line-height:1.7">
           No se encontraron ubicaciones en la cuenta de Google Business.<br>
@@ -5228,7 +5244,7 @@ function renderGmbLocationCard(G) {
     const webClicks = P.actions?.websiteClicks  || 0;
     const dirs      = P.actions?.directions     || 0;
     const views     = P.views?.total            || 0;
-    const starsHtml = rating ? '⭐'.repeat(Math.round(rating)) : '';
+    const starsHtml = rating ? starRow(rating, 12) : '';
     // Places API / SerpAPI extras
     const address   = loc.address || null;
     const phone     = loc.phone   || null;
@@ -5257,7 +5273,7 @@ function renderGmbLocationCard(G) {
           <div class="glc-name" style="display:flex;align-items:center;gap:6px">
             ${ic('map-pin',13,'var(--orange)')} ${loc.name}
           </div>
-          ${rating ? `<div class="glc-rating">${rating.toFixed(1)} ⭐ <span style="font-weight:400;opacity:0.7">(${revCount.toLocaleString()})</span></div>` : '<div class="glc-rating" style="background:var(--surface2);color:var(--text3)">Sin datos</div>'}
+          ${rating ? `<div class="glc-rating">${rating.toFixed(1)} ${licon('star',11,'#f39c12')} <span style="font-weight:400;opacity:0.7">(${revCount.toLocaleString()})</span></div>` : '<div class="glc-rating" style="background:var(--surface2);color:var(--text3)">Sin datos</div>'}
         </div>
         <div class="glc-info" style="display:flex;flex-direction:column;gap:5px;margin-top:8px;font-size:11px;color:var(--text2)">
           ${infoRows.join('')}
@@ -5439,8 +5455,8 @@ async function publishReply(domId, placeId, googleReviewId, reviewDirectLink) {
   if (statusEl) {
     statusEl.style.color = 'var(--orange)';
     statusEl.innerHTML = copied
-      ? '✅ <strong>Texto copiado.</strong> Pégalo en Google Business.'
-      : '⚠️ Copia el texto y pégalo en Google Business.';
+      ? `${licon('circle-check',13,'#27a663')} <strong>Texto copiado.</strong> Pégalo en Google Business.`
+      : `${licon('triangle-alert',13,'#f39c12')} Copia el texto y pégalo en Google Business.`;
   }
 
   // 4. Actualizar botón a modo "Abrir Google Business"
@@ -5514,7 +5530,7 @@ async function runPagespeed() {
   const resEl  = document.getElementById('ps-results');
 
   btn.disabled = true;
-  btn.textContent = '⏳ Analizando…';
+  btn.innerHTML = `${licon('loader-circle',14,'currentColor',true)} Analizando…`;
   kpis.style.display   = 'none';
   resEl.style.display  = 'none';
   status.style.display = 'block';
@@ -5550,7 +5566,7 @@ async function runPagespeed() {
 
   } catch(e) {
     status.innerHTML = `
-      <div style="font-size:28px;margin-bottom:12px">❌</div>
+      <div style="margin-bottom:12px">${licon('circle-x',30,'#e24b4a')}</div>
       <div style="font-size:15px;font-weight:600;color:var(--red)">Error al analizar</div>
       <div style="font-size:12px;color:var(--text2);margin-top:8px;max-width:360px;margin-left:auto;margin-right:auto;line-height:1.6">${e.message}</div>`;
   } finally {
@@ -5694,7 +5710,7 @@ async function runOnPage() {
   const res = document.getElementById('onpage-results');
 
   btn.disabled = true;
-  btn.textContent = '⏳ Rastreando…';
+  btn.innerHTML = `${licon('loader-circle',14,'currentColor',true)} Rastreando…`;
   status.style.display = 'block';
   status.innerHTML = `<div style="font-size:28px;margin-bottom:12px"></div><div style="font-size:15px;font-weight:600;color:var(--text)">Analizando meta tags de todas las páginas…</div><div style="font-size:13px;color:var(--text2);margin-top:6px">Puede tomar 10-20 segundos</div>`;
   kpis.style.display = 'none';
@@ -5816,7 +5832,7 @@ async function bootDashboard() {
     if (errBanner) {
       errBanner.style.display = 'block';
       errBanner.innerHTML = `<div style="background:#fdf0ef;border:1px solid #f5c6c2;border-radius:8px;padding:12px 16px;font-size:12px;color:#c0392b">
-        ⚠️ <strong>Error al renderizar Analytics:</strong> ${e?.message || e}<br>
+        ${licon('triangle-alert',14,'#c0392b')} <strong>Error al renderizar Analytics:</strong> ${e?.message || e}<br>
         <span style="color:#888;font-size:11px;margin-top:4px;display:inline-block">Revisa la consola del navegador (F12 → Console) para más detalles.</span>
       </div>`;
     }
@@ -6314,7 +6330,7 @@ function renderExecutive(D) {
   // KPI strip
   if (el('ekpi-clicks'))    el('ekpi-clicks').textContent   = fmt(clicksMo);
   if (el('ekpi-pos'))       el('ekpi-pos').textContent      = position ? position.toFixed(1) : '—';
-  if (el('ekpi-rating'))    el('ekpi-rating').textContent   = rating ? rating.toFixed(1) + ' ⭐' : '—';
+  if (el('ekpi-rating'))    el('ekpi-rating').innerHTML     = rating ? rating.toFixed(1) + ' ' + licon('star',20,'#f39c12') : '—';
   if (el('ekpi-sessions'))  el('ekpi-sessions').textContent = fmt(sessions);
   if (el('ekpi-ctr'))       el('ekpi-ctr').textContent      = ctr ? ctr.toFixed(1) + '%' : '—';
 
@@ -6368,7 +6384,7 @@ function renderExecutive(D) {
       id: 'ekpi-rating',
       card: el('ekpi-rating')?.closest('.kpi-card'),
       title: 'Calificación en Google',
-      fullVal: () => rating ? rating.toFixed(2) + ' / 5.00 ⭐  (' + totalRev.toLocaleString('es-DO') + ' reseñas)' : '—',
+      fullVal: () => rating ? rating.toFixed(2) + ' / 5.00  (' + totalRev.toLocaleString('es-DO') + ' reseñas)' : '—',
       what: 'Promedio de estrellas de todas las reseñas de las sucursales en Google Maps / Google Business Profile. Incluye las 5 sucursales: Independencia, Santiago, Puerto Plata, Punta Cana y Las Américas.',
       source: 'Google Business Profile API · mybusinessreviews',
     },
@@ -6400,21 +6416,21 @@ function renderExecutive(D) {
   const trafDefs = [
     {
       cardId: 'etraf-organic',
-      title: '🌿 Tráfico orgánico (Google / GSC)',
+      title: 'Tráfico orgánico (Google / GSC)',
       fullVal: () => sessOrganic.toLocaleString('es-DO') + ' sesiones  (' + pctOrg + '% del total)',
       what: 'Visitas que llegaron al sitio desde resultados de búsqueda gratuitos de Google. Estas sesiones no cuestan dinero — son el resultado del trabajo de SEO (posicionamiento orgánico). Cuanto mayor este número, menos dependencia de publicidad pagada.',
       source: 'Google Analytics 4 · Canal "Organic Search" · últimos 6 meses',
     },
     {
       cardId: 'etraf-paid',
-      title: '💰 Tráfico pagado (Google Ads)',
+      title: 'Tráfico pagado (Google Ads)',
       fullVal: () => sessPaid > 0 ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)' : '0 sesiones · Sin campañas de Google Ads activas en este período',
       what: 'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
       source: 'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses',
     },
     {
       cardId: 'etraf-other',
-      title: '🔗 Otros canales',
+      title: 'Otros canales',
       fullVal: () => sessOther.toLocaleString('es-DO') + ' sesiones  (' + pctOth + '% del total)',
       what: 'Visitas que no vienen de búsquedas en Google. Incluye: tráfico directo (personas que escriben nellyrac.do directamente), referrals (links desde otras webs), redes sociales orgánicas (Facebook, Instagram), y email.',
       source: 'Google Analytics 4 · Todos los canales excepto Organic y Paid Search · últimos 6 meses',
@@ -6430,12 +6446,12 @@ function renderExecutive(D) {
   // Insight automático
   if (el('etraf-insight')) {
     let insight = '';
-    if (sessPaid === 0 && pctOrg >= 70)  insight = '✅ El negocio no depende de Google Ads — el SEO está trabajando bien';
-    else if (sessPaid === 0)             insight = 'ℹ️ Todo el tráfico es gratuito — sin inversión en Google Ads actualmente';
-    else if (pctOrg >= pctPaid * 2)      insight = '✅ El orgánico supera al pagado en ' + Math.round(pctOrg/pctPaid) + 'x';
-    else if (pctPaid > pctOrg)           insight = '⚠️ El tráfico pagado supera al orgánico — reforzar SEO';
-    else                                 insight = 'Balance entre orgánico y pagado';
-    el('etraf-insight').textContent = insight;
+    if (sessPaid === 0 && pctOrg >= 70)  insight = licon('circle-check',13,'#27a663') + ' El negocio no depende de Google Ads — el SEO está trabajando bien';
+    else if (sessPaid === 0)             insight = licon('info',13,'var(--text3)') + ' Todo el tráfico es gratuito — sin inversión en Google Ads actualmente';
+    else if (pctOrg >= pctPaid * 2)      insight = licon('circle-check',13,'#27a663') + ' El orgánico supera al pagado en ' + Math.round(pctOrg/pctPaid) + 'x';
+    else if (pctPaid > pctOrg)           insight = licon('triangle-alert',13,'#f39c12') + ' El tráfico pagado supera al orgánico — reforzar SEO';
+    else                                 insight = licon('minus',13,'var(--text3)') + ' Balance entre orgánico y pagado';
+    el('etraf-insight').innerHTML = insight;
   }
 
   // Deltas — comparar 28d vs los 28d anteriores si hay datos 6m
@@ -6451,7 +6467,7 @@ function renderExecutive(D) {
   if (el('ekpi-pos-d'))       { el('ekpi-pos-d').textContent = 'posición media en Google'; el('ekpi-pos-d').style.color='var(--text3)'; }
   if (el('ekpi-rating-d'))    { el('ekpi-rating-d').textContent = totalRev + ' reseñas totales'; el('ekpi-rating-d').style.color='var(--text3)'; }
   if (el('ekpi-sessions-d'))  { el('ekpi-sessions-d').textContent = 'engagement ' + (engRate*100).toFixed(0) + '%'; el('ekpi-sessions-d').style.color = engRate >= 0.5 ? 'var(--green)' : 'var(--text3)'; }
-  if (el('ekpi-ctr-d'))       { el('ekpi-ctr-d').textContent = ctr >= 3 ? '✓ Por encima del promedio' : 'Meta: superar 3%'; el('ekpi-ctr-d').style.color = ctr >= 3 ? 'var(--green)' : 'var(--text3)'; }
+  if (el('ekpi-ctr-d'))       { el('ekpi-ctr-d').innerHTML = ctr >= 3 ? licon('check',11,'var(--green)')+' Por encima del promedio' : 'Meta: superar 3%'; el('ekpi-ctr-d').style.color = ctr >= 3 ? 'var(--green)' : 'var(--text3)'; }
 
   // ── 2. Score de salud digital (0-10) ─────────────────────────────
   let score = 0;
@@ -6499,13 +6515,14 @@ function renderExecutive(D) {
 
   // Veredicto
   let emoji, verdict;
-  if (score >= 8)      { emoji = '🏆'; verdict = 'Posición digital sólida. El sitio está captando tráfico de calidad y la reputación respalda la marca.'; }
-  else if (score >= 6) { emoji = '📈'; verdict = 'Rendimiento positivo con áreas de mejora. Acciones puntuales pueden elevar el score significativamente.'; }
-  else if (score >= 4) { emoji = '⚠️'; verdict = 'Rendimiento moderado. Se requieren acciones correctivas en al menos dos frentes para proteger la visibilidad.'; }
-  else                 { emoji = '🚨'; verdict = 'Situación crítica. Se recomienda intervención inmediata para evitar pérdida adicional de tráfico y posicionamiento.'; }
+  if (score >= 8)      { emoji = licon('trophy',28,'#f39c12');        verdict = 'Posición digital sólida. El sitio está captando tráfico de calidad y la reputación respalda la marca.'; }
+  else if (score >= 6) { emoji = licon('trending-up',28,'#27a663');   verdict = 'Rendimiento positivo con áreas de mejora. Acciones puntuales pueden elevar el score significativamente.'; }
+  else if (score >= 4) { emoji = licon('triangle-alert',28,'#f39c12');verdict = 'Rendimiento moderado. Se requieren acciones correctivas en al menos dos frentes para proteger la visibilidad.'; }
+  else                 { emoji = licon('siren',28,'#e24b4a');          verdict = 'Situación crítica. Se recomienda intervención inmediata para evitar pérdida adicional de tráfico y posicionamiento.'; }
 
-  if (el('exec-verdict-emoji')) el('exec-verdict-emoji').textContent = emoji;
+  if (el('exec-verdict-emoji')) el('exec-verdict-emoji').innerHTML = emoji;
   if (el('exec-verdict-text'))  el('exec-verdict-text').textContent  = verdict;
+  liIcons(); // render all data-lucide icons injected via innerHTML
 
   // ── 3. Semáforos ─────────────────────────────────────────────────
   function semStatus(val, threshGreen, threshYellow, invert) {
@@ -6787,7 +6804,7 @@ async function reloadExecutive(start, end) {
     renderExecutive(merged);
   } catch(e) {
     const dateEl2 = document.getElementById('exec-date');
-    if (dateEl2) dateEl2.textContent = '⚠️ Error al cargar datos: ' + e.message;
+    if (dateEl2) dateEl2.innerHTML = licon('triangle-alert',13,'#c0392b') + ' Error al cargar datos: ' + e.message;
     console.error('[reloadExecutive]', e);
   } finally {
     if (badge) badge.style.display = 'none';
@@ -6822,7 +6839,7 @@ function showKpiPopup(cardEl, title, fullValue, what, source) {
   document.getElementById('kpi-popup-title').textContent = title;
   document.getElementById('kpi-popup-value').textContent = fullValue;
   document.getElementById('kpi-popup-what').textContent  = what;
-  document.getElementById('kpi-popup-source').innerHTML  = '📡 <strong>Fuente:</strong> ' + source;
+  document.getElementById('kpi-popup-source').innerHTML  = licon('radio',13,'var(--text3)') + ' <strong>Fuente:</strong> ' + source;
   popup.classList.add('active');
 
   // Posicionarlo cerca del card
