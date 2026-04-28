@@ -510,6 +510,9 @@ html,body{overflow-x:hidden;width:100%}
 .exec-meta-sub{font-size:13px;color:#777;line-height:1.6}
 .exec-meta-date{font-size:11px;color:#555;margin-top:10px;letter-spacing:0.5px}
 .exec-semaforos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.exec-period-btn{background:none;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.exec-period-btn:hover{background:var(--surface);color:var(--text)}
+.exec-period-btn.active{background:var(--orange);color:#fff}
 .semaforo-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border);display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
 .semaforo-card::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
 .semaforo-green::after{background:var(--green)}
@@ -732,6 +735,23 @@ html,body{overflow-x:hidden;width:100%}
     <div>
       <div class="page-title" id="exec-title">Resumen Ejecutivo</div>
       <div class="page-sub" id="exec-date">Nelly Rent A Car · República Dominicana</div>
+    </div>
+    <!-- Filtro de fechas -->
+    <div id="exec-date-filter" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px">
+        <button class="exec-period-btn active" data-days="7"   onclick="execSetPeriod(this)">7 días</button>
+        <button class="exec-period-btn"        data-days="28"  onclick="execSetPeriod(this)">28 días</button>
+        <button class="exec-period-btn"        data-days="90"  onclick="execSetPeriod(this)">3 meses</button>
+        <button class="exec-period-btn"        data-days="182" onclick="execSetPeriod(this)">6 meses</button>
+        <button class="exec-period-btn"        data-days="custom" onclick="execShowCustom(this)">Personalizado</button>
+      </div>
+      <div id="exec-custom-range" style="display:none;align-items:center;gap:6px">
+        <input type="date" id="exec-date-start" style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)">
+        <span style="color:var(--text2);font-size:12px">→</span>
+        <input type="date" id="exec-date-end"   style="font-size:12px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text)">
+        <button onclick="execApplyCustom()" style="font-size:12px;padding:4px 12px;background:var(--orange);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600">Aplicar</button>
+      </div>
+      <span id="exec-loading-badge" style="display:none;font-size:11px;color:var(--text3);padding:4px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px">⏳ Cargando...</span>
     </div>
     <!-- <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
       <div style="position:relative;width:72px;height:72px;flex-shrink:0">
@@ -5783,6 +5803,11 @@ async function bootDashboard() {
   try { renderTrafficValue(safeD); }  catch(e) { console.error('[renderTrafficValue]', e); }
   try { renderForecast(safeD); }      catch(e) { console.error('[renderForecast]', e); }
   try { renderExecutive(safeD); }     catch(e) { console.error('[renderExecutive]', e); }
+  // Marcar "28 días" como activo por defecto en el filtro del Ejecutivo
+  try {
+    const defBtn = document.querySelector('.exec-period-btn[data-days="28"]');
+    if (defBtn) { document.querySelectorAll('.exec-period-btn').forEach(b=>b.classList.remove('active')); defBtn.classList.add('active'); }
+  } catch(e) {}
   try { renderGMB(safeD.gmb || null); } catch(e) { console.error('[renderGMB]', e); }
   try { renderGA4(safeD.ga4 || null); } catch(e) {
     console.error('[renderGA4] ERROR COMPLETO:', e);
@@ -6695,6 +6720,78 @@ function switchTrendsPeriod(btn) {
   _trendsPeriod = btn.dataset.period;
   _trendsLoaded = false;   // forzar re-render con nuevo período
   renderTrends();
+}
+
+// ── Resumen Ejecutivo: filtro de fechas ──────────────────────────────────────
+function execSetPeriod(btn) {
+  document.querySelectorAll('.exec-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('exec-custom-range').style.display = 'none';
+  const days = parseInt(btn.dataset.days, 10);
+  const end   = new Date(); end.setDate(end.getDate() - 1);
+  const start = new Date(); start.setDate(start.getDate() - days);
+  const fmt   = d => d.toISOString().split('T')[0];
+  reloadExecutive(fmt(start), fmt(end));
+}
+
+function execShowCustom(btn) {
+  document.querySelectorAll('.exec-period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cr = document.getElementById('exec-custom-range');
+  cr.style.display = 'flex';
+  // Default: last 30 days
+  const end   = new Date(); end.setDate(end.getDate() - 1);
+  const start = new Date(); start.setDate(start.getDate() - 30);
+  const fmt = d => d.toISOString().split('T')[0];
+  if (!document.getElementById('exec-date-start').value) {
+    document.getElementById('exec-date-start').value = fmt(start);
+    document.getElementById('exec-date-end').value   = fmt(end);
+  }
+}
+
+function execApplyCustom() {
+  const start = document.getElementById('exec-date-start').value;
+  const end   = document.getElementById('exec-date-end').value;
+  if (!start || !end) return alert('Selecciona fecha de inicio y fin.');
+  if (start > end)    return alert('La fecha de inicio debe ser antes que la de fin.');
+  reloadExecutive(start, end);
+}
+
+async function reloadExecutive(start, end) {
+  const badge = document.getElementById('exec-loading-badge');
+  if (badge) badge.style.display = '';
+
+  // Update page subtitle to show current range
+  const fmtLabel = d => {
+    const [y, m, day] = d.split('-');
+    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+  };
+  const dateEl = document.getElementById('exec-date');
+  if (dateEl) dateEl.textContent = `Período: ${fmtLabel(start)} → ${fmtLabel(end)}`;
+
+  try {
+    const r = await fetch(`/api/data?start=${start}&end=${end}`);
+    if (!r.ok) throw new Error('API error ' + r.status);
+    const D = await r.json();
+
+    // If custom range came back, set summary_28d to the custom one so renderExecutive uses it
+    if (D.summary_custom) {
+      D.summary_28d = D.summary_custom;
+    }
+
+    // Merge with existing cached data (keep GMB, GA4 channels etc. if not re-fetched)
+    const merged = { ...(window._dashData || {}), ...D, ga4: D.ga4 || window._dashData?.ga4 };
+    window._dashData = merged;
+
+    renderExecutive(merged);
+  } catch(e) {
+    const dateEl2 = document.getElementById('exec-date');
+    if (dateEl2) dateEl2.textContent = '⚠️ Error al cargar datos: ' + e.message;
+    console.error('[reloadExecutive]', e);
+  } finally {
+    if (badge) badge.style.display = 'none';
+  }
 }
 
 function filterGlossary(q) {

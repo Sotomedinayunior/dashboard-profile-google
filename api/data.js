@@ -44,10 +44,19 @@ module.exports = async function handler(req, res) {
   // GMB_ACCOUNT_NAME = accounts/14783610060775958761 (fallback hardcoded)
   const mapsKey = process.env.GOOGLE_MAPS_API_KEY || null;
 
+  // Optional custom date range (used by Resumen Ejecutivo filter)
+  // Accepts YYYY-MM-DD format. Validated below.
+  const rawStart = req.query.start || null;
+  const rawEnd   = req.query.end   || null;
+  const isoRe    = /^\d{4}-\d{2}-\d{2}$/;
+  const customStart = (rawStart && isoRe.test(rawStart)) ? rawStart : null;
+  const customEnd   = (rawEnd   && isoRe.test(rawEnd))   ? rawEnd   : null;
+  const isCustomRange = !!(customStart && customEnd);
+
   const [gsc, gmb, ga4, serpGmbResult, placesResult] = await Promise.allSettled([
-    fetchGSC(auth, gscProperty),
+    fetchGSC(auth, gscProperty, customStart, customEnd),
     fetchGMB(auth),
-    ga4Property ? fetchGA4(auth, ga4Property) : Promise.resolve(null),
+    ga4Property ? fetchGA4(auth, ga4Property, customStart, customEnd) : Promise.resolve(null),
     serpKey ? fetchSerpGMBData(serpKey)    : Promise.resolve(null),
     mapsKey ? fetchPlacesData(mapsKey)     : Promise.resolve(null),
   ]);
@@ -121,10 +130,10 @@ module.exports = async function handler(req, res) {
     };
   }
 
-  // Cache: 5 min when using fallback APIs, 1 hour when using native GBP, never cache errors
+  // Cache: no-store for custom ranges, 5 min fallback, 1 hour native GBP
   const hasError = gscData.error || ga4Data?.error;
   const usingFallback = gmbData.placesApiFallback || gmbData.serpApiFallback;
-  const cacheHeader = hasError
+  const cacheHeader = isCustomRange || hasError
     ? 'no-store'
     : usingFallback
       ? 's-maxage=300, stale-while-revalidate=60'
@@ -142,13 +151,19 @@ function daysAgo(n) {
 }
 
 // ── GSC ───────────────────────────────────────────────────────────────────────
-async function fetchGSC(auth, property) {
+async function fetchGSC(auth, property, customStart = null, customEnd = null) {
   const sc = google.searchconsole({ version: 'v1', auth });
 
-  const dateEnd  = daysAgo(2);
-  const start6M  = daysAgo(182);
-  const start28D = daysAgo(28);
-  const start7D  = daysAgo(7);
+  const dateEnd  = customEnd   || daysAgo(2);
+  const start6M  = customStart || daysAgo(182);
+  const start28D = customStart || daysAgo(28);
+  const start7D  = customStart || daysAgo(7);
+
+  // When a custom range is set, limit row counts to avoid large responses
+  const isCustom = !!(customStart && customEnd);
+  const daysDiff = isCustom
+    ? Math.max(1, Math.round((new Date(customEnd) - new Date(customStart)) / 86400000))
+    : 182;
 
   const q = (startDate, endDate, dimensions, rowLimit = 100) =>
     sc.searchanalytics.query({
@@ -156,15 +171,26 @@ async function fetchGSC(auth, property) {
       requestBody: { startDate, endDate, dimensions, rowLimit },
     }).then(r => r.data.rows || []).catch(() => []);
 
-  const [daily, queries, pages, countries, devices, d28, d7] = await Promise.all([
-    q(start6M, dateEnd, ['date'],    182),
-    q(start6M, dateEnd, ['query'],  1000),
-    q(start6M, dateEnd, ['page'],    250),
-    q(start6M, dateEnd, ['country'], 200),
-    q(start6M, dateEnd, ['device'],   10),
-    q(start28D, dateEnd, ['date'],    28),
-    q(start7D,  dateEnd, ['date'],     7),
-  ]);
+  const [daily, queries, pages, countries, devices, d28, d7] = isCustom
+    ? await Promise.all([
+        q(start6M, dateEnd, ['date'],    Math.min(daysDiff + 2, 500)),
+        q(start6M, dateEnd, ['query'],   500),
+        q(start6M, dateEnd, ['page'],    200),
+        q(start6M, dateEnd, ['country'], 100),
+        q(start6M, dateEnd, ['device'],   10),
+        // For custom range: d28 and d7 reuse the same range
+        q(start6M, dateEnd, ['date'],    Math.min(daysDiff + 2, 500)),
+        q(start6M, dateEnd, ['date'],    Math.min(daysDiff + 2, 500)),
+      ])
+    : await Promise.all([
+        q(start6M, dateEnd, ['date'],    182),
+        q(start6M, dateEnd, ['query'],  1000),
+        q(start6M, dateEnd, ['page'],    250),
+        q(start6M, dateEnd, ['country'], 200),
+        q(start6M, dateEnd, ['device'],   10),
+        q(start28D, dateEnd, ['date'],    28),
+        q(start7D,  dateEnd, ['date'],     7),
+      ]);
 
   const sum = rows => {
     const tc = rows.reduce((a, r) => a + r.clicks, 0);
@@ -183,14 +209,18 @@ async function fetchGSC(auth, property) {
              ctr: +(r.ctr * 100).toFixed(2), position: +r.position.toFixed(2) };
   });
 
-  const s6m = sum(daily);
+  const s6m    = sum(daily);
+  const sRange = sum(daily); // same data when custom; separate when not
   return {
     meta: {
-      updated_at:   new Date().toISOString().split('T')[0],
-      date_start:   start6M,
-      date_end:     dateEnd,
-      gsc_property: property,
-      source:       'live',
+      updated_at:     new Date().toISOString().split('T')[0],
+      date_start:     start6M,
+      date_end:       dateEnd,
+      gsc_property:   property,
+      source:         'live',
+      is_custom_range: !!(customStart && customEnd),
+      custom_start:   customStart,
+      custom_end:     customEnd,
     },
     summary_6m: {
       ...s6m,
@@ -199,6 +229,14 @@ async function fetchGSC(auth, property) {
     },
     summary_28d: sum(d28),
     summary_7d:  sum(d7),
+    // When a custom range is active, summary_custom contains that period
+    summary_custom: (customStart && customEnd) ? {
+      ...sRange,
+      avg_clicks_per_day: daily.length ? +(sRange.total_clicks / daily.length).toFixed(1) : 0,
+      days:  daily.length,
+      start: customStart,
+      end:   customEnd,
+    } : null,
     chart:     fmt(daily,    ['date']),
     queries:   fmt(queries,  ['query']),
     pages:     fmt(pages,    ['page']),
@@ -209,7 +247,7 @@ async function fetchGSC(auth, property) {
 
 // ── GA4 ───────────────────────────────────────────────────────────────────────
 // Uses batchRunReports: 8 individual calls → 2 batch calls (much faster, avoids timeout)
-async function fetchGA4(auth, propertyId) {
+async function fetchGA4(auth, propertyId, customStart = null, customEnd = null) {
   const { token } = await auth.getAccessToken();
   const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
@@ -220,10 +258,11 @@ async function fetchGA4(auth, propertyId) {
 
   const batchUrl = `https://analyticsdata.googleapis.com/v1beta/${prop}:batchRunReports`;
 
-  const dateEnd = daysAgo(1);
-  const date6M  = daysAgo(182);
-  const date28D = daysAgo(28);
-  const date7D  = daysAgo(7);
+  const isCustom = !!(customStart && customEnd);
+  const dateEnd = customEnd   || daysAgo(1);
+  const date6M  = customStart || daysAgo(182);
+  const date28D = customStart || daysAgo(28);
+  const date7D  = customStart || daysAgo(7);
 
   const runBatch = async (requests) => {
     const r = await fetch(batchUrl, {
