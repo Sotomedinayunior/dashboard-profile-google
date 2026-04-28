@@ -228,16 +228,86 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ── Test reviews API con CIDs conocidos ──────────────────────────────────
-  // CIDs extraídos del googleLocations:search (no requieren mybusinessaccountmanagement)
+  // ── Método 6: v4 legacy locations (si tenemos account) ───────────────────
+  if (result.account_found) {
+    const v4LocRes = await safe(
+      `https://mybusiness.googleapis.com/v4/${result.account_found}/locations?pageSize=100`
+    );
+    result.methods_tried.push({
+      method: 'v4 legacy locations list',
+      status: v4LocRes.status,
+      ok:     v4LocRes.ok,
+      rawResponse: v4LocRes.data,
+    });
+    if (v4LocRes.ok && v4LocRes.data?.locations?.length) {
+      result.v4_locations = v4LocRes.data.locations.map(l => ({
+        name:         l.name,
+        locationName: l.locationName,
+        placeId:      l.locationKey?.placeId || l.metadata?.placeId,
+        knownAs:      NELLY_NAMES[l.locationKey?.placeId || l.metadata?.placeId] || null,
+      }));
+      // Overwrite locations_found with v4 data if v1 failed
+      if (!result.locations_found.length) {
+        result.locations_found = result.v4_locations;
+      }
+    }
+  }
+
+  // ── Test reviews API: account level (para ver si hay acceso general) ──────
   const ACCOUNT_ID = 'accounts/14783610060775958761';
+  const accRevRes = await safe(
+    `https://mybusinessreviews.googleapis.com/v1/${ACCOUNT_ID}/reviews?pageSize=3`
+  );
+  result.reviews_account_level = {
+    note:   'Intento listar todas las reseñas a nivel de cuenta (sin location ID)',
+    status: accRevRes.status,
+    ok:     accRevRes.ok,
+    data:   accRevRes.data,
+  };
+
+  // ── Test reviews API con CIDs conocidos ──────────────────────────────────
+  // Los GBP location IDs reales se obtienen de locations_found (si la API está aprobada)
+  // Los CIDs de Google Maps son DISTINTOS de los location IDs internos de GBP
   const KNOWN_CIDS = {
-    'Independencia': '7192158108261374540',
-    'Punta Cana':    '9508074278045606119',
-    'Las Américas':  '4449375996917063436',
+    'Independencia (CID-maps)': '7192158108261374540',
+    'Punta Cana (CID-maps)':    '9508074278045606119',
+    'Las Américas (CID-maps)':  '4449375996917063436',
   };
 
   const reviewsTests = [];
+
+  // Primero: probar con location IDs reales (si los tenemos de la API)
+  if (result.locations_found.length) {
+    for (const loc of result.locations_found.slice(0, 3)) {
+      const locationName = loc.locationName || loc.name;
+      if (!locationName) continue;
+      // Asegurar formato correcto: accounts/XXX/locations/YYY
+      const fullName = locationName.startsWith('accounts/')
+        ? locationName
+        : `${ACCOUNT_ID}/${locationName}`;
+      const revRes = await safe(
+        `https://mybusinessreviews.googleapis.com/v1/${fullName}/reviews?pageSize=5`
+      );
+      reviewsTests.push({
+        sucursal:     loc.knownAs || loc.title || locationName,
+        locationName: fullName,
+        source:       'real GBP location ID',
+        status:       revRes.status,
+        ok:           revRes.ok,
+        reviewCount:  revRes.data?.totalReviewCount ?? null,
+        sample:       revRes.ok ? (revRes.data?.reviews || []).slice(0, 2).map(r => ({
+          stars:   r.starRating,
+          author:  r.reviewer?.displayName,
+          date:    r.createTime,
+          replied: !!r.reviewReply,
+          snippet: (r.comment || '').slice(0, 80),
+        })) : null,
+        error: revRes.ok ? null : (revRes.data?.error?.message || null),
+      });
+    }
+  }
+
+  // Segundo: probar con CIDs de Google Maps (fallback — probablemente 404)
   for (const [name, cid] of Object.entries(KNOWN_CIDS)) {
     const locationName = `${ACCOUNT_ID}/locations/${cid}`;
     const revRes = await safe(
@@ -246,21 +316,30 @@ module.exports = async function handler(req, res) {
     reviewsTests.push({
       sucursal:     name,
       locationName,
+      source:       'Google Maps CID (no es GBP location ID)',
       status:       revRes.status,
       ok:           revRes.ok,
       reviewCount:  revRes.data?.totalReviewCount ?? null,
-      sample:       revRes.ok ? (revRes.data?.reviews || []).slice(0, 2).map(r => ({
-        stars:   r.starRating,
-        author:  r.reviewer?.displayName,
-        date:    r.createTime,
-        replied: !!r.reviewReply,
-        snippet: (r.comment || '').slice(0, 80),
-      })) : null,
+      sample:       null,
       error: revRes.ok ? null : (revRes.data?.error?.message || null),
     });
   }
+
   result.reviews_api_test    = reviewsTests;
   result.reviews_api_working = reviewsTests.some(t => t.ok);
+
+  // ── Diagnóstico claro del estado de APIs ──────────────────────────────────
+  result.api_status_summary = {
+    account_found:             !!result.account_found,
+    account_id:                result.account_found,
+    locations_loaded:          result.locations_found.length,
+    reviews_working:           result.reviews_api_working,
+    next_step: result.locations_found.length
+      ? (result.reviews_api_working
+          ? '✅ Todo listo — reviews API funcionando con location IDs reales'
+          : '⚠️ Tenemos location IDs pero reviews API aún falla — verifica el scope business.manage')
+      : '❌ mybusinessbusinessinformation API no aprobada aún — quota_limit_value = 0 en GCP proyecto 868126352484',
+  };
 
   // ── Instrucciones finales ─────────────────────────────────────────────────
   if (result.account_found) {
