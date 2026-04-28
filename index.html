@@ -1926,42 +1926,42 @@ html,body{overflow-x:hidden;width:100%}
     </div>
   </div>
 
-  <!-- Trend Hero Banner -->
-  <div id="fc-trend-banner" style="border-radius:var(--radius);padding:26px 32px;margin-bottom:28px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;position:relative;overflow:hidden;border:1px solid transparent">
-    <div id="fc-trend-arrow" style="font-size:56px;line-height:1;flex-shrink:0">—</div>
-    <div style="flex:1;min-width:200px">
-      <div id="fc-trend-label" style="font-family:var(--ffc);font-size:22px;font-weight:700;margin-bottom:6px">Calculando tendencia…</div>
-      <div id="fc-trend-desc" style="font-size:13px;line-height:1.65;max-width:680px"></div>
-    </div>
-    <div style="text-align:right;flex-shrink:0">
-      <div id="fc-r2-val" style="font-family:var(--ffc);font-size:28px;font-weight:700">—</div>
-      <div style="font-size:11px;color:#888;margin-top:3px">Confianza del modelo (R²)</div>
-    </div>
-  </div>
-
-  <!-- KPI cards: proyecciones -->
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:28px">
-    <div class="kpi-card">
-      <div class="kpi-label">Tendencia diaria</div>
-      <div class="kpi-value" id="fc-kpi-slope">—</div>
+  <!-- KPI cards: proyecciones (tendencia integrada como primera card) -->
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+    <div class="kpi-card" id="fc-trend-banner">
+      <div class="kpi-label" id="fc-trend-label">Calculando tendencia…</div>
+      <div class="kpi-value" id="fc-kpi-slope" style="font-size:22px">—</div>
       <div class="kpi-sub">clics/día de variación</div>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">
+        Confianza R²: <strong id="fc-r2-val" style="color:var(--text2)">—</strong>
+      </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Próximos 30 días</div>
+      <div class="kpi-label">30 días</div>
       <div class="kpi-value" id="fc-kpi-30d">—</div>
       <div class="kpi-sub" id="fc-sub-30d">clics proyectados</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Próximos 60 días</div>
+      <div class="kpi-label">60 días</div>
       <div class="kpi-value" id="fc-kpi-60d">—</div>
       <div class="kpi-sub" id="fc-sub-60d">clics proyectados</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Próximos 90 días</div>
+      <div class="kpi-label">90 días</div>
       <div class="kpi-value" id="fc-kpi-90d">—</div>
       <div class="kpi-sub" id="fc-sub-90d">clics proyectados</div>
     </div>
   </div>
+
+  <!-- Descripción de tendencia — card estándar con borde dinámico -->
+  <div class="card" id="fc-desc-card" style="margin:16px 0;padding:14px 18px;border-left:3px solid var(--border2)">
+    <div id="fc-trend-desc" style="font-size:13px;color:var(--text2);line-height:1.7">
+      Cargando proyección…
+    </div>
+  </div>
+
+  <!-- Elemento oculto para retrocompatibilidad JS -->
+  <span id="fc-trend-arrow" style="display:none"></span>
 
   <!-- Chart principal -->
   <div class="card" style="margin-bottom:28px">
@@ -3852,29 +3852,36 @@ function renderForecast(D) {
   const trendUp      = slope >= 0;
   const slopeAbsWeek = Math.abs(slope * 7).toFixed(0);
 
+  // ── 4. Trend KPI card + descripción ────────────────────────────────
+  const trendColor = trendUp ? 'var(--green)' : 'var(--red)';
+  const trendR2Color = r2 >= 0.6 ? 'var(--green)' : r2 >= 0.35 ? 'var(--orange)' : 'var(--red)';
+
   if (banner) {
-    if (trendUp) {
-      banner.style.background = 'linear-gradient(135deg,#0f2a1a 0%,#1a3d28 100%)';
-      banner.style.borderColor = '#27a663';
-      if (arrowEl) { arrowEl.textContent = '↗'; arrowEl.style.color = '#2ecc71'; }
-      if (labelEl) { labelEl.textContent = 'Tendencia Positiva — El tráfico está creciendo'; labelEl.style.color = '#2ecc71'; }
-    } else {
-      banner.style.background = 'linear-gradient(135deg,#2a0f0f 0%,#3d1a1a 100%)';
-      banner.style.borderColor = '#e24b4a';
-      if (arrowEl) { arrowEl.textContent = '↘'; arrowEl.style.color = '#e24b4a'; }
-      if (labelEl) { labelEl.textContent = 'Tendencia Negativa — El tráfico está descendiendo'; labelEl.style.color = '#e24b4a'; }
-    }
-    if (descEl) {
-      const direction = trendUp ? 'ganando' : 'perdiendo';
-      descEl.style.color = '#aaa';
-      descEl.innerHTML = `El modelo detecta que el sitio está <strong style="color:#fff">${direction} ~${slopeAbsWeek} clics por semana</strong>.
-        Con base en los últimos ${n} días de datos de Search Console, se proyectan <strong style="color:#fff">${fmt(p90)} clics</strong> para los próximos 90 días.
-        ${r2 >= 0.6 ? '✅ El modelo tiene alta confianza.' : r2 >= 0.35 ? '⚠️ Confianza moderada — hay variabilidad estacional.' : '⚠️ Baja confianza — hay alta variabilidad en los datos.'}`;
-    }
-    if (r2El) {
-      r2El.textContent = (r2 * 100).toFixed(0) + '%';
-      r2El.style.color = r2 >= 0.6 ? '#2ecc71' : r2 >= 0.35 ? '#f39c12' : '#e24b4a';
-    }
+    banner.style.borderColor = trendUp ? 'rgba(34,197,100,0.3)' : 'rgba(226,75,74,0.3)';
+    banner.style.background  = trendUp
+      ? 'linear-gradient(135deg,rgba(34,197,100,0.06),transparent)'
+      : 'linear-gradient(135deg,rgba(226,75,74,0.06),transparent)';
+  }
+  if (labelEl) {
+    labelEl.textContent = trendUp ? 'Tendencia Positiva' : 'Tendencia Negativa';
+    labelEl.style.color = trendColor;
+  }
+  if (r2El) {
+    r2El.textContent = (r2 * 100).toFixed(0) + '%';
+    r2El.style.color = trendR2Color;
+  }
+
+  const descCard = document.getElementById('fc-desc-card');
+  if (descCard) {
+    descCard.style.borderLeftColor = trendUp ? 'var(--green)' : 'var(--red)';
+  }
+  if (descEl) {
+    const direction = trendUp ? 'ganando' : 'perdiendo';
+    const confidence = r2 >= 0.6 ? 'Alta confianza del modelo.' : r2 >= 0.35 ? 'Confianza moderada — hay variabilidad estacional.' : 'Baja confianza — alta variabilidad en los datos.';
+    descEl.innerHTML = `El modelo detecta que el sitio está <strong style="color:var(--text)">${direction} ~${slopeAbsWeek} clics por semana</strong>.
+      Con base en los últimos <strong style="color:var(--text)">${n} días</strong> de datos de Search Console,
+      se proyectan <strong style="color:var(--text)">${fmt(p90)} clics</strong> para los próximos 90 días.
+      <span style="color:${trendR2Color}">${confidence}</span>`;
   }
 
   // ── 5. KPI cards ──────────────────────────────────────────────────
