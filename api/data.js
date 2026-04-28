@@ -381,7 +381,7 @@ const NELLY_LOCATIONS = [
   { id: 'cibao',         name: 'Aeropuerto Cibao',    shortName: 'Cibao STI',     placeId: 'ChIJBUNVazXRsY4R76jNG9B5mUQ' },
   { id: 'puertoplata',   name: 'Gregorio Luperón',    shortName: 'Pto. Plata',    placeId: 'ChIJNSahrlDksY4RdDGaHelddiY' },
   { id: 'puntacana',     name: 'Punta Cana',          shortName: 'Punta Cana',    placeId: 'ChIJPZ6a5d6TqI4R5-DvEC5384M' },
-  { id: 'bocachica',     name: 'Boca Chica',          shortName: 'Boca Chica',    placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
+  { id: 'bocachica',     name: 'Las Américas',        shortName: 'Las Américas',  placeId: 'ChIJIfF1mPt_pY4RDB9kOOVbvz0' },
 ];
 
 const EMPTY_PERF = {
@@ -687,7 +687,7 @@ const SERP_SEARCHES = [
   { locId: 'cibao',         q: 'Nelly Rent A Car Aeropuerto Cibao Santiago'   },
   { locId: 'puertoplata',   q: 'Nelly Rent A Car Puerto Plata'                },
   { locId: 'puntacana',     q: 'Nelly Rent A Car Punta Cana'                  },
-  { locId: 'bocachica',     q: 'Nelly Rent A Car Boca Chica'                  },
+  { locId: 'bocachica',     q: 'Nelly Rent A Car Aeropuerto Las Americas'     },
 ];
 
 async function fetchOneBranch(nelly, q, apiKey) {

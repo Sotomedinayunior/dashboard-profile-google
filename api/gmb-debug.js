@@ -21,7 +21,7 @@ const NELLY_NAMES = {
   'ChIJBUNVazXRsY4R76jNG9B5mUQ': 'Santiago · Cibao',
   'ChIJNSahrlDksY4RdDGaHelddiY': 'Puerto Plata',
   'ChIJPZ6a5d6TqI4R5-DvEC5384M': 'Punta Cana',
-  'ChIJIfF1mPt_pY4RDB9kOOVbvz0': 'Boca Chica',
+  'ChIJIfF1mPt_pY4RDB9kOOVbvz0': 'Las Américas',
 };
 
 module.exports = async function handler(req, res) {
