@@ -2669,6 +2669,64 @@ function starRow(rating, size=13) {
 }
 function liIcons() { if(typeof lucide!=='undefined') lucide.createIcons(); }
 
+// ── Países: ISO alpha-3 → nombre en español ───────────────────────────────────
+const COUNTRY_NAMES = {
+  // Américas
+  'DOM':'República Dominicana','USA':'Estados Unidos','CAN':'Canadá',
+  'MEX':'México','BRA':'Brasil','ARG':'Argentina','COL':'Colombia',
+  'CHL':'Chile','PER':'Perú','VEN':'Venezuela','ECU':'Ecuador',
+  'BOL':'Bolivia','PRY':'Paraguay','URY':'Uruguay','GTM':'Guatemala',
+  'CRI':'Costa Rica','PAN':'Panamá','HND':'Honduras','SLV':'El Salvador',
+  'NIC':'Nicaragua','CUB':'Cuba','HTI':'Haití','JAM':'Jamaica',
+  'PRI':'Puerto Rico','TTO':'Trinidad y Tobago','BHS':'Bahamas',
+  'BRB':'Barbados','GUY':'Guyana','SUR':'Surinam','GLP':'Guadalupe',
+  'MTQ':'Martinica','VIR':'Islas Vírgenes (EE.UU.)','BLZ':'Belice',
+  // Europa
+  'ESP':'España','GBR':'Reino Unido','DEU':'Alemania','FRA':'Francia',
+  'ITA':'Italia','PRT':'Portugal','NLD':'Países Bajos','BEL':'Bélgica',
+  'CHE':'Suiza','AUT':'Austria','SWE':'Suecia','NOR':'Noruega',
+  'DNK':'Dinamarca','FIN':'Finlandia','POL':'Polonia','CZE':'República Checa',
+  'HUN':'Hungría','ROU':'Rumania','BGR':'Bulgaria','HRV':'Croacia',
+  'SVK':'Eslovaquia','SVN':'Eslovenia','GRC':'Grecia','IRL':'Irlanda',
+  'LUX':'Luxemburgo','MLT':'Malta','CYP':'Chipre','EST':'Estonia',
+  'LVA':'Letonia','LTU':'Lituania','RUS':'Rusia','UKR':'Ucrania',
+  'BLR':'Bielorrusia','SRB':'Serbia','HRV':'Croacia','MKD':'Macedonia del Norte',
+  'ALB':'Albania','MNE':'Montenegro','BIH':'Bosnia y Herzegovina',
+  'ISL':'Islandia','LIE':'Liechtenstein','MCO':'Mónaco','AND':'Andorra',
+  // Asia
+  'CHN':'China','JPN':'Japón','KOR':'Corea del Sur','IND':'India',
+  'IDN':'Indonesia','THA':'Tailandia','VNM':'Vietnam','PHL':'Filipinas',
+  'MYS':'Malasia','SGP':'Singapur','TWN':'Taiwán','HKG':'Hong Kong',
+  'ISR':'Israel','SAU':'Arabia Saudita','ARE':'Emiratos Árabes',
+  'TUR':'Turquía','IRN':'Irán','IRQ':'Irak','JOR':'Jordania',
+  'LBN':'Líbano','KWT':'Kuwait','QAT':'Catar','BHR':'Baréin',
+  'OMN':'Omán','YEM':'Yemen','PAK':'Pakistán','AFG':'Afganistán',
+  'BGD':'Bangladés','LKA':'Sri Lanka','NPL':'Nepal','MMR':'Birmania',
+  'KHM':'Camboya','LAO':'Laos','MNG':'Mongolia','KAZ':'Kazajistán',
+  'UZB':'Uzbekistán','TKM':'Turkmenistán','AZE':'Azerbaiyán',
+  'GEO':'Georgia','ARM':'Armenia',
+  // África
+  'SDN':'Sudán','ZAF':'Sudáfrica','NGA':'Nigeria','EGY':'Egipto',
+  'ETH':'Etiopía','KEN':'Kenia','TZA':'Tanzania','UGA':'Uganda',
+  'GHA':'Ghana','CIV':'Costa de Marfil','CMR':'Camerún','SEN':'Senegal',
+  'ZWE':'Zimbabue','ZMB':'Zambia','MOZ':'Mozambique','MWI':'Malaui',
+  'MDG':'Madagascar','DZA':'Argelia','MAR':'Marruecos','TUN':'Túnez',
+  'LBY':'Libia','SOM':'Somalia','SSD':'Sudán del Sur','COD':'Congo (RD)',
+  'COG':'Congo','AGO':'Angola','RWA':'Ruanda','BDI':'Burundi',
+  'MLI':'Malí','NER':'Níger','TCD':'Chad','MRT':'Mauritania',
+  'SLE':'Sierra Leona','LBR':'Liberia','GIN':'Guinea',
+  // Oceanía
+  'AUS':'Australia','NZL':'Nueva Zelanda','FJI':'Fiyi','PNG':'Papúa Nueva Guinea',
+  // Otros
+  'unknown':'Desconocido','(not set)':'Sin datos',
+};
+function countryName(code) {
+  if (!code) return '—';
+  // Si ya es un nombre largo (viene de GA4), devolverlo directamente
+  if (code.length > 3) return code;
+  return COUNTRY_NAMES[code.toUpperCase()] || code;
+}
+
 // Helper: sanitize text for safe HTML insertion
 function sanitizeText(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -3179,9 +3237,9 @@ function computeOpportunities(D) {
   const potClicks = Math.round(topCountry.impressions * 0.03 - topCountry.clicks);
   opps.push({
   tag: 'Quick Win', cls: 'tag-quick',
-  title: `${topCountry.country}: ${Math.round(topCountry.impressions/1000)}K impr. con solo ${topCountry.ctr.toFixed(2)}% CTR`,
+  title: `${countryName(topCountry.country)}: ${Math.round(topCountry.impressions/1000)}K impr. con solo ${topCountry.ctr.toFixed(2)}% CTR`,
   desc: `Tu mercado #1 tiene enorme potencial sin explotar. Landing pages dedicadas y ads en ese mercado pueden ser la palanca más rápida de crecimiento.`,
-  impact: potClicks > 0 ? `+${potClicks.toLocaleString()} clics de ${topCountry.country}` : 'Alto potencial de crecimiento',
+  impact: potClicks > 0 ? `+${potClicks.toLocaleString()} clics de ${countryName(topCountry.country)}` : 'Alto potencial de crecimiento',
   });
   }
 
@@ -3191,7 +3249,7 @@ function computeOpportunities(D) {
   opps.push({
   tag: 'Medio Plazo', cls: 'tag-med',
   title: `${highCTRCountries.length} mercados con CTR alto y poca inversión`,
-  desc: `${highCTRCountries.map(c=>`${c.country} (${c.ctr.toFixed(1)}%)`).join(', ')}. Alta intención de compra con poco volumen — contenido localizado y campañas geo-específicas pueden escalarlo.`,
+  desc: `${highCTRCountries.map(c=>`${countryName(c.country)} (${c.ctr.toFixed(1)}%)`).join(', ')}. Alta intención de compra con poco volumen — contenido localizado y campañas geo-específicas pueden escalarlo.`,
   impact: `+30-50% clics en esos mercados`,
   });
   }
@@ -3254,7 +3312,7 @@ function render(D) {
   el('diag-mobile', mobilePct);
   el('diag-branded', brandedPct);
   el('diag-ctr', s.avg_ctr > 0 ? s.avg_ctr.toFixed(2)+'%' : '—');
-  el('diag-top-country', topC !== '—' ? topC.split(' ')[0]+' #1' : '—');
+  el('diag-top-country', topC !== '—' ? countryName(topC)+' #1' : '—');
   el('diag-low-ctr-impr', lowCTRImpr > 1000 ? Math.round(lowCTRImpr/1000)+'K' : lowCTRImpr > 0 ? lowCTRImpr : '—');
 
   // Opportunities 
@@ -3314,7 +3372,7 @@ function render(D) {
   // Geo sub-header + #2 country
   el('geo-sub', `${D.countries.length} países con tráfico registrado`);
   const second = D.countries[1] || {};
-  el('kpi-second-country', second.country || '—');
+  el('kpi-second-country', second.country ? countryName(second.country) : '—');
   el('kpi-second-country-clicks', second.clicks ? second.clicks.toLocaleString()+' clics' : '— clics');
   el('kpi-second-country-ctr', second.ctr ? 'CTR '+second.ctr.toFixed(2)+'%' : '—');
 
@@ -3336,16 +3394,16 @@ function render(D) {
   const top = D.countries[0] || {};
   const topCTR = [...D.countries].sort((a,b)=>b.ctr-a.ctr)[0] || {};
   const highCTR = D.countries.filter(c=>c.ctr>4);
-  el('kpi-top-country', top.country||'—');
+  el('kpi-top-country', top.country ? countryName(top.country) : '—');
   el('kpi-top-country-clicks', top.clicks ? top.clicks.toLocaleString() : '—');
   el('kpi-top-ctr-country', topCTR.ctr ? topCTR.ctr.toFixed(2)+'%' : '—');
-  el('kpi-top-ctr-name', topCTR.country||'—');
+  el('kpi-top-ctr-name', topCTR.country ? countryName(topCTR.country) : '—');
   const third = D.countries[2] || {};
-  el('kpi-third-country', third.country||'—');
+  el('kpi-third-country', third.country ? countryName(third.country) : '—');
   el('kpi-third-country-clicks', third.clicks ? third.clicks.toLocaleString()+' clics' : '—');
   el('kpi-third-country-ctr', third.ctr ? 'CTR '+third.ctr.toFixed(2)+'%' : '—');
   el('kpi-europe-clicks', highCTR.length > 0 ? highCTR.length+' países' : '—');
-  el('kpi-eu-sub', highCTR.length > 0 ? highCTR.slice(0,3).map(c=>c.country.split(' ')[0]).join(', ') : 'Alta intención de compra');
+  el('kpi-eu-sub', highCTR.length > 0 ? highCTR.slice(0,3).map(c=>countryName(c.country)).join(', ') : 'Alta intención de compra');
   el('kpi-latam-clicks', highCTR.length > 0 ? ' '+highCTR.slice(0,1).map(c=>c.ctr.toFixed(1)+'% CTR').join() : '—');
 
   // TREND CHART (monthly aggregated) 
@@ -3434,17 +3492,16 @@ function render(D) {
 
   // GEO CHARTS 
   const top15c = D.countries.slice(0,15);
-  const shortName = n => n.replace('Dominican Republic','Dom. Rep.').replace('United States','USA').replace('United Kingdom','UK').replace('Puerto Rico','P.Rico');
 
   mkChart('countriesClicksChart',{
-  type:'bar',data:{labels:top15c.map(d=>shortName(d.country)),datasets:[{data:top15c.map(d=>d.clicks),backgroundColor:O,borderRadius:4}]},
+  type:'bar',data:{labels:top15c.map(d=>countryName(d.country)),datasets:[{data:top15c.map(d=>d.clicks),backgroundColor:O,borderRadius:4}]},
   options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
   scales:{x:{ticks:{font:{size:9},color:MU},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:9},color:MU},grid:{display:false}}}}
   });
 
   const ctrSorted=[...D.countries].sort((a,b)=>b.ctr-a.ctr).slice(0,15);
   mkChart('countriesCTRChart',{
-  type:'bar',data:{labels:ctrSorted.map(d=>shortName(d.country)),datasets:[{data:ctrSorted.map(d=>d.ctr),backgroundColor:ctrSorted.map((_,i)=>i<5?O:OL),borderRadius:4}]},
+  type:'bar',data:{labels:ctrSorted.map(d=>countryName(d.country)),datasets:[{data:ctrSorted.map(d=>d.ctr),backgroundColor:ctrSorted.map((_,i)=>i<5?O:OL),borderRadius:4}]},
   options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
   scales:{x:{ticks:{font:{size:9},color:MU,callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},y:{ticks:{font:{size:9},color:MU},grid:{display:false}}}}
   });
@@ -3453,7 +3510,8 @@ function render(D) {
   ct.innerHTML='';
   D.countries.slice(0,20).forEach((d,i)=>{
   const opp=d.ctr>4?'<span class="pill pill-green">Alto CTR</span>':d.impressions>50000?'<span class="pill pill-orange">Gran volumen</span>':'<span class="pill pill-gray">Normal</span>';
-  ct.innerHTML+=`<tr><td>${i+1}</td><td>${d.country}</td><td>${d.clicks.toLocaleString()}</td><td>${d.impressions.toLocaleString()}</td><td>${d.ctr.toFixed(2)}%</td><td>${d.position.toFixed(1)}</td><td>${opp}</td></tr>`;
+  const name = countryName(d.country);
+  ct.innerHTML+=`<tr><td>${i+1}</td><td style="font-weight:600">${name}</td><td>${d.clicks.toLocaleString()}</td><td>${d.impressions.toLocaleString()}</td><td>${d.ctr.toFixed(2)}%</td><td>${d.position.toFixed(1)}</td><td>${opp}</td></tr>`;
   });
 
   // PERIOD COMPARISON TABLE 
