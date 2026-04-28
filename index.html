@@ -64,8 +64,18 @@ html,body{overflow-x:hidden;width:100%}
 
 /* KPI GRID */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:28px}
-.kpi-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border);position:relative;overflow:hidden;min-width:0}
+.kpi-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border);position:relative;overflow:hidden;min-width:0;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.kpi-card:hover{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,120,50,.08)}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--orange)}
+/* KPI info popup */
+#kpi-popup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.28);padding:20px 22px;width:300px;max-width:90vw;display:none;animation:kpiFadeIn .15s ease}
+#kpi-popup.active{display:block}
+@keyframes kpiFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+#kpi-popup-close{position:absolute;top:10px;right:14px;background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;line-height:1}
+#kpi-popup-title{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:700;margin-bottom:4px}
+#kpi-popup-value{font-family:var(--ffc);font-size:30px;font-weight:700;color:var(--text);line-height:1.1;margin-bottom:10px;word-break:break-all}
+#kpi-popup-what{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:8px}
+#kpi-popup-source{font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border);line-height:1.5}
 .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:8px;font-weight:600}
 .kpi-value{font-family:var(--ffc);font-size:32px;font-weight:700;color:var(--text);line-height:1}
 .kpi-sub{font-size:12px;color:var(--text3);margin-top:6px}
@@ -6311,6 +6321,87 @@ function renderExecutive(D) {
   if (el('etraf-bar-paid'))    { el('etraf-bar-paid').style.flex    = String(pctPaid || 0); el('etraf-bar-paid').textContent    = pctPaid > 8 ? pctPaid + '%' : ''; }
   if (el('etraf-bar-other'))   { el('etraf-bar-other').style.flex   = String(pctOth  || 1); el('etraf-bar-other').textContent   = pctOth  > 8 ? pctOth + '%'  : ''; }
 
+  // ── Tooltips onclick para los KPI cards del Resumen Ejecutivo ────
+  const kpiDefs = [
+    {
+      id: 'ekpi-clicks',
+      card: el('ekpi-clicks')?.closest('.kpi-card'),
+      title: 'Clics orgánicos / mes',
+      fullVal: () => (clicksMo).toLocaleString('es-DO') + ' clics',
+      what: 'Número de veces que usuarios hicieron clic en nellyrac.do desde los resultados de búsqueda de Google en los últimos 30 días (estimado desde los 28 días reportados por GSC).',
+      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
+    },
+    {
+      id: 'ekpi-pos',
+      card: el('ekpi-pos')?.closest('.kpi-card'),
+      title: 'Posición media en Google',
+      fullVal: () => position ? position.toFixed(2) : '—',
+      what: 'Promedio de la posición en que aparece el sitio en los resultados de Google. Posición 1 es el primer resultado. Se calcula sobre todas las búsquedas donde el sitio apareció, ponderado por impresiones.',
+      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
+    },
+    {
+      id: 'ekpi-rating',
+      card: el('ekpi-rating')?.closest('.kpi-card'),
+      title: 'Calificación en Google',
+      fullVal: () => rating ? rating.toFixed(2) + ' / 5.00 ⭐  (' + totalRev.toLocaleString('es-DO') + ' reseñas)' : '—',
+      what: 'Promedio de estrellas de todas las reseñas de las sucursales en Google Maps / Google Business Profile. Incluye las 5 sucursales: Independencia, Santiago, Puerto Plata, Punta Cana y Las Américas.',
+      source: 'Google Business Profile API · mybusinessreviews',
+    },
+    {
+      id: 'ekpi-sessions',
+      card: el('ekpi-sessions')?.closest('.kpi-card'),
+      title: 'Sesiones web / mes',
+      fullVal: () => (ga4?.summary?.sessions || 0).toLocaleString('es-DO') + ' sesiones',
+      what: 'Total de visitas al sitio nellyrac.do registradas por Google Analytics en los últimos 28 días. Una sesión es una visita completa de un usuario, sin importar cuántas páginas vea.',
+      source: 'Google Analytics 4 · Informe de resumen · últimos 28 días',
+    },
+    {
+      id: 'ekpi-ctr',
+      card: el('ekpi-ctr')?.closest('.kpi-card'),
+      title: 'CTR orgánico',
+      fullVal: () => ctr ? ctr.toFixed(2) + '%' : '—',
+      what: 'Click-Through Rate: porcentaje de veces que alguien hizo clic sobre el sitio al verlo en Google. Ejemplo: si el sitio aparece 1,000 veces y recibe 35 clics, el CTR es 3.5%. El promedio saludable para rent a car es 3–5%.',
+      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
+    },
+  ];
+
+  kpiDefs.forEach(({ card, title, fullVal, what, source }) => {
+    if (!card) return;
+    card.style.cursor = 'pointer';
+    card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
+  });
+
+  // Tooltips para la sección orgánico vs pagado
+  const trafDefs = [
+    {
+      cardId: 'etraf-organic',
+      title: '🌿 Tráfico orgánico (Google / GSC)',
+      fullVal: () => sessOrganic.toLocaleString('es-DO') + ' sesiones  (' + pctOrg + '% del total)',
+      what: 'Visitas que llegaron al sitio desde resultados de búsqueda gratuitos de Google. Estas sesiones no cuestan dinero — son el resultado del trabajo de SEO (posicionamiento orgánico). Cuanto mayor este número, menos dependencia de publicidad pagada.',
+      source: 'Google Analytics 4 · Canal "Organic Search" · últimos 6 meses',
+    },
+    {
+      cardId: 'etraf-paid',
+      title: '💰 Tráfico pagado (Google Ads)',
+      fullVal: () => sessPaid > 0 ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)' : '0 sesiones · Sin campañas de Google Ads activas en este período',
+      what: 'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
+      source: 'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses',
+    },
+    {
+      cardId: 'etraf-other',
+      title: '🔗 Otros canales',
+      fullVal: () => sessOther.toLocaleString('es-DO') + ' sesiones  (' + pctOth + '% del total)',
+      what: 'Visitas que no vienen de búsquedas en Google. Incluye: tráfico directo (personas que escriben nellyrac.do directamente), referrals (links desde otras webs), redes sociales orgánicas (Facebook, Instagram), y email.',
+      source: 'Google Analytics 4 · Todos los canales excepto Organic y Paid Search · últimos 6 meses',
+    },
+  ];
+
+  trafDefs.forEach(({ cardId, title, fullVal, what, source }) => {
+    const card = el(cardId)?.closest('.kpi-card');
+    if (!card) return;
+    card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
+  });
+
   // Insight automático
   if (el('etraf-insight')) {
     let insight = '';
@@ -6618,6 +6709,44 @@ function filterGlossary(q) {
   });
 }
 
+</script>
+
+<!-- KPI Info Popup -->
+<div id="kpi-popup">
+  <button id="kpi-popup-close" onclick="closeKpiPopup()">✕</button>
+  <div id="kpi-popup-title"></div>
+  <div id="kpi-popup-value"></div>
+  <div id="kpi-popup-what"></div>
+  <div id="kpi-popup-source"></div>
+</div>
+<script>
+function showKpiPopup(cardEl, title, fullValue, what, source) {
+  const popup = document.getElementById('kpi-popup');
+  document.getElementById('kpi-popup-title').textContent = title;
+  document.getElementById('kpi-popup-value').textContent = fullValue;
+  document.getElementById('kpi-popup-what').textContent  = what;
+  document.getElementById('kpi-popup-source').innerHTML  = '📡 <strong>Fuente:</strong> ' + source;
+  popup.classList.add('active');
+
+  // Posicionarlo cerca del card
+  const rect = cardEl.getBoundingClientRect();
+  const pw = 300, ph = 200;
+  let top  = rect.bottom + window.scrollY + 8;
+  let left = rect.left   + window.scrollX;
+  if (left + pw > window.innerWidth - 16)  left = window.innerWidth - pw - 16;
+  if (top  + ph > window.scrollY + window.innerHeight - 16) top = rect.top + window.scrollY - ph - 8;
+  popup.style.top  = top  + 'px';
+  popup.style.left = left + 'px';
+}
+function closeKpiPopup() {
+  document.getElementById('kpi-popup').classList.remove('active');
+}
+document.addEventListener('click', function(e) {
+  const popup = document.getElementById('kpi-popup');
+  if (popup.classList.contains('active') && !popup.contains(e.target) && !e.target.closest('.kpi-card')) {
+    closeKpiPopup();
+  }
+});
 </script>
 </body>
 </html>
