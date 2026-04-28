@@ -228,6 +228,40 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // ── Test reviews API con CIDs conocidos ──────────────────────────────────
+  // CIDs extraídos del googleLocations:search (no requieren mybusinessaccountmanagement)
+  const ACCOUNT_ID = 'accounts/14783610060775958761';
+  const KNOWN_CIDS = {
+    'Independencia': '7192158108261374540',
+    'Punta Cana':    '9508074278045606119',
+    'Las Américas':  '4449375996917063436',
+  };
+
+  const reviewsTests = [];
+  for (const [name, cid] of Object.entries(KNOWN_CIDS)) {
+    const locationName = `${ACCOUNT_ID}/locations/${cid}`;
+    const revRes = await safe(
+      `https://mybusinessreviews.googleapis.com/v1/${locationName}/reviews?pageSize=5`
+    );
+    reviewsTests.push({
+      sucursal:     name,
+      locationName,
+      status:       revRes.status,
+      ok:           revRes.ok,
+      reviewCount:  revRes.data?.totalReviewCount ?? null,
+      sample:       revRes.ok ? (revRes.data?.reviews || []).slice(0, 2).map(r => ({
+        stars:   r.starRating,
+        author:  r.reviewer?.displayName,
+        date:    r.createTime,
+        replied: !!r.reviewReply,
+        snippet: (r.comment || '').slice(0, 80),
+      })) : null,
+      error: revRes.ok ? null : (revRes.data?.error?.message || null),
+    });
+  }
+  result.reviews_api_test    = reviewsTests;
+  result.reviews_api_working = reviewsTests.some(t => t.ok);
+
   // ── Instrucciones finales ─────────────────────────────────────────────────
   if (result.account_found) {
     result.instructions = [
