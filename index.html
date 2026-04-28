@@ -1488,7 +1488,9 @@ html,body{overflow-x:hidden;width:100%}
 
   <!-- Actividad diaria -->
   <div class="card" style="margin-bottom:20px">
-  <div class="card-title" style="margin-bottom:12px">Actividad Diaria · Últimos 6 meses</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div class="card-title" style="margin:0">Actividad Diaria · <span id="ga4-daily-period-label">Últimos 28 días</span></div>
+  </div>
   <div style="height:190px;position:relative"><canvas id="ga4-daily-chart"></canvas></div>
   </div>
 
@@ -4507,7 +4509,8 @@ function ga4SetPeriod(period, btn) {
 
   const rows = { '7d': GA4_DATA.daily7d || [], '28d': GA4_DATA.daily28d || [], '6m': GA4_DATA.daily6m || [] }[period] || [];
   const S    = GA4_DATA.summary || {};
-  const labels = { '7d': 'últimos 7 días', '28d': 'últimos 28 días', '6m': 'últimos 6 meses' };
+  const labels      = { '7d': 'últimos 7 días',  '28d': 'últimos 28 días',  '6m': 'últimos 6 meses' };
+  const dailyLabels = { '7d': 'Últimos 7 días',   '28d': 'Últimos 28 días',  '6m': 'Últimos 6 meses' };
   const periodLabel = { '7d': '7 días', '28d': '28 días', '6m': '6 meses' };
 
   let totalSessions, totalUsers;
@@ -4527,6 +4530,11 @@ function ga4SetPeriod(period, btn) {
   if (subEl2) subEl2.textContent = labels[period];
   const chartLabelEl = document.getElementById('ga4-chart-period-label');
   if (chartLabelEl) chartLabelEl.textContent = periodLabel[period];
+
+  // Actualizar título y chart de actividad diaria
+  const dailyLabelEl = document.getElementById('ga4-daily-period-label');
+  if (dailyLabelEl) dailyLabelEl.textContent = dailyLabels[period];
+  try { _gcRenderHeatmap(rows); } catch(e) { console.error('[GA4 Daily]', e); }
 
   _whenGCReady(() => _gcRenderSessions(rows));
 }
