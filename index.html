@@ -4431,35 +4431,52 @@ function _gcRenderHeatmap(dailyData) {
     div.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:30px;text-align:center">Sin datos de actividad diaria</div>';
     return;
   }
+
+  // Muestra los últimos 90 días — cada barra es 1 día
   const last90 = dailyData.slice(-90);
   const maxV   = Math.max(...last90.map(d => d.sessions || 0), 1);
 
+  // Usar 'string' en lugar de 'date' para evitar eje continuo en Google Charts
   const data = new google.visualization.DataTable();
-  data.addColumn('date', 'Fecha');
+  data.addColumn('string', 'Fecha');
   data.addColumn('number', 'Sesiones');
   data.addColumn({ type: 'string', role: 'style' });
-  data.addColumn({ type: 'string', role: 'tooltip' });
+  data.addColumn({ type: 'string', role: 'tooltip', p: { html: true } });
+
   data.addRows(last90.map(d => {
     const pct   = (d.sessions || 0) / maxV;
-    const alpha = pct < 0.20 ? 0.18 : pct < 0.45 ? 0.42 : pct < 0.70 ? 0.68 : 0.92;
+    const alpha = pct < 0.15 ? 0.15 : pct < 0.40 ? 0.40 : pct < 0.70 ? 0.68 : 0.92;
     const dt    = _ga4Date(d.date);
+    // Solo mostrar etiqueta cada ~15 días para no saturar el eje
+    const label = (dt.getDate() === 1 || dt.getDate() === 15) ? `${dt.getDate()}/${dt.getMonth()+1}` : '';
     return [
-      dt,
+      label,
       d.sessions || 0,
       `color:rgba(242,103,34,${alpha});stroke-width:0`,
-      `${dt.getDate()}/${dt.getMonth()+1}: ${(d.sessions||0).toLocaleString()} sesiones`,
+      `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}: ${(d.sessions||0).toLocaleString()} sesiones`,
     ];
   }));
 
   new google.visualization.ColumnChart(div).draw(data, {
-    chartArea: { left: 40, top: 10, right: 10, bottom: 40, width: '100%', height: '100%' },
-    legend: { position: 'none' },
-    hAxis: { format: 'dd/MM', textStyle: { fontSize: 9, color: '#aaa' }, gridlines: { count: 0 }, baselineColor: 'transparent' },
-    vAxis: { textStyle: { fontSize: 9, color: '#aaa' }, gridlines: { color: '#f0f0f0', count: 4 }, baselineColor: '#e8e8e8', minValue: 0, format: 'short' },
-    bar: { groupWidth: '90%' },
+    chartArea: { left: 40, top: 8, right: 8, bottom: 30, width: '100%', height: '100%' },
+    legend:    { position: 'none' },
+    hAxis: {
+      textStyle:    { fontSize: 9, color: '#999' },
+      gridlines:    { count: 0 },
+      baselineColor: 'transparent',
+      showTextEvery: 1,
+    },
+    vAxis: {
+      textStyle:     { fontSize: 9, color: '#aaa' },
+      gridlines:     { color: '#f0f0f0', count: 3 },
+      baselineColor: '#e8e8e8',
+      minValue: 0,
+      format: 'short',
+    },
+    bar:         { groupWidth: '88%' },
     backgroundColor: 'transparent',
-    animation: { startup: true, duration: 600, easing: 'out' },
-    tooltip: { isHtml: false, trigger: 'focus' },
+    animation:   { startup: true, duration: 500, easing: 'out' },
+    tooltip:     { isHtml: false, trigger: 'focus' },
   });
 }
 
