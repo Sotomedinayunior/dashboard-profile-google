@@ -6241,9 +6241,11 @@ function renderExecutive(D) {
   const ctr        = gsc.avg_ctr       || 0;
   const sessions   = ga4?.summary?.sessions || 0;
   const engRate    = ga4?.summary?.engagementRate || 0;
-  const rating     = gmb?.totalRating  || gmb?.locations?.[0]?.rating || 0;
-  const totalRev   = gmb?.totalReviews || 0;
-  const replyRate  = gmb?.replyRate    || 0;
+  const rating     = gmb?.rating || gmb?.locations?.[0]?.rating || 0;
+  const totalRev   = gmb?.reviewCount
+    || (gmb?.locations || []).reduce((s, l) => s + (l.reviewCount || 0), 0)
+    || 0;
+  const replyRate  = gmb?.replyRate || 0;
 
   // KPI strip
   if (el('ekpi-clicks'))    el('ekpi-clicks').textContent   = fmt(clicksMo);
