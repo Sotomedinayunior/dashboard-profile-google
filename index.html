@@ -4249,8 +4249,8 @@ function renderGMB(G) {
     el('ov-gmb-stars',  '⭐'.repeat(Math.round(G.rating)));
   }
   if (G.reviewCount !== null) el('ov-gmb-reviews', (G.reviewCount||0).toLocaleString());
-  const locCount = (G.locations||[]).filter(l => l.configured).length || (G.locations||[]).length;
-  if (locCount) el('ov-gmb-locs', locCount);
+  const ovLocCount = (G.locations||[]).filter(l => l.configured).length || (G.locations||[]).length;
+  if (ovLocCount) el('ov-gmb-locs', ovLocCount);
   if (G.bestLocation?.name) el('ov-gmb-best', `${G.bestLocation.name} ${G.bestLocation.rating?.toFixed(1)||''} ⭐`);
 
   // Mini strip de ratings por sucursal en el overview
@@ -4713,7 +4713,6 @@ function renderGA4(G) {
   _renderGA4D3Charts(G);
 
   // ── Overview canal strip — GA4 ──
-  const S = G.summary || {};
   el('ov-ga4-sessions', S.sessions ? S.sessions.toLocaleString() : '—');
   el('ov-ga4-users',    S.users    ? S.users.toLocaleString()    : '—');
   el('ov-ga4-eng',      S.engagementRate != null ? S.engagementRate + '%' : '—');
