@@ -15,7 +15,7 @@ const KEY_PAGES = [
   'https://nellyrac.do/blog/',
 ];
 
-const TIMEOUT_MS = 20000;
+const TIMEOUT_MS = 45000; // 45s — homepage can be slow on PageSpeed API
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'application/json');
@@ -30,8 +30,20 @@ module.exports = async function handler(req, res) {
 
   const strategy = req.query.strategy === 'desktop' ? 'desktop' : 'mobile';
 
-  // All pages in parallel — fast with API key (~3-5s total)
-  const results = await Promise.all(KEY_PAGES.map(url => checkPage(url, strategy, apiKey)));
+  // Run all pages in parallel; retry pages that timeout once
+  let results = await Promise.all(KEY_PAGES.map(url => checkPage(url, strategy, apiKey)));
+
+  // Retry any that timed out (homepage / heavy pages sometimes need a second attempt)
+  const retryIndices = results
+    .map((r, i) => (r.error === 'Timeout' ? i : -1))
+    .filter(i => i >= 0);
+
+  if (retryIndices.length > 0) {
+    const retried = await Promise.all(
+      retryIndices.map(i => checkPage(KEY_PAGES[i], strategy, apiKey))
+    );
+    retryIndices.forEach((origIdx, ri) => { results[origIdx] = retried[ri]; });
+  }
 
   results.sort((a, b) => (a.score ?? 999) - (b.score ?? 999));
 
