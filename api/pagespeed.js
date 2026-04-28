@@ -2,18 +2,16 @@
  * api/pagespeed.js
  * GET /api/pagespeed?strategy=mobile|desktop
  *
- * Runs Google PageSpeed Insights using PAGESPEED_API_KEY (required).
- * All pages run in parallel — completes in ~3-5s with a valid key.
+ * Fetches pages from the site sitemap dynamically, then runs
+ * Google PageSpeed Insights on each public page.
  */
 
-const KEY_PAGES = [
-  'https://nellyrac.do/',
-  'https://nellyrac.do/reserva/',
-  'https://nellyrac.do/flota/',
-  'https://nellyrac.do/contacto/',
-  'https://nellyrac.do/sobre-nosotros/',
-  'https://nellyrac.do/blog/',
-];
+// Pages to skip — private/dynamic flows that don't make sense to test
+const SKIP_PATHS = new Set([
+  '/my-profile/', '/my-rentals/', '/my-reservations/',
+  '/success-reservation/', '/select-vehicle/', '/landing-pages/',
+  '/cart/', '/checkout/', '/wp-admin/', '/wp-login.php',
+]);
 
 const TIMEOUT_MS = 45000; // 45s — homepage can be slow on PageSpeed API
 
@@ -30,19 +28,22 @@ module.exports = async function handler(req, res) {
 
   const strategy = req.query.strategy === 'desktop' ? 'desktop' : 'mobile';
 
-  // Run all pages in parallel; retry pages that timeout once
-  let results = await Promise.all(KEY_PAGES.map(url => checkPage(url, strategy, apiKey)));
+  // ── Fetch pages from sitemap ────────────────────────────────────────────────
+  const siteBase = (process.env.GSC_PROPERTY || '').replace(/\/$/, '');
+  const pages    = await fetchSitemapPages(siteBase);
 
-  // Retry any that timed out (homepage / heavy pages sometimes need a second attempt)
-  const retryIndices = results
-    .map((r, i) => (r.error === 'Timeout' ? i : -1))
-    .filter(i => i >= 0);
+  if (!pages.length) {
+    return res.status(500).json({ ok: false, error: 'No se pudieron obtener páginas del sitemap' });
+  }
 
-  if (retryIndices.length > 0) {
-    const retried = await Promise.all(
-      retryIndices.map(i => checkPage(KEY_PAGES[i], strategy, apiKey))
-    );
-    retryIndices.forEach((origIdx, ri) => { results[origIdx] = retried[ri]; });
+  // ── Run PageSpeed on all pages in parallel ──────────────────────────────────
+  let results = await Promise.all(pages.map(url => checkPage(url, strategy, apiKey)));
+
+  // Retry pages that timed out once
+  const retryIdx = results.map((r, i) => r.error === 'Timeout' ? i : -1).filter(i => i >= 0);
+  if (retryIdx.length > 0) {
+    const retried = await Promise.all(retryIdx.map(i => checkPage(pages[i], strategy, apiKey)));
+    retryIdx.forEach((origIdx, ri) => { results[origIdx] = retried[ri]; });
   }
 
   results.sort((a, b) => (a.score ?? 999) - (b.score ?? 999));
@@ -66,6 +67,63 @@ module.exports = async function handler(req, res) {
   });
 };
 
+// ── Fetch & parse sitemap pages ───────────────────────────────────────────────
+async function fetchSitemapPages(siteBase) {
+  const candidates = siteBase
+    ? [
+        `${siteBase}/page-sitemap.xml`,
+        `${siteBase}/sitemap.xml`,
+        `${siteBase}/wp-sitemap.xml`,
+      ]
+    : [];
+
+  for (const sitemapUrl of candidates) {
+    try {
+      const r = await fetch(sitemapUrl, { signal: AbortSignal.timeout(8000) });
+      if (!r.ok) continue;
+      const xml = await r.text();
+
+      const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1].trim());
+      if (!locs.length) continue;
+
+      // If sitemapindex — follow child sitemaps
+      if (xml.includes('<sitemapindex')) {
+        const childUrls = [];
+        for (const childSitemap of locs.slice(0, 15)) {
+          try {
+            const cr = await fetch(childSitemap, { signal: AbortSignal.timeout(6000) });
+            if (!cr.ok) continue;
+            const cxml = await cr.text();
+            const clocs = [...cxml.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(m => m[1].trim());
+            childUrls.push(...clocs);
+          } catch {}
+        }
+        return filterPages(childUrls);
+      }
+
+      return filterPages(locs);
+    } catch {}
+  }
+  return [];
+}
+
+// ── Filter out private/dynamic pages ─────────────────────────────────────────
+function filterPages(urls) {
+  return urls.filter(url => {
+    try {
+      const path = new URL(url).pathname;
+      // Skip exact matches and sub-paths of skipped routes
+      for (const skip of SKIP_PATHS) {
+        if (path === skip || path.startsWith(skip)) return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  });
+}
+
+// ── PageSpeed check ───────────────────────────────────────────────────────────
 async function checkPage(url, strategy, apiKey) {
   const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&category=performance&key=${apiKey}`;
   try {
