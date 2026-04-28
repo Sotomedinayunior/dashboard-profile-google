@@ -1705,80 +1705,100 @@ html,body{overflow-x:hidden;width:100%}
 <!-- =========== PAGE: PANEL EJECUTIVO =========== -->
 <div id="page-executive" class="page">
 
-  <!-- Header ejecutivo con score -->
-  <div class="exec-header">
-    <div style="flex:1;min-width:200px">
-      <div class="exec-meta-title" id="exec-title">Reporte de Salud Digital</div>
-      <div class="exec-meta-sub">Resumen ejecutivo · Nelly Rent A Car · República Dominicana</div>
-      <div class="exec-meta-date" id="exec-date">—</div>
+  <!-- Header estándar -->
+  <div class="page-header">
+    <div>
+      <div class="page-title" id="exec-title">Resumen Ejecutivo</div>
+      <div class="page-sub" id="exec-date">Nelly Rent A Car · República Dominicana</div>
     </div>
-    <div style="text-align:center;flex-shrink:0">
-      <div class="exec-score-ring">
-        <svg width="110" height="110" viewBox="0 0 110 110">
-          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
-          <circle id="exec-ring-fill" cx="55" cy="55" r="46" fill="none" stroke="#E8610A"
-            stroke-width="10" stroke-linecap="round"
-            stroke-dasharray="289" stroke-dashoffset="289"
+    <div style="display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <!-- Score ring compacto -->
+      <div style="position:relative;width:72px;height:72px;flex-shrink:0">
+        <svg width="72" height="72" viewBox="0 0 72 72" style="transform:rotate(-90deg)">
+          <circle cx="36" cy="36" r="28" fill="none" stroke="var(--border)" stroke-width="7"/>
+          <circle id="exec-ring-fill" cx="36" cy="36" r="28" fill="none" stroke="var(--orange)"
+            stroke-width="7" stroke-linecap="round"
+            stroke-dasharray="176" stroke-dashoffset="176"
             style="transition:stroke-dashoffset 1.2s ease"/>
         </svg>
-        <div class="exec-score-num">
-          <div class="exec-score-val" id="exec-score-val" style="color:#E8610A">—</div>
-          <div class="exec-score-label" style="color:#555">/ 10</div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1">
+          <span class="exec-score-val" id="exec-score-val" style="font-family:var(--ffc);font-size:22px;font-weight:800;color:var(--orange)">—</span>
+          <span style="font-size:9px;color:var(--text3);letter-spacing:0.5px">/10</span>
         </div>
       </div>
-      <div style="font-size:11px;color:#555;margin-top:8px;letter-spacing:0.5px">Índice de salud digital</div>
-    </div>
-    <div id="exec-verdict" style="text-align:right;flex-shrink:0;max-width:220px">
-      <div id="exec-verdict-emoji" style="font-size:36px;margin-bottom:6px">—</div>
-      <div id="exec-verdict-text" style="font-size:13px;color:#777;line-height:1.6"></div>
+      <div id="exec-verdict">
+        <div id="exec-verdict-emoji" style="font-size:28px;line-height:1;margin-bottom:3px">—</div>
+        <div id="exec-verdict-text" style="font-size:12px;color:var(--text2);line-height:1.5;max-width:180px"></div>
+      </div>
     </div>
   </div>
 
-  <!-- Strip de KPIs numéricos rápidos -->
-  <div class="exec-kpi-strip" style="margin-bottom:28px" id="exec-kpi-strip">
-    <div class="exec-kpi"><div class="exec-kpi-label">Clics orgánicos / mes</div><div class="exec-kpi-val" id="ekpi-clicks">—</div><div class="exec-kpi-delta" id="ekpi-clicks-d"></div></div>
-    <div class="exec-kpi"><div class="exec-kpi-label">Posición media Google</div><div class="exec-kpi-val" id="ekpi-pos">—</div><div class="exec-kpi-delta" id="ekpi-pos-d"></div></div>
-    <div class="exec-kpi"><div class="exec-kpi-label">Calificación Google</div><div class="exec-kpi-val" id="ekpi-rating">—</div><div class="exec-kpi-delta" id="ekpi-rating-d"></div></div>
-    <div class="exec-kpi"><div class="exec-kpi-label">Sesiones web / mes</div><div class="exec-kpi-val" id="ekpi-sessions">—</div><div class="exec-kpi-delta" id="ekpi-sessions-d"></div></div>
-    <div class="exec-kpi"><div class="exec-kpi-label">CTR orgánico</div><div class="exec-kpi-val" id="ekpi-ctr">—</div><div class="exec-kpi-delta" id="ekpi-ctr-d"></div></div>
+  <!-- KPIs — misma clase que el resto del dashboard -->
+  <div class="kpi-grid" id="exec-kpi-strip" style="margin-bottom:28px">
+    <div class="kpi-card">
+      <div class="kpi-label">Clics orgánicos / mes</div>
+      <div class="kpi-value" id="ekpi-clicks">—</div>
+      <div class="kpi-sub" id="ekpi-clicks-d"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Posición media Google</div>
+      <div class="kpi-value" id="ekpi-pos">—</div>
+      <div class="kpi-sub" id="ekpi-pos-d"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Calificación Google</div>
+      <div class="kpi-value" id="ekpi-rating">—</div>
+      <div class="kpi-sub" id="ekpi-rating-d"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sesiones web / mes</div>
+      <div class="kpi-value" id="ekpi-sessions">—</div>
+      <div class="kpi-sub" id="ekpi-sessions-d"></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">CTR orgánico</div>
+      <div class="kpi-value" id="ekpi-ctr">—</div>
+      <div class="kpi-sub" id="ekpi-ctr-d"></div>
+    </div>
   </div>
 
   <!-- Semáforos -->
-  <div style="margin-bottom:10px" class="section-label">Estado por área</div>
-  <div class="exec-semaforos" id="exec-semaforos">
+  <div class="section-label" style="margin-bottom:16px">Estado por área</div>
+  <div class="exec-semaforos" id="exec-semaforos" style="margin-bottom:28px">
     <!-- renderizado por JS -->
   </div>
 
-  <!-- Impacto económico -->
-  <div class="exec-money" id="exec-money">
-    <div class="exec-money-item">
-      <div class="exec-money-label">Valor del tráfico orgánico / mes</div>
-      <div class="exec-money-val" id="emoney-monthly">—</div>
-      <div class="exec-money-sub">equivalente en Google Ads</div>
+  <!-- Impacto económico — card estándar con 3 columnas -->
+  <div class="section-label" style="margin-bottom:16px">Valor del tráfico orgánico</div>
+  <div class="grid-3" id="exec-money" style="margin-bottom:28px">
+    <div class="kpi-card" style="text-align:center">
+      <div class="kpi-label">Valor mensual estimado</div>
+      <div class="kpi-value" id="emoney-monthly" style="color:var(--green)">—</div>
+      <div class="kpi-sub">equivalente en Google Ads</div>
     </div>
-    <div class="exec-money-item" style="border-left:1px solid #1a3a1a;border-right:1px solid #1a3a1a;padding:0 24px">
-      <div class="exec-money-label">Proyección anual</div>
-      <div class="exec-money-val" id="emoney-annual">—</div>
-      <div class="exec-money-sub">si la tendencia se mantiene</div>
+    <div class="kpi-card" style="text-align:center">
+      <div class="kpi-label">Proyección anual</div>
+      <div class="kpi-value" id="emoney-annual" style="color:var(--green)">—</div>
+      <div class="kpi-sub">si la tendencia se mantiene</div>
     </div>
-    <div class="exec-money-item">
-      <div class="exec-money-label">Forecast próximos 90 días</div>
-      <div class="exec-money-val" id="emoney-forecast">—</div>
-      <div class="exec-money-sub">clics orgánicos proyectados</div>
+    <div class="kpi-card" style="text-align:center">
+      <div class="kpi-label">Forecast 90 días</div>
+      <div class="kpi-value" id="emoney-forecast" style="color:var(--orange)">—</div>
+      <div class="kpi-sub">clics orgánicos proyectados</div>
     </div>
   </div>
 
   <!-- Acciones prioritarias -->
-  <div style="margin-bottom:10px" class="section-label">Acciones prioritarias recomendadas</div>
-  <div class="exec-actions" id="exec-actions">
+  <div class="section-label" style="margin-bottom:16px">Acciones prioritarias recomendadas</div>
+  <div class="exec-actions" id="exec-actions" style="margin-bottom:28px">
     <!-- renderizado por JS -->
   </div>
 
-  <!-- Firma / nota al pie -->
+  <!-- Nota al pie -->
   <div class="card" style="background:var(--surface2);border-style:dashed;padding:18px 24px">
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:gap;gap:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
       <div style="font-size:12px;color:var(--text3);line-height:1.7">
-        Este reporte es generado automáticamente por el <strong style="color:var(--text)">Growth Dashboard de Nelly RAC</strong>,
+        Reporte generado automáticamente por el <strong style="color:var(--text)">Growth Dashboard de Nelly RAC</strong>,
         integrando datos de Google Search Console, Google Analytics 4 y Google My Business.<br>
         Los valores económicos son estimados basados en CPCs del mercado dominicano de rent a car.
       </div>
