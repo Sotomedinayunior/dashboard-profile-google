@@ -724,6 +724,74 @@ html,body{overflow-x:hidden;width:100%}
   <div class="header-badge" id="overview-badge" style="display:none"></div>
   </div>
 
+  <!-- ── Canal overview strip ── -->
+  <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px">
+
+    <!-- SEO -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;border-top:3px solid var(--orange)">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Tráfico Orgánico
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:6px">
+        <div style="font-size:26px;font-weight:800;font-family:var(--ffc);color:var(--text)" id="ov-seo-clicks">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">clics · 6 meses</div>
+      </div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--text2)">
+        <span>CTR <strong id="ov-seo-ctr">—</strong></span>
+        <span>Pos. <strong id="ov-seo-pos">—</strong></span>
+        <span>Imp. <strong id="ov-seo-imp">—</strong></span>
+      </div>
+    </div>
+
+    <!-- GMB -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;border-top:3px solid #4285F4">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        Perfil de Negocio
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:6px">
+        <div style="font-size:26px;font-weight:800;font-family:var(--ffc);color:var(--text)" id="ov-gmb-rating">—</div>
+        <div style="font-size:18px;margin-bottom:2px" id="ov-gmb-stars"></div>
+      </div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--text2)">
+        <span><strong id="ov-gmb-reviews">—</strong> reseñas</span>
+        <span><strong id="ov-gmb-locs">—</strong> sucursales</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Mejor: <strong id="ov-gmb-best">—</strong></div>
+    </div>
+
+    <!-- Analytics -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;border-top:3px solid #27a663">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M1 12h2V7H1v5zm4 0h2V4H5v8zm4 0h2V9H9v3zm4 0h2V2h-2v10z"/></svg>
+        Comportamiento Web
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px;margin-bottom:6px">
+        <div style="font-size:26px;font-weight:800;font-family:var(--ffc);color:var(--text)" id="ov-ga4-sessions">—</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">sesiones · 6 meses</div>
+      </div>
+      <div style="display:flex;gap:14px;font-size:11px;color:var(--text2)">
+        <span>Usuarios <strong id="ov-ga4-users">—</strong></span>
+        <span>Engagement <strong id="ov-ga4-eng">—</strong></span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Páginas vistas: <strong id="ov-ga4-pv">—</strong></div>
+    </div>
+
+    <!-- Resumen GMB por sucursal -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;border-top:3px solid var(--orange-light)">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Sucursales · Rating
+      </div>
+      <div id="ov-locs-strip" style="display:flex;flex-direction:column;gap:5px">
+        <div style="font-size:11px;color:var(--text3)">Cargando…</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GSC KPIs detalle -->
   <div class="kpi-grid">
   <div class="kpi-card">
   <div class="kpi-label">Clics Totales</div>
@@ -3072,12 +3140,19 @@ function render(D) {
 
   // KPI cards — overview
   el('kpi-clicks', s.total_clicks > 0 ? s.total_clicks.toLocaleString() : '—');
-  el('kpi-imp', s.total_impressions > 1000000
-  ? (s.total_impressions/1000000).toFixed(1)+'M'
-  : s.total_impressions > 0 ? Math.round(s.total_impressions/1000)+'K' : '—');
-  el('kpi-ctr', s.avg_ctr > 0 ? s.avg_ctr.toFixed(2)+'%' : '—');
-  el('kpi-pos', s.avg_position > 0 ? s.avg_position.toFixed(1) : '—');
-  el('kpi-cpd', s.avg_clicks_per_day > 0 ? s.avg_clicks_per_day.toFixed(0) : '—');
+  const impFmt = s.total_impressions > 1000000
+    ? (s.total_impressions/1000000).toFixed(1)+'M'
+    : s.total_impressions > 0 ? Math.round(s.total_impressions/1000)+'K' : '—';
+  el('kpi-imp',  impFmt);
+  el('kpi-ctr',  s.avg_ctr > 0 ? s.avg_ctr.toFixed(2)+'%' : '—');
+  el('kpi-pos',  s.avg_position > 0 ? s.avg_position.toFixed(1) : '—');
+  el('kpi-cpd',  s.avg_clicks_per_day > 0 ? s.avg_clicks_per_day.toFixed(0) : '—');
+
+  // Overview canal strip — SEO
+  el('ov-seo-clicks', s.total_clicks > 0 ? s.total_clicks.toLocaleString() : '—');
+  el('ov-seo-ctr',    s.avg_ctr > 0 ? s.avg_ctr.toFixed(2)+'%' : '—');
+  el('ov-seo-pos',    s.avg_position > 0 ? s.avg_position.toFixed(1) : '—');
+  el('ov-seo-imp',    impFmt);
 
   // Diagnostic banner 
   const siteName = SITE_CONFIG.siteName || D.meta?.site_name || 'Tu Sitio';
@@ -4168,6 +4243,28 @@ function renderGMB(G) {
   // Location card (native GMB data)
   renderGmbLocationCard(G);
 
+  // ── Overview canal strip — GMB ──
+  if (G.rating !== null) {
+    el('ov-gmb-rating', G.rating.toFixed(1));
+    el('ov-gmb-stars',  '⭐'.repeat(Math.round(G.rating)));
+  }
+  if (G.reviewCount !== null) el('ov-gmb-reviews', (G.reviewCount||0).toLocaleString());
+  const locCount = (G.locations||[]).filter(l => l.configured).length || (G.locations||[]).length;
+  if (locCount) el('ov-gmb-locs', locCount);
+  if (G.bestLocation?.name) el('ov-gmb-best', `${G.bestLocation.name} ${G.bestLocation.rating?.toFixed(1)||''} ⭐`);
+
+  // Mini strip de ratings por sucursal en el overview
+  const locsStrip = document.getElementById('ov-locs-strip');
+  if (locsStrip && G.locations?.length) {
+    locsStrip.innerHTML = G.locations.map(loc => `
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px">
+        <span style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px">${loc.shortName || loc.name}</span>
+        <span style="font-weight:700;color:${!loc.rating ? 'var(--text3)' : loc.rating >= 4.5 ? 'var(--green)' : loc.rating >= 4.0 ? 'var(--orange)' : 'var(--red)'}">
+          ${loc.rating ? loc.rating.toFixed(1)+' ⭐' : '—'}
+        </span>
+      </div>`).join('');
+  }
+
   // Reviews list
   if (!reviews.length) {
   const list = document.getElementById('gmb-reviews-list');
@@ -4614,6 +4711,13 @@ function renderGA4(G) {
 
   window._ga4FullData = G;
   _renderGA4D3Charts(G);
+
+  // ── Overview canal strip — GA4 ──
+  const S = G.summary || {};
+  el('ov-ga4-sessions', S.sessions ? S.sessions.toLocaleString() : '—');
+  el('ov-ga4-users',    S.users    ? S.users.toLocaleString()    : '—');
+  el('ov-ga4-eng',      S.engagementRate != null ? S.engagementRate + '%' : '—');
+  el('ov-ga4-pv',       S.pageViews ? S.pageViews.toLocaleString() : '—');
 }
 
 // Helper: muestra error visible
