@@ -773,6 +773,41 @@ html,body{overflow-x:hidden;width:100%}
     </div>
   </div>
 
+  <!-- Orgánico vs Pagado -->
+  <div class="section-label" style="margin-bottom:16px">Posicionamiento: Orgánico vs Pagado</div>
+  <div class="grid-3" style="margin-bottom:12px">
+    <div class="kpi-card" style="text-align:center">
+      <div class="kpi-label">🌿 Orgánico (Google / GSC)</div>
+      <div class="kpi-value" id="etraf-organic" style="color:var(--green)">—</div>
+      <div class="kpi-sub" id="etraf-organic-sub">sesiones sin costo</div>
+    </div>
+    <div class="kpi-card" style="text-align:center">
+      <div class="kpi-label">💰 Pagado (Google Ads)</div>
+      <div class="kpi-value" id="etraf-paid" style="color:#f39c12">—</div>
+      <div class="kpi-sub" id="etraf-paid-sub">sesiones de pago</div>
+    </div>
+    <div class="kpi-card" style="text-align:center">
+      <div class="kpi-label">🔗 Otros canales</div>
+      <div class="kpi-value" id="etraf-other">—</div>
+      <div class="kpi-sub" id="etraf-other-sub">directo, social, referral</div>
+    </div>
+  </div>
+  <!-- Barra visual de proporción -->
+  <div style="margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px">
+    <div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px">Distribución de sesiones (últimos 6 meses)</div>
+    <div style="display:flex;height:28px;border-radius:6px;overflow:hidden;gap:2px" id="etraf-bar">
+      <div style="background:var(--green);flex:1;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff" id="etraf-bar-organic">—</div>
+      <div style="background:#f39c12;flex:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff" id="etraf-bar-paid">—</div>
+      <div style="background:var(--text3);flex:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff" id="etraf-bar-other">—</div>
+    </div>
+    <div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px"></span>Orgánico</span>
+      <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:#f39c12;border-radius:2px;margin-right:4px"></span>Pagado (Ads)</span>
+      <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px;margin-right:4px"></span>Otros</span>
+      <span style="font-size:11px;color:var(--text3);margin-left:auto" id="etraf-insight"></span>
+    </div>
+  </div>
+
   <!-- Semáforos -->
   <div class="section-label" style="margin-bottom:16px">Estado por área</div>
   <div class="exec-semaforos" id="exec-semaforos" style="margin-bottom:28px">
@@ -6247,6 +6282,45 @@ function renderExecutive(D) {
   if (el('ekpi-rating'))    el('ekpi-rating').textContent   = rating ? rating.toFixed(1) + ' ⭐' : '—';
   if (el('ekpi-sessions'))  el('ekpi-sessions').textContent = fmt(sessions);
   if (el('ekpi-ctr'))       el('ekpi-ctr').textContent      = ctr ? ctr.toFixed(1) + '%' : '—';
+
+  // ── Orgánico vs Pagado (GA4 channels) ────────────────────────────
+  const channels = ga4?.channels || [];
+  const findCh   = (...names) => {
+    const n = names.map(x => x.toLowerCase());
+    return channels.filter(c => n.some(x => (c.channel||'').toLowerCase().includes(x)))
+                   .reduce((s, c) => s + (c.sessions || 0), 0);
+  };
+  const sessOrganic = findCh('organic search');
+  const sessPaid    = findCh('paid search', 'paid social', 'display');
+  const sessTotal   = channels.reduce((s, c) => s + (c.sessions || 0), 0) || 1;
+  const sessOther   = Math.max(0, sessTotal - sessOrganic - sessPaid);
+
+  const pctOrg  = Math.round(sessOrganic / sessTotal * 100);
+  const pctPaid = Math.round(sessPaid    / sessTotal * 100);
+  const pctOth  = Math.max(0, 100 - pctOrg - pctPaid);
+
+  if (el('etraf-organic'))     el('etraf-organic').textContent     = fmt(sessOrganic);
+  if (el('etraf-organic-sub')) el('etraf-organic-sub').textContent = pctOrg + '% del total · sin costo';
+  if (el('etraf-paid'))        el('etraf-paid').textContent        = sessPaid > 0 ? fmt(sessPaid) : '0';
+  if (el('etraf-paid-sub'))    el('etraf-paid-sub').textContent    = pctPaid + '% del total' + (sessPaid === 0 ? ' · sin campañas activas' : '');
+  if (el('etraf-other'))       el('etraf-other').textContent       = fmt(sessOther);
+  if (el('etraf-other-sub'))   el('etraf-other-sub').textContent   = pctOth + '% del total · directo, social, referral';
+
+  // Barra visual
+  if (el('etraf-bar-organic')) { el('etraf-bar-organic').style.flex = String(pctOrg  || 1); el('etraf-bar-organic').textContent = pctOrg  > 8 ? pctOrg + '%'  : ''; }
+  if (el('etraf-bar-paid'))    { el('etraf-bar-paid').style.flex    = String(pctPaid || 0); el('etraf-bar-paid').textContent    = pctPaid > 8 ? pctPaid + '%' : ''; }
+  if (el('etraf-bar-other'))   { el('etraf-bar-other').style.flex   = String(pctOth  || 1); el('etraf-bar-other').textContent   = pctOth  > 8 ? pctOth + '%'  : ''; }
+
+  // Insight automático
+  if (el('etraf-insight')) {
+    let insight = '';
+    if (sessPaid === 0 && pctOrg >= 70)  insight = '✅ El negocio no depende de Google Ads — el SEO está trabajando bien';
+    else if (sessPaid === 0)             insight = 'ℹ️ Todo el tráfico es gratuito — sin inversión en Google Ads actualmente';
+    else if (pctOrg >= pctPaid * 2)      insight = '✅ El orgánico supera al pagado en ' + Math.round(pctOrg/pctPaid) + 'x';
+    else if (pctPaid > pctOrg)           insight = '⚠️ El tráfico pagado supera al orgánico — reforzar SEO';
+    else                                 insight = 'Balance entre orgánico y pagado';
+    el('etraf-insight').textContent = insight;
+  }
 
   // Deltas — comparar 28d vs los 28d anteriores si hay datos 6m
   const totalClicks6m = gsc6.total_clicks || 0;
