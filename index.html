@@ -6500,6 +6500,7 @@ function renderExecutive(D) {
   trafDefs.forEach(({ cardId, title, fullVal, what, source }) => {
     const card = el(cardId)?.closest('.kpi-card');
     if (!card) return;
+    card.style.cursor = 'pointer';
     card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
   });
 
@@ -6679,6 +6680,37 @@ function renderExecutive(D) {
   if (el('emoney-monthly')) el('emoney-monthly').textContent = monthlyValue ? fmtD(monthlyValue) : '—';
   if (el('emoney-annual'))  el('emoney-annual').textContent  = annualValue  ? fmtD(annualValue)  : '—';
   if (el('emoney-forecast'))el('emoney-forecast').textContent= fc90 ? fmt(fc90) + ' clics' : '—';
+
+  // Popups para cards de valor económico
+  const moneyDefs = [
+    {
+      cardId: 'emoney-monthly',
+      title: 'Valor mensual estimado del tráfico',
+      fullVal: () => monthlyValue ? '$' + Math.round(monthlyValue).toLocaleString('es-DO') + ' USD' : 'Sin datos suficientes',
+      what: 'Cuánto costaría conseguir el mismo tráfico orgánico si se pagara con Google Ads. Se calcula multiplicando los clics de cada keyword por su CPC estimado en el mercado dominicano de rent a car. Es el ahorro mensual real que genera el SEO.',
+      source: 'Google Search Console · Queries · CPC estimado mercado RD rent a car',
+    },
+    {
+      cardId: 'emoney-annual',
+      title: 'Proyección anual del valor orgánico',
+      fullVal: () => annualValue ? '$' + Math.round(annualValue).toLocaleString('es-DO') + ' USD / año' : 'Sin datos suficientes',
+      what: 'Proyección del valor anual del tráfico orgánico, asumiendo que el volumen actual se mantiene constante durante 12 meses. Representa el ahorro total en publicidad que genera el posicionamiento en Google.',
+      source: 'Calculado: Valor mensual × 12 meses',
+    },
+    {
+      cardId: 'emoney-forecast',
+      title: 'Forecast de clics — próximos 90 días',
+      fullVal: () => fc90 ? fc90.toLocaleString('es-DO') + ' clics proyectados' : 'Datos insuficientes para proyectar',
+      what: 'Proyección de los clics orgánicos totales esperados en los próximos 90 días, calculada con regresión lineal sobre el historial de clics diarios de los últimos 6 meses. Si la tendencia es positiva, el número supera el promedio actual.',
+      source: 'Google Search Console · Historial diario 6 meses · Regresión lineal',
+    },
+  ];
+
+  moneyDefs.forEach(({ cardId, title, fullVal, what, source }) => {
+    const card = el(cardId)?.closest('.kpi-card');
+    if (!card) return;
+    card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
+  });
 
   // ── 5. Acciones prioritarias ─────────────────────────────────────
   const actions = [];
