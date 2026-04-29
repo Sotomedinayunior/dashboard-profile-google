@@ -5886,16 +5886,12 @@ function renderOnPageTable(rows) {
 async function bootDashboard() {
   applyStoredConfig();
 
-  // Load GSC+GA4 data AND Google Ads data in parallel
-  const [D, adsRaw] = await Promise.all([
-    loadData().catch(e => { console.error('[bootDashboard] loadData:', e.message); return null; }),
-    loadAdsData().catch(e => { console.warn('[bootDashboard] loadAdsData:', e.message); return { configured: false, hasData: false }; }),
-  ]);
+  // Load GSC + GA4 data (GA4 already includes Google Ads cost via Advertising Intelligence)
+  const D = await loadData().catch(e => { console.error('[bootDashboard] loadData:', e.message); return null; });
 
   const safeD = D || {};
   window._dashData = safeD;
   window._ga4Data  = safeD.ga4 || null;
-  window._adsData  = adsRaw || { configured: false, hasData: false };
 
   try { render(safeD); }              catch(e) { console.error('[render]',    e); }
   try { renderTrafficValue(safeD); }  catch(e) { console.error('[renderTrafficValue]', e); }
@@ -6380,8 +6376,14 @@ function renderExecutive(D) {
   const gsc6 = D.summary_6m  || {};
   const ga4  = D.ga4  || null;
   const gmb  = D.gmb  || null;
-  const ads  = window._adsData || {};
-  const adsOk = !!(ads.configured && ads.hasData && ads.summary);
+  // Google Ads data comes from GA4 Advertising Intelligence (already inside ga4.googleAds)
+  const adsGA4 = ga4?.googleAds || {};
+  const adsOk  = !!(adsGA4.hasData);
+  // Compute 28-day totals from byDate (last 28 days, per-day rows)
+  const ads28dCost   = adsOk ? +((adsGA4.byDate || []).reduce((s, r) => s + (r.cost   || 0), 0)).toFixed(2) : 0;
+  const ads28dClicks = adsOk ? Math.round((adsGA4.byDate || []).reduce((s, r) => s + (r.clicks || 0), 0)) : 0;
+  const adsImpr      = adsOk ? Math.round((adsGA4.byChannel || []).reduce((s, r) => s + (r.impressions || 0), 0)) : 0;
+  const adsAvgCPC    = adsOk ? (adsGA4.avgCPC || null) : null;
 
   const now  = new Date();
   const dateStr = now.toLocaleDateString('es-DO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
@@ -6436,11 +6438,11 @@ function renderExecutive(D) {
 
   if (el('etraf-organic'))     el('etraf-organic').textContent     = fmt(sessOrganic);
   if (el('etraf-organic-sub')) el('etraf-organic-sub').textContent = pctOrg + '% del total · sin costo';
-  if (el('etraf-paid'))        el('etraf-paid').textContent        = adsOk
-    ? 'US$' + ads.summary.spend.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
+  if (el('etraf-paid'))        el('etraf-paid').textContent        = adsOk && ads28dCost > 0
+    ? 'US$' + ads28dCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
     : (sessPaid > 0 ? fmt(sessPaid) : '0');
-  if (el('etraf-paid-sub'))    el('etraf-paid-sub').textContent    = adsOk
-    ? ads.summary.clicks.toLocaleString('es-DO') + ' clics · ' + ads.summary.impressions.toLocaleString('es-DO') + ' impres.'
+  if (el('etraf-paid-sub'))    el('etraf-paid-sub').textContent    = adsOk && ads28dCost > 0
+    ? ads28dClicks.toLocaleString('es-DO') + ' clics · CPC US$' + (adsAvgCPC || '—')
     : pctPaid + '% del total' + (sessPaid === 0 ? ' · sin campañas activas' : '');
   if (el('etraf-other'))       el('etraf-other').textContent       = fmt(sessOther);
   if (el('etraf-other-sub'))   el('etraf-other-sub').textContent   = pctOth + '% del total · directo, social, referral';
@@ -6491,28 +6493,33 @@ function renderExecutive(D) {
     'Google Analytics 4 · Canal "Organic Search" · últimos 6 meses'
   );
   registerKpiPopup('etraf-paid',
-    adsOk ? 'Google Ads — Inversión exacta (30 días)' : 'Tráfico pagado (Google Ads)',
+    adsOk && ads28dCost > 0 ? 'Inversión en Google Ads — últimos 28 días' : 'Tráfico pagado (Google Ads)',
     () => {
-      const a = window._adsData || {};
-      if (a.configured && a.hasData && a.summary) {
-        const s = a.summary;
-        const spendFmt = 'US$' + s.spend.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-        const cpcFmt   = 'US$' + (s.avgCpc || 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-        return spendFmt + ' gastados · '
-          + (s.clicks || 0).toLocaleString('es-DO') + ' clics · '
-          + 'CTR ' + (s.ctr || 0) + '% · '
-          + 'CPC prom. ' + cpcFmt
-          + (s.conversions > 0 ? ' · ' + s.conversions + ' conversiones' : '');
+      const a = ga4?.googleAds || {};
+      if (a.hasData) {
+        const cost28   = +((a.byDate || []).reduce((s, r) => s + (r.cost   || 0), 0)).toFixed(2);
+        const clicks28 = Math.round((a.byDate || []).reduce((s, r) => s + (r.clicks || 0), 0));
+        const impr     = Math.round((a.byChannel || []).reduce((s, r) => s + (r.impressions || 0), 0));
+        const cpc      = a.avgCPC;
+        const monthly  = a.monthly;
+        if (cost28 > 0) {
+          return 'US$' + cost28.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' gastados · '
+            + clicks28.toLocaleString('es-DO') + ' clics'
+            + (impr > 0 ? ' · ' + impr.toLocaleString('es-DO') + ' impresiones' : '')
+            + (cpc ? ' · CPC US$' + cpc : '')
+            + (monthly ? ' · promedio mensual 6m: US$' + monthly.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) : '');
+        }
+        return '0 gastados en los últimos 28 días · Sin campañas activas';
       }
       return sessPaid > 0
         ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)'
         : '0 sesiones · Sin campañas activas en este período';
     },
-    adsOk
-      ? 'Gasto real facturado en Google Ads en los últimos 30 días, con clics, impresiones, CTR de anuncios y conversiones directamente desde la API oficial de Google Ads. No es una estimación — son los números exactos de la plataforma publicitaria.'
+    adsOk && ads28dCost > 0
+      ? 'Gasto real en Google Ads importado desde GA4 Advertising Intelligence. GA4 recibe los datos de costo directamente desde la cuenta de Google Ads vinculada, sin estimaciones. Incluye clics facturados, impresiones y CPC promedio de los últimos 28 días.'
       : 'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
-    adsOk
-      ? 'Google Ads API v18 — datos exactos · últimos 30 días'
+    adsOk && ads28dCost > 0
+      ? 'Google Analytics 4 · Advertising Intelligence · advertiserAdCost · últimos 28 días'
       : 'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses'
   );
   registerKpiPopup('etraf-other',
@@ -6547,14 +6554,12 @@ function renderExecutive(D) {
   // Insight automático
   if (el('etraf-insight')) {
     let insight = '';
-    if (adsOk && ads.summary.spend > 0) {
-      const s = ads.summary;
-      const cpcFmt = 'US$' + (s.avgCpc || 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
-      const spendFmt = 'US$' + s.spend.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    if (adsOk && ads28dCost > 0) {
+      const spendFmt = 'US$' + ads28dCost.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      const cpcPart  = adsAvgCPC ? ' · CPC US$' + adsAvgCPC : '';
       insight = licon('dollar-sign',13,'#f39c12')
-        + ' ' + spendFmt + ' invertidos · '
-        + (s.clicks||0).toLocaleString('es-DO') + ' clics · CPC prom. ' + cpcFmt
-        + (s.conversions > 0 ? ' · ' + s.conversions + ' conv.' : '');
+        + ' ' + spendFmt + ' invertidos últimos 28d · '
+        + ads28dClicks.toLocaleString('es-DO') + ' clics' + cpcPart;
     } else if (sessPaid === 0 && pctOrg >= 70) {
       insight = licon('circle-check',13,'#27a663') + ' El negocio no depende de Google Ads — el SEO está trabajando bien';
     } else if (sessPaid === 0) {
