@@ -817,9 +817,9 @@ html,body{overflow-x:hidden;width:100%}
       <div class="kpi-sub" id="etraf-organic-sub">sesiones sin costo</div>
     </div>
     <div class="kpi-card" style="text-align:center" data-kpi="etraf-paid">
-      <div class="kpi-label"><svg data-lucide="dollar-sign" width="12" height="12" class="li" style="margin-right:4px;stroke:#f39c12"></svg>Pagado (Google Ads)</div>
+      <div class="kpi-label"><svg data-lucide="dollar-sign" width="12" height="12" class="li" style="margin-right:4px;stroke:#f39c12"></svg>Inversión Google Ads</div>
       <div class="kpi-value" id="etraf-paid" style="color:#f39c12">—</div>
-      <div class="kpi-sub" id="etraf-paid-sub">sesiones de pago</div>
+      <div class="kpi-sub" id="etraf-paid-sub">últimos 28 días</div>
     </div>
     <div class="kpi-card" style="text-align:center" data-kpi="etraf-other">
       <div class="kpi-label"><svg data-lucide="link" width="12" height="12" class="li" style="margin-right:4px;stroke:var(--text2)"></svg>Otros canales</div>
@@ -837,7 +837,7 @@ html,body{overflow-x:hidden;width:100%}
     </div>
     <div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">
       <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:var(--green);border-radius:2px;margin-right:4px"></span>Orgánico</span>
-      <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:#f39c12;border-radius:2px;margin-right:4px"></span>Pagado (Ads)</span>
+      <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:#f39c12;border-radius:2px;margin-right:4px"></span>Google Ads</span>
       <span style="font-size:11px;color:var(--text2)"><span style="display:inline-block;width:10px;height:10px;background:var(--text3);border-radius:2px;margin-right:4px"></span>Otros</span>
       <span style="font-size:11px;color:var(--text3);margin-left:auto" id="etraf-insight"></span>
     </div>
@@ -6561,14 +6561,14 @@ function renderExecutive(D) {
     'Gasto real Google Ads / mes',
     () => {
       const a = window._ga4Data?.googleAds;
-      if (!a?.hasData || !a.monthly) return 'Sin campañas activas en los últimos 6 meses';
+      if (!a?.hasData || !a.monthly) return '$0.00 · Sin inversión en Google Ads en los últimos 6 meses. Cuando se reactiven campañas, este valor se actualiza automáticamente desde GA4.';
       const cpcPart = a.avgCPC ? ' · CPC real $' + a.avgCPC : '';
       return '$' + a.monthly.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + '/mes (promedio 6m)'
         + cpcPart
-        + ' · ' + (a.totalClicks || 0).toLocaleString('es-DO') + ' clics pagados (6m)'
+        + ' · ' + (a.totalClicks || 0).toLocaleString('es-DO') + ' clics (6m)'
         + ' · Proyección anual: $' + (a.annual || a.monthly * 12).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
     },
-    'Inversión real en Google Ads registrada por GA4 Advertising Intelligence. GA4 importa automáticamente el gasto, clics y CPC desde la cuenta de Google Ads vinculada — no es una estimación. El valor mensual es el promedio de los últimos 6 meses disponibles.',
+    'Gasto real en Google Ads según GA4 Advertising Intelligence. GA4 importa automáticamente el costo desde la cuenta de Google Ads vinculada — no es una estimación. Si muestra $0.00, significa que no hay campañas activas actualmente o que el gasto fue $0 en los últimos 6 meses.',
     'Google Analytics 4 · Advertising Intelligence · advertiserAdCost · últimos 6 meses'
   );
   registerKpiPopup('emoney-forecast',
@@ -6795,10 +6795,10 @@ function renderExecutive(D) {
   if (el('emoney-monthly-sub')) el('emoney-monthly-sub').textContent =
     organicMonthlyValue > 0 ? fmtD(organicMonthlyValue * 12) + ' proyectado al año' : 'sin datos de queries';
 
-  if (el('emoney-annual')) el('emoney-annual').textContent = adsMonthlyReal ? fmtD(adsMonthlyReal) : '—';
+  if (el('emoney-annual')) el('emoney-annual').textContent = adsMonthlyReal ? fmtD(adsMonthlyReal) : '$0.00';
   if (el('emoney-annual-sub')) el('emoney-annual-sub').textContent = adsMonthlyReal
     ? fmtD(adsMonthlyReal * 12) + ' proyectado al año'
-    : 'sin campañas activas · GA4';
+    : 'sin inversión en Ads actualmente';
 
   if (el('emoney-forecast')) el('emoney-forecast').textContent = fc90 ? fmt(fc90) + ' clics' : '—';
 
