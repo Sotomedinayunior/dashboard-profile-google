@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
   const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
   const gscProperty  = process.env.GSC_PROPERTY;
   const ga4Property  = process.env.GA4_PROPERTY_ID || null;
-  const serpKey      = process.env.SERPAPI_KEY      || null;
+  const serpKey      = null; // SERPAPI desactivado — process.env.SERPAPI_KEY || null;
   if (!clientId || !clientSecret) {
     return res.status(500).json({ error: 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET no configurados en Vercel' });
   }
