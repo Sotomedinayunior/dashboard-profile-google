@@ -64,13 +64,14 @@ html,body{overflow-x:hidden;width:100%}
 
 /* KPI GRID */
 .kpi-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;margin-bottom:28px}
-.kpi-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border);position:relative;overflow:hidden;min-width:0;cursor:pointer;transition:border-color .15s,box-shadow .15s}
-.kpi-card:hover{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,120,50,.08)}
+.kpi-card{background:var(--surface);border-radius:var(--radius);padding:20px 22px;border:1px solid var(--border);position:relative;overflow:hidden;min-width:0}
+.kpi-card[data-kpi]{cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.kpi-card[data-kpi]:hover{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,120,50,.08)}
+.semaforo-card[data-kpi]{cursor:pointer}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--orange)}
 /* KPI info popup */
-#kpi-popup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);padding:20px 22px;width:310px;max-width:92vw;display:none}
-#kpi-popup.active{display:block;animation:kpiFadeIn .18s ease both}
-@keyframes kpiFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#kpi-popup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);padding:20px 22px;width:310px;max-width:92vw;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .18s ease,transform .18s ease;top:-9999px;left:-9999px}
+#kpi-popup.active{opacity:1;pointer-events:auto;transform:translateY(0)}
 #kpi-popup-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 6px}
 #kpi-popup-close:hover{color:var(--text)}
 #kpi-popup-title{font-size:10px;text-transform:uppercase;letter-spacing:0.9px;color:var(--text3);font-weight:700;margin-bottom:6px}
@@ -6917,25 +6918,17 @@ function showKpiPopup(cardEl, title, fullValue, what, source) {
     const srcEl = document.getElementById('kpi-popup-source');
     srcEl.innerHTML = '<svg data-lucide="radio" width="12" height="12" style="flex-shrink:0;margin-top:2px"></svg><span><strong>Fuente:</strong> ' + source + '</span>';
 
-    // Mostrar antes de calcular posición (necesitamos offsetWidth/Height reales)
-    popup.classList.remove('active');
-    popup.style.top  = '0px';
-    popup.style.left = '0px';
-    popup.classList.add('active');
-
     // Render icono Lucide (compatible con todas las versiones del UMD)
     try {
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons({ el: popup });
-      }
+      if (typeof lucide !== 'undefined') lucide.createIcons({ el: popup });
     } catch(_) {
       try { if (typeof lucide !== 'undefined') lucide.createIcons(); } catch(__) {}
     }
 
-    // Posicionar inteligentemente
-    const rect = cardEl.getBoundingClientRect();
-    const pw   = popup.offsetWidth  || 310;
-    const ph   = popup.offsetHeight || 220;
+    // Calcular posición ANTES de mostrar (popup tiene opacity:0 pero ocupa espacio)
+    const rect = cardEl ? cardEl.getBoundingClientRect() : { bottom:100, top:80, left:240, right:400 };
+    const pw   = 310;
+    const ph   = 230;
     const vw   = window.innerWidth;
     const vh   = window.innerHeight;
     const sc   = window.scrollY;
@@ -6947,12 +6940,18 @@ function showKpiPopup(cardEl, title, fullValue, what, source) {
     if (rect.bottom + ph + 10 > vh) top = rect.top + sc - ph - 10;
     // Si se sale por la derecha, ajustar
     if (left + pw > vw - 12) left = vw - pw - 12;
-    // Nunca negativo
-    if (left < 8) left = 8;
+    // Nunca a la izquierda de la sidebar (220px) ni en el borde
+    if (left < 228) left = 228;
     if (top < sc + 8) top = sc + 8;
 
+    // Posicionar y mostrar (transition fade-in se activa con .active)
+    popup.classList.remove('active');
     popup.style.top  = top  + 'px';
     popup.style.left = left + 'px';
+    // Forzar reflow para que el browser procese la posición antes de la transición
+    void popup.offsetWidth;
+    popup.classList.add('active');
+
   } catch(e) {
     console.error('[showKpiPopup]', e);
   }
@@ -6960,7 +6959,16 @@ function showKpiPopup(cardEl, title, fullValue, what, source) {
 
 function closeKpiPopup() {
   const p = document.getElementById('kpi-popup');
-  if (p) p.classList.remove('active');
+  if (p) {
+    p.classList.remove('active');
+    // Mover fuera de pantalla cuando la transición termina para evitar bloquear clics
+    setTimeout(() => {
+      if (p && !p.classList.contains('active')) {
+        p.style.top  = '-9999px';
+        p.style.left = '-9999px';
+      }
+    }, 200);
+  }
 }
 
 // ── Popup KPI delegado — funciona para cards estáticos Y dinámicos ────────────
