@@ -2,10 +2,7 @@
   "name": "nelly-dashboard",
   "version": "2.0.0",
   "private": true,
-  "engines": {
-    "node": "20.x"
-  },
-  "dependencies": {
+"dependencies": {
     "googleapis": "^144.0.0"
   }
 }
