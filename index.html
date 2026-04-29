@@ -629,8 +629,8 @@ html,body{overflow-x:hidden;width:100%}
   .reviews-kpi-row{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.js.iife.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@latest/dist/driver.css"/>
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.5/dist/driver.js.iife.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.5/dist/driver.css"/>
 </head>
 <body>
 <div class="app" id="app-main">
@@ -6066,6 +6066,8 @@ const TOUR_CSS = `
 // Steps por sección
 const TOURS = {
 
+  // 'executive' es el id real de la página — 'overview' se mantiene como alias
+  executive: null, // se llena después de declarar overview
   overview: [
     { element: '.sidebar-nav', popover: { title: 'Navegación del Dashboard', description: 'El menú lateral te lleva a cada sección. Empieza en Panorama General y ve explorando. Al fondo encontrarás el botón naranja "Actualizar datos" para refrescar toda la información.', side: 'right' }},
     // { element: '#page-overview .kpi-grid', popover: { title: 'KPIs Principales — Google Search Console', description: '5 métricas clave de los últimos 6 meses: Clics (visitas desde Google), Impresiones (veces que apareciste), CTR (% que hicieron clic), Posición media en Google y Clics promedio por día.', side: 'bottom', align: 'start' }},
@@ -6165,49 +6167,63 @@ const TOURS = {
   ],
 };
 
-// Función principal de tour 
+// Alias: 'executive' page uses the 'overview' tour steps
+TOURS.executive = TOURS.overview;
+
+// Función principal de tour
 function startTour(pageId) {
-  if (typeof window.driver === 'undefined') {
-  alert('Driver.js no cargó correctamente. Verifica tu conexión a internet.');
-  return;
+  // Normalize common aliases
+  const id = (pageId === 'execute' || !pageId) ? 'executive' : pageId;
+
+  // Detect driver.js API (v1.x exports window.driver.js.driver)
+  const driverFn = window?.driver?.js?.driver;
+  if (typeof driverFn !== 'function') {
+    alert('Driver.js no cargó correctamente. Verifica tu conexión a internet.');
+    return;
   }
 
-  const rawSteps = TOURS[pageId];
-  if (!rawSteps) return;
+  const rawSteps = TOURS[id];
+  if (!rawSteps || !rawSteps.length) {
+    // No tour defined for this section yet
+    return;
+  }
 
-  // Navigate to the page first
-  const navEl = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-  if (navEl) showPage(pageId, navEl);
+  // Navigate to the page first if not already there
+  const navEl = document.querySelector(`.nav-item[data-page="${id}"]`);
+  if (navEl) showPage(id, navEl);
 
   // Filter out steps whose elements don't exist in the DOM
   const steps = rawSteps.map(step => {
-  const el = document.querySelector(step.element);
-  if (el) return step;
-  if (step.fallback) {
-  const fb = document.querySelector(step.fallback.element);
-  if (fb) return { element: step.fallback.element, popover: step.popover };
-  }
-  return null;
+    const el = document.querySelector(step.element);
+    if (el) return step;
+    if (step.fallback) {
+      const fb = document.querySelector(step.fallback.element);
+      if (fb) return { element: step.fallback.element, popover: step.popover };
+    }
+    return null;
   }).filter(Boolean);
 
   if (!steps.length) return;
 
-  const driverObj = window.driver.js.driver({
-  showProgress:   true,
-  showButtons:    ['next', 'previous', 'close'],
-  nextBtnText:    'Siguiente &rarr;',
-  prevBtnText:    '&larr; Anterior',
-  doneBtnText:    'Listo',
-  progressText:   '{{current}} / {{total}}',
-  popoverClass:   'driverjs-theme',
-  animate:        true,
-  smoothScroll:   true,
-  overlayOpacity: 0,       // no dark backdrop
-  allowClose:     true,
-  steps,
-  });
-
-  driverObj.drive();
+  try {
+    const driverObj = driverFn({
+      showProgress:   true,
+      showButtons:    ['next', 'previous', 'close'],
+      nextBtnText:    'Siguiente &rarr;',
+      prevBtnText:    '&larr; Anterior',
+      doneBtnText:    'Listo',
+      progressText:   '{{current}} / {{total}}',
+      popoverClass:   'driverjs-theme',
+      animate:        true,
+      smoothScroll:   true,
+      overlayOpacity: 0,
+      allowClose:     true,
+      steps,
+    });
+    driverObj.drive();
+  } catch(e) {
+    console.error('[startTour]', e);
+  }
 }
 
 // Inyectar botones de tour en cada page-header 
