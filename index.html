@@ -68,14 +68,15 @@ html,body{overflow-x:hidden;width:100%}
 .kpi-card:hover{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,120,50,.08)}
 .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--orange)}
 /* KPI info popup */
-#kpi-popup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.28);padding:20px 22px;width:300px;max-width:90vw;display:none;animation:kpiFadeIn .15s ease}
-#kpi-popup.active{display:block}
-@keyframes kpiFadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-#kpi-popup-close{position:absolute;top:10px;right:14px;background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;line-height:1}
-#kpi-popup-title{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);font-weight:700;margin-bottom:4px}
-#kpi-popup-value{font-family:var(--ffc);font-size:30px;font-weight:700;color:var(--text);line-height:1.1;margin-bottom:10px;word-break:break-all}
-#kpi-popup-what{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:8px}
-#kpi-popup-source{font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border);line-height:1.5}
+#kpi-popup{position:fixed;z-index:9999;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.3);padding:20px 22px;width:310px;max-width:92vw;display:none}
+#kpi-popup.active{display:block;animation:kpiFadeIn .18s ease both}
+@keyframes kpiFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#kpi-popup-close{position:absolute;top:10px;right:12px;background:none;border:none;font-size:20px;color:var(--text2);cursor:pointer;line-height:1;padding:2px 6px}
+#kpi-popup-close:hover{color:var(--text)}
+#kpi-popup-title{font-size:10px;text-transform:uppercase;letter-spacing:0.9px;color:var(--text3);font-weight:700;margin-bottom:6px}
+#kpi-popup-value{font-family:var(--ffc);font-size:26px;font-weight:700;color:var(--orange);line-height:1.15;margin-bottom:12px;word-break:break-word}
+#kpi-popup-what{font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:10px}
+#kpi-popup-source{font-size:11px;color:var(--text3);padding-top:8px;border-top:1px solid var(--border);line-height:1.5;display:flex;align-items:flex-start;gap:5px}
 .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text2);margin-bottom:8px;font-weight:600}
 .kpi-value{font-family:var(--ffc);font-size:32px;font-weight:700;color:var(--text);line-height:1}
 .kpi-sub{font-size:12px;color:var(--text3);margin-top:6px}
@@ -6927,31 +6928,69 @@ function filterGlossary(q) {
 </div>
 <script>
 function showKpiPopup(cardEl, title, fullValue, what, source) {
-  const popup = document.getElementById('kpi-popup');
-  document.getElementById('kpi-popup-title').textContent = title;
-  document.getElementById('kpi-popup-value').textContent = fullValue;
-  document.getElementById('kpi-popup-what').textContent  = what;
-  document.getElementById('kpi-popup-source').innerHTML  = licon('radio',13,'var(--text3)') + ' <strong>Fuente:</strong> ' + source;
-  popup.classList.add('active');
+  try {
+    const popup = document.getElementById('kpi-popup');
+    if (!popup) return;
 
-  // Posicionarlo cerca del card
-  const rect = cardEl.getBoundingClientRect();
-  const pw = 300, ph = 200;
-  let top  = rect.bottom + window.scrollY + 8;
-  let left = rect.left   + window.scrollX;
-  if (left + pw > window.innerWidth - 16)  left = window.innerWidth - pw - 16;
-  if (top  + ph > window.scrollY + window.innerHeight - 16) top = rect.top + window.scrollY - ph - 8;
-  popup.style.top  = top  + 'px';
-  popup.style.left = left + 'px';
+    // Contenido
+    document.getElementById('kpi-popup-title').textContent = title;
+    document.getElementById('kpi-popup-value').textContent = fullValue;
+    document.getElementById('kpi-popup-what').textContent  = what;
+    const srcEl = document.getElementById('kpi-popup-source');
+    srcEl.innerHTML = '<svg data-lucide="radio" width="12" height="12" style="flex-shrink:0;margin-top:2px"></svg><span><strong>Fuente:</strong> ' + source + '</span>';
+
+    // Mostrar antes de calcular posición (necesitamos offsetWidth/Height reales)
+    popup.classList.remove('active');
+    popup.style.top  = '0px';
+    popup.style.left = '0px';
+    popup.classList.add('active');
+
+    // Render icono Lucide
+    if (typeof lucide !== 'undefined') lucide.createIcons({ el: popup });
+
+    // Posicionar inteligentemente
+    const rect = cardEl.getBoundingClientRect();
+    const pw   = popup.offsetWidth  || 310;
+    const ph   = popup.offsetHeight || 220;
+    const vw   = window.innerWidth;
+    const vh   = window.innerHeight;
+    const sc   = window.scrollY;
+
+    let top  = rect.bottom + sc + 10;
+    let left = rect.left   + window.scrollX;
+
+    // Si no cabe abajo, ir arriba
+    if (rect.bottom + ph + 10 > vh) top = rect.top + sc - ph - 10;
+    // Si se sale por la derecha, ajustar
+    if (left + pw > vw - 12) left = vw - pw - 12;
+    // Nunca negativo
+    if (left < 8) left = 8;
+    if (top < sc + 8) top = sc + 8;
+
+    popup.style.top  = top  + 'px';
+    popup.style.left = left + 'px';
+  } catch(e) {
+    console.error('[showKpiPopup]', e);
+  }
 }
+
 function closeKpiPopup() {
-  document.getElementById('kpi-popup').classList.remove('active');
+  const p = document.getElementById('kpi-popup');
+  if (p) p.classList.remove('active');
 }
+
+// Cerrar al hacer click fuera
 document.addEventListener('click', function(e) {
   const popup = document.getElementById('kpi-popup');
-  if (popup.classList.contains('active') && !popup.contains(e.target) && !e.target.closest('.kpi-card')) {
+  if (!popup || !popup.classList.contains('active')) return;
+  if (!popup.contains(e.target) && !e.target.closest('[data-kpi-popup]') && !e.target.closest('.kpi-card')) {
     closeKpiPopup();
   }
+});
+
+// Cerrar con Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeKpiPopup();
 });
 </script>
 </body>
