@@ -850,24 +850,26 @@ html,body{overflow-x:hidden;width:100%}
   </div>
 
   <!-- Impacto económico — card estándar con 3 columnas -->
-  <div class="section-label" style="margin-bottom:16px">Valor del tráfico orgánico</div>
-  <div class="grid-3" id="exec-money" style="margin-bottom:28px">
+  <div class="section-label" style="margin-bottom:16px">Inversión Google Ads vs Tráfico Orgánico</div>
+  <div class="grid-3" id="exec-money" style="margin-bottom:12px">
     <div class="kpi-card" style="text-align:center" data-kpi="emoney-monthly">
-      <div class="kpi-label">Valor mensual estimado</div>
+      <div class="kpi-label">Gasto mensual Google Ads</div>
       <div class="kpi-value" id="emoney-monthly" style="color:var(--green)">—</div>
-      <div class="kpi-sub">equivalente en Google Ads</div>
+      <div class="kpi-sub">inversión en pauta pagada</div>
     </div>
     <div class="kpi-card" style="text-align:center" data-kpi="emoney-annual">
       <div class="kpi-label">Proyección anual</div>
       <div class="kpi-value" id="emoney-annual" style="color:var(--green)">—</div>
-      <div class="kpi-sub">si la tendencia se mantiene</div>
+      <div class="kpi-sub">gasto anual en Ads</div>
     </div>
     <div class="kpi-card" style="text-align:center" data-kpi="emoney-forecast">
-      <div class="kpi-label">Forecast 90 días</div>
+      <div class="kpi-label">Forecast Orgánico 90 días</div>
       <div class="kpi-value" id="emoney-forecast" style="color:var(--orange)">—</div>
       <div class="kpi-sub">clics orgánicos proyectados</div>
     </div>
   </div>
+  <!-- Detalle Google Ads — se muestra cuando hay datos reales -->
+  <div id="exec-ads-info" style="display:none;background:var(--surface2);border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:20px;border-left:3px solid #4285f4"></div>
 
   <!-- Acciones prioritarias -->
   <div class="section-label" style="margin-bottom:16px">Acciones prioritarias recomendadas</div>
@@ -2669,7 +2671,7 @@ function starRow(rating, size=13) {
     `<svg data-lucide="star" width="${size}" height="${size}" class="li" style="fill:${i<full?'#f39c12':'none'};stroke:#f39c12"></svg>`
   ).join('');
 }
-function liIcons() { if(typeof lucide!=='undefined') lucide.createIcons(); }
+function liIcons() { try { if(typeof lucide!=='undefined') lucide.createIcons(); } catch(e) { console.warn('[liIcons]', e); } }
 
 // ── Países: ISO alpha-3 → nombre en español ───────────────────────────────────
 const COUNTRY_NAMES = {
@@ -6477,6 +6479,28 @@ function renderExecutive(D) {
     'Google Analytics 4 · Todos los canales excepto Organic y Paid Search · últimos 6 meses'
   );
 
+  // ── Registro de popups para impacto económico ────────────────────
+  // Leemos el valor directamente del DOM para evitar problemas de closure
+  // sobre variables declaradas más abajo (monthlyValue, annualValue, fc90).
+  registerKpiPopup('emoney-monthly',
+    'Valor mensual estimado del tráfico',
+    () => (document.getElementById('emoney-monthly')?.textContent || '—').replace('—','Sin datos suficientes'),
+    'Cuánto costaría conseguir el mismo tráfico orgánico si se pagara con Google Ads. Se calcula multiplicando los clics de cada keyword por su CPC estimado en el mercado dominicano de rent a car. Es el ahorro mensual real que genera el SEO.',
+    'Google Search Console · Queries · CPC estimado mercado RD rent a car'
+  );
+  registerKpiPopup('emoney-annual',
+    'Proyección anual del valor orgánico',
+    () => (document.getElementById('emoney-annual')?.textContent || '—').replace('—','Sin datos suficientes'),
+    'Proyección del valor anual del tráfico orgánico, asumiendo que el volumen actual se mantiene constante durante 12 meses. Representa el ahorro total en publicidad que genera el posicionamiento en Google.',
+    'Calculado: Valor mensual × 12 meses'
+  );
+  registerKpiPopup('emoney-forecast',
+    'Forecast de clics — próximos 90 días',
+    () => (document.getElementById('emoney-forecast')?.textContent || '—').replace('—','Datos insuficientes para proyectar'),
+    'Proyección de los clics orgánicos totales esperados en los próximos 90 días, calculada con regresión lineal sobre el historial de clics diarios de los últimos 6 meses. Si la tendencia es positiva, el número supera el promedio actual.',
+    'Google Search Console · Historial diario 6 meses · Regresión lineal'
+  );
+
   // Insight automático
   if (el('etraf-insight')) {
     let insight = '';
@@ -6641,9 +6665,18 @@ function renderExecutive(D) {
   }
 
   // ── 4. Impacto económico ─────────────────────────────────────────
-  // Calcular valor mensual del tráfico usando estimateCPC si está disponible
+  // Priorizar datos reales de Google Ads (via GA4 Advertising Intelligence)
+  // Si no hay datos de Ads, usar estimación por CPC de keywords GSC
+  const adsData = D.ga4?.googleAds;
   let monthlyValue = 0;
-  if (D.queries && D.queries.length && typeof estimateCPC === 'function' && typeof queryType === 'function') {
+  let adsSource = 'estimado'; // 'google_ads' | 'estimado'
+
+  if (adsData?.hasData && adsData.monthly > 0) {
+    // Datos reales de Google Ads
+    monthlyValue = adsData.monthly;
+    adsSource = 'google_ads';
+  } else if (D.queries && D.queries.length && typeof estimateCPC === 'function' && typeof queryType === 'function') {
+    // Fallback: estimación por CPC de keywords
     D.queries.forEach(q => {
       const type = queryType(q.query);
       const cpcV = estimateCPC(q.query, type);
@@ -6672,25 +6705,40 @@ function renderExecutive(D) {
   if (el('emoney-annual'))  el('emoney-annual').textContent  = annualValue  ? fmtD(annualValue)  : '—';
   if (el('emoney-forecast'))el('emoney-forecast').textContent= fc90 ? fmt(fc90) + ' clics' : '—';
 
-  // ── Registro de popups para impacto económico ────────────────────
-  registerKpiPopup('emoney-monthly',
-    'Valor mensual estimado del tráfico',
-    () => monthlyValue ? '$' + Math.round(monthlyValue).toLocaleString('es-DO') + ' USD' : 'Sin datos suficientes',
-    'Cuánto costaría conseguir el mismo tráfico orgánico si se pagara con Google Ads. Se calcula multiplicando los clics de cada keyword por su CPC estimado en el mercado dominicano de rent a car. Es el ahorro mensual real que genera el SEO.',
-    'Google Search Console · Queries · CPC estimado mercado RD rent a car'
-  );
-  registerKpiPopup('emoney-annual',
-    'Proyección anual del valor orgánico',
-    () => annualValue ? '$' + Math.round(annualValue).toLocaleString('es-DO') + ' USD / año' : 'Sin datos suficientes',
-    'Proyección del valor anual del tráfico orgánico, asumiendo que el volumen actual se mantiene constante durante 12 meses. Representa el ahorro total en publicidad que genera el posicionamiento en Google.',
-    'Calculado: Valor mensual × 12 meses'
-  );
-  registerKpiPopup('emoney-forecast',
-    'Forecast de clics — próximos 90 días',
-    () => fc90 ? fc90.toLocaleString('es-DO') + ' clics proyectados' : 'Datos insuficientes para proyectar',
-    'Proyección de los clics orgánicos totales esperados en los próximos 90 días, calculada con regresión lineal sobre el historial de clics diarios de los últimos 6 meses. Si la tendencia es positiva, el número supera el promedio actual.',
-    'Google Search Console · Historial diario 6 meses · Regresión lineal'
-  );
+  // Actualizar etiqueta de fuente en los KPIs de impacto económico
+  const adsSourceLabel = adsSource === 'google_ads'
+    ? '<span style="font-size:9px;background:rgba(66,133,244,0.15);color:#4285f4;padding:2px 6px;border-radius:10px;font-weight:700">Google Ads</span>'
+    : '<span style="font-size:9px;background:rgba(255,255,255,0.07);color:var(--text3);padding:2px 6px;border-radius:10px">Estimado</span>';
+
+  ['emoney-monthly','emoney-annual'].forEach(id => {
+    const card = document.querySelector(`[data-kpi="${id}"]`);
+    if (!card) return;
+    let badge = card.querySelector('.ads-source-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.className = 'ads-source-badge';
+      badge.style.marginTop = '4px';
+      card.appendChild(badge);
+    }
+    badge.innerHTML = adsSourceLabel;
+  });
+
+  // Si hay datos reales de Ads, mostrar también el gasto real vs orgánico
+  if (adsData?.hasData && adsData.totalCost6m > 0) {
+    const adsInfoEl = document.getElementById('exec-ads-info');
+    if (adsInfoEl) {
+      const adsMonthly = fmtD(adsData.monthly);
+      const adsCPC     = adsData.avgCPC ? '$' + adsData.avgCPC.toFixed(2) : '—';
+      adsInfoEl.innerHTML = `
+        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text2)">
+          <span>Gasto real Google Ads (6m): <strong style="color:var(--text)">${fmtD(adsData.totalCost6m)}</strong></span>
+          <span>Mensual: <strong style="color:var(--text)">${adsMonthly}</strong></span>
+          <span>CPC real: <strong style="color:var(--text)">${adsCPC}</strong></span>
+          <span>Clics pagados (6m): <strong style="color:var(--text)">${adsData.totalClicks.toLocaleString('es-DO')}</strong></span>
+        </div>`;
+      adsInfoEl.style.display = 'block';
+    }
+  }
 
   // ── 5. Acciones prioritarias ─────────────────────────────────────
   const actions = [];

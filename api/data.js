@@ -346,11 +346,36 @@ async function fetchGA4(auth, propertyId, customStart = null, customEnd = null) 
         metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }],
         orderBys:   [{ dimension: { dimensionName: 'date' } }],
       },
-    ]).catch(() => [null, null, null]),
+      // [3] Google Ads cost data (via GA4 Advertising Intelligence)
+      {
+        dateRanges: [{ startDate: date6M, endDate: dateEnd }],
+        dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+        metrics: [
+          { name: 'advertiserAdCost' },
+          { name: 'advertiserAdClicks' },
+          { name: 'advertiserAdCostPerClick' },
+          { name: 'advertiserAdImpressions' },
+          { name: 'sessions' },
+        ],
+        orderBys: [{ metric: { metricName: 'advertiserAdCost' }, desc: true }],
+        limit: 20,
+      },
+      // [4] Google Ads cost by date (monthly trend)
+      {
+        dateRanges: [{ startDate: date28D, endDate: dateEnd }],
+        dimensions: [{ name: 'date' }],
+        metrics: [
+          { name: 'advertiserAdCost' },
+          { name: 'advertiserAdClicks' },
+          { name: 'sessions' },
+        ],
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+      },
+    ]).catch(() => [null, null, null, null, null]),
   ]);
 
   const [overview, channels, pages, devices, countries] = batch1;
-  const [daily7d, daily28d, daily6m] = batch2;
+  const [daily7d, daily28d, daily6m, adsByChannel, adsByDate] = batch2;
 
   const metVal = (row, idx) => parseFloat(row?.metricValues?.[idx]?.value || 0);
   const dimVal = (row, idx) => row?.dimensionValues?.[idx]?.value || '';
@@ -412,6 +437,40 @@ async function fetchGA4(auth, propertyId, customStart = null, customEnd = null) 
   const sitemapPages = await fetchSitemapPages(prop).catch(() => []);
   const mergedPages  = mergePagesWithSitemap(pageRows, sitemapPages);
 
+  // ── Google Ads data (from GA4 Advertising Intelligence) ─────────────────
+  const adsChannelRows = (adsByChannel?.rows || []).map(r => ({
+    channel:    dimVal(r, 0),
+    cost:       +parseFloat(metVal(r, 0)).toFixed(2),
+    clicks:     Math.round(metVal(r, 1)),
+    cpc:        +parseFloat(metVal(r, 2)).toFixed(2),
+    impressions: Math.round(metVal(r, 3)),
+    sessions:   Math.round(metVal(r, 4)),
+  })).filter(r => r.cost > 0 || r.clicks > 0);
+
+  const adsDailyRows = (adsByDate?.rows || []).map(r => ({
+    date:     dimVal(r, 0),
+    cost:     +parseFloat(metVal(r, 0)).toFixed(2),
+    clicks:   Math.round(metVal(r, 1)),
+    sessions: Math.round(metVal(r, 2)),
+  }));
+
+  // Aggregate totals
+  const adsTotalCost    = adsChannelRows.reduce((s, r) => s + r.cost, 0);
+  const adsTotalClicks  = adsChannelRows.reduce((s, r) => s + r.clicks, 0);
+  const adsAvgCPC       = adsTotalClicks > 0 ? +(adsTotalCost / adsTotalClicks).toFixed(2) : null;
+  const adsHasData      = adsTotalCost > 0 || adsTotalClicks > 0;
+
+  const googleAds = adsHasData ? {
+    hasData:     true,
+    totalCost6m: +adsTotalCost.toFixed(2),
+    totalClicks: adsTotalClicks,
+    avgCPC:      adsAvgCPC,
+    monthly:     +(adsTotalCost / 6).toFixed(2),
+    annual:      +(adsTotalCost / 6 * 12).toFixed(2),
+    byChannel:   adsChannelRows,
+    byDate:      adsDailyRows,
+  } : { hasData: false };
+
   return {
     configured: true,
     property:   prop,
@@ -423,6 +482,7 @@ async function fetchGA4(auth, propertyId, customStart = null, customEnd = null) 
     daily7d:    fmtDaily(daily7d),
     daily28d:   fmtDaily(daily28d),
     daily6m:    fmtDaily(daily6m),
+    googleAds,
   };
 }
 
