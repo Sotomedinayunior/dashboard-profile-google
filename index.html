@@ -2649,7 +2649,7 @@ function applyStoredConfig() {
   } catch {}
 }
 
-// Load data via POST /api/data 
+// Load data via POST /api/data
 async function loadData() {
   const empty={...FALLBACK,gmb:{configured:false,rating:null,reviewCount:null,reviews:[],performance:{views:{maps:null,search:null,total:null},actions:{calls:null,websiteClicks:null,directions:null,total:null},daily:[]}},ga4:null};
   try{
@@ -2659,6 +2659,20 @@ async function loadData() {
   console.log('[loadData] /api/data OK — ga4 configured:', json?.ga4?.configured, '| ga4 keys:', Object.keys(json?.ga4||{}));
   return json;
   }catch(e){console.error('[loadData] Error cargando datos:',e.message);return empty;}
+}
+
+// Load exact Google Ads data via /api/ads
+async function loadAdsData() {
+  try {
+    const r = await fetch('/api/ads');
+    if (!r.ok) return { configured: false, hasData: false, error: `HTTP ${r.status}` };
+    const json = await r.json();
+    console.log('[loadAdsData] configured:', json?.configured, '| hasData:', json?.hasData, '| spend:', json?.summary?.spend ?? '—');
+    return json;
+  } catch(e) {
+    console.warn('[loadAdsData]', e.message);
+    return { configured: false, hasData: false, error: e.message };
+  }
 }
 
 // ── Icon helpers (Lucide) ─────────────────────────────────────────────────────
@@ -5872,12 +5886,16 @@ function renderOnPageTable(rows) {
 async function bootDashboard() {
   applyStoredConfig();
 
-  // Only load GSC + GA4 data on startup (no SerpAPI calls)
-  const D = await loadData().catch(e => { console.error('[bootDashboard] loadData:', e.message); return null; });
+  // Load GSC+GA4 data AND Google Ads data in parallel
+  const [D, adsRaw] = await Promise.all([
+    loadData().catch(e => { console.error('[bootDashboard] loadData:', e.message); return null; }),
+    loadAdsData().catch(e => { console.warn('[bootDashboard] loadAdsData:', e.message); return { configured: false, hasData: false }; }),
+  ]);
 
   const safeD = D || {};
   window._dashData = safeD;
   window._ga4Data  = safeD.ga4 || null;
+  window._adsData  = adsRaw || { configured: false, hasData: false };
 
   try { render(safeD); }              catch(e) { console.error('[render]',    e); }
   try { renderTrafficValue(safeD); }  catch(e) { console.error('[renderTrafficValue]', e); }
@@ -6362,6 +6380,8 @@ function renderExecutive(D) {
   const gsc6 = D.summary_6m  || {};
   const ga4  = D.ga4  || null;
   const gmb  = D.gmb  || null;
+  const ads  = window._adsData || {};
+  const adsOk = !!(ads.configured && ads.hasData && ads.summary);
 
   const now  = new Date();
   const dateStr = now.toLocaleDateString('es-DO', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
@@ -6416,8 +6436,12 @@ function renderExecutive(D) {
 
   if (el('etraf-organic'))     el('etraf-organic').textContent     = fmt(sessOrganic);
   if (el('etraf-organic-sub')) el('etraf-organic-sub').textContent = pctOrg + '% del total · sin costo';
-  if (el('etraf-paid'))        el('etraf-paid').textContent        = sessPaid > 0 ? fmt(sessPaid) : '0';
-  if (el('etraf-paid-sub'))    el('etraf-paid-sub').textContent    = pctPaid + '% del total' + (sessPaid === 0 ? ' · sin campañas activas' : '');
+  if (el('etraf-paid'))        el('etraf-paid').textContent        = adsOk
+    ? 'US$' + ads.summary.spend.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})
+    : (sessPaid > 0 ? fmt(sessPaid) : '0');
+  if (el('etraf-paid-sub'))    el('etraf-paid-sub').textContent    = adsOk
+    ? ads.summary.clicks.toLocaleString('es-DO') + ' clics · ' + ads.summary.impressions.toLocaleString('es-DO') + ' impres.'
+    : pctPaid + '% del total' + (sessPaid === 0 ? ' · sin campañas activas' : '');
   if (el('etraf-other'))       el('etraf-other').textContent       = fmt(sessOther);
   if (el('etraf-other-sub'))   el('etraf-other-sub').textContent   = pctOth + '% del total · directo, social, referral';
 
@@ -6467,10 +6491,29 @@ function renderExecutive(D) {
     'Google Analytics 4 · Canal "Organic Search" · últimos 6 meses'
   );
   registerKpiPopup('etraf-paid',
-    'Tráfico pagado (Google Ads)',
-    () => sessPaid > 0 ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)' : '0 sesiones · Sin campañas de Google Ads activas en este período',
-    'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
-    'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses'
+    adsOk ? 'Google Ads — Inversión exacta (30 días)' : 'Tráfico pagado (Google Ads)',
+    () => {
+      const a = window._adsData || {};
+      if (a.configured && a.hasData && a.summary) {
+        const s = a.summary;
+        const spendFmt = 'US$' + s.spend.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+        const cpcFmt   = 'US$' + (s.avgCpc || 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+        return spendFmt + ' gastados · '
+          + (s.clicks || 0).toLocaleString('es-DO') + ' clics · '
+          + 'CTR ' + (s.ctr || 0) + '% · '
+          + 'CPC prom. ' + cpcFmt
+          + (s.conversions > 0 ? ' · ' + s.conversions + ' conversiones' : '');
+      }
+      return sessPaid > 0
+        ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)'
+        : '0 sesiones · Sin campañas activas en este período';
+    },
+    adsOk
+      ? 'Gasto real facturado en Google Ads en los últimos 30 días, con clics, impresiones, CTR de anuncios y conversiones directamente desde la API oficial de Google Ads. No es una estimación — son los números exactos de la plataforma publicitaria.'
+      : 'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
+    adsOk
+      ? 'Google Ads API v18 — datos exactos · últimos 30 días'
+      : 'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses'
   );
   registerKpiPopup('etraf-other',
     'Otros canales',
@@ -6504,11 +6547,25 @@ function renderExecutive(D) {
   // Insight automático
   if (el('etraf-insight')) {
     let insight = '';
-    if (sessPaid === 0 && pctOrg >= 70)  insight = licon('circle-check',13,'#27a663') + ' El negocio no depende de Google Ads — el SEO está trabajando bien';
-    else if (sessPaid === 0)             insight = licon('info',13,'var(--text3)') + ' Todo el tráfico es gratuito — sin inversión en Google Ads actualmente';
-    else if (pctOrg >= pctPaid * 2)      insight = licon('circle-check',13,'#27a663') + ' El orgánico supera al pagado en ' + Math.round(pctOrg/pctPaid) + 'x';
-    else if (pctPaid > pctOrg)           insight = licon('triangle-alert',13,'#f39c12') + ' El tráfico pagado supera al orgánico — reforzar SEO';
-    else                                 insight = licon('minus',13,'var(--text3)') + ' Balance entre orgánico y pagado';
+    if (adsOk && ads.summary.spend > 0) {
+      const s = ads.summary;
+      const cpcFmt = 'US$' + (s.avgCpc || 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      const spendFmt = 'US$' + s.spend.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+      insight = licon('dollar-sign',13,'#f39c12')
+        + ' ' + spendFmt + ' invertidos · '
+        + (s.clicks||0).toLocaleString('es-DO') + ' clics · CPC prom. ' + cpcFmt
+        + (s.conversions > 0 ? ' · ' + s.conversions + ' conv.' : '');
+    } else if (sessPaid === 0 && pctOrg >= 70) {
+      insight = licon('circle-check',13,'#27a663') + ' El negocio no depende de Google Ads — el SEO está trabajando bien';
+    } else if (sessPaid === 0) {
+      insight = licon('info',13,'var(--text3)') + ' Todo el tráfico es gratuito — sin inversión en Google Ads actualmente';
+    } else if (pctOrg >= pctPaid * 2) {
+      insight = licon('circle-check',13,'#27a663') + ' El orgánico supera al pagado en ' + Math.round(pctOrg/pctPaid) + 'x';
+    } else if (pctPaid > pctOrg) {
+      insight = licon('triangle-alert',13,'#f39c12') + ' El tráfico pagado supera al orgánico — reforzar SEO';
+    } else {
+      insight = licon('minus',13,'var(--text3)') + ' Balance entre orgánico y pagado';
+    }
     el('etraf-insight').innerHTML = insight;
   }
 
