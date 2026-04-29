@@ -780,27 +780,27 @@ html,body{overflow-x:hidden;width:100%}
 
   <!-- KPIs — misma clase que el resto del dashboard -->
   <div class="kpi-grid" id="exec-kpi-strip" style="margin-bottom:28px">
-    <div class="kpi-card">
+    <div class="kpi-card" data-kpi="ekpi-clicks">
       <div class="kpi-label">Clics orgánicos / mes</div>
       <div class="kpi-value" id="ekpi-clicks">—</div>
       <div class="kpi-sub" id="ekpi-clicks-d" ></div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" data-kpi="ekpi-pos">
       <div class="kpi-label">Posición media Google</div>
       <div class="kpi-value" id="ekpi-pos">—</div>
       <div class="kpi-sub" id="ekpi-pos-d"></div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" data-kpi="ekpi-rating">
       <div class="kpi-label">Calificación Google</div>
       <div class="kpi-value" id="ekpi-rating">—</div>
       <div class="kpi-sub" id="ekpi-rating-d"></div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" data-kpi="ekpi-sessions">
       <div class="kpi-label">Sesiones web / mes</div>
       <div class="kpi-value" id="ekpi-sessions">—</div>
       <div class="kpi-sub" id="ekpi-sessions-d"></div>
     </div>
-    <div class="kpi-card">
+    <div class="kpi-card" data-kpi="ekpi-ctr">
       <div class="kpi-label">CTR orgánico</div>
       <div class="kpi-value" id="ekpi-ctr">—</div>
       <div class="kpi-sub" id="ekpi-ctr-d"></div>
@@ -810,17 +810,17 @@ html,body{overflow-x:hidden;width:100%}
   <!-- Orgánico vs Pagado -->
   <div class="section-label" style="margin-bottom:16px">Posicionamiento: Orgánico vs Pagado</div>
   <div class="grid-3" style="margin-bottom:12px">
-    <div class="kpi-card" style="text-align:center">
+    <div class="kpi-card" style="text-align:center" data-kpi="etraf-organic">
       <div class="kpi-label"><svg data-lucide="leaf" width="12" height="12" class="li" style="margin-right:4px;stroke:var(--green)"></svg>Orgánico (Google / GSC)</div>
       <div class="kpi-value" id="etraf-organic" style="color:var(--green)">—</div>
       <div class="kpi-sub" id="etraf-organic-sub">sesiones sin costo</div>
     </div>
-    <div class="kpi-card" style="text-align:center">
+    <div class="kpi-card" style="text-align:center" data-kpi="etraf-paid">
       <div class="kpi-label"><svg data-lucide="dollar-sign" width="12" height="12" class="li" style="margin-right:4px;stroke:#f39c12"></svg>Pagado (Google Ads)</div>
       <div class="kpi-value" id="etraf-paid" style="color:#f39c12">—</div>
       <div class="kpi-sub" id="etraf-paid-sub">sesiones de pago</div>
     </div>
-    <div class="kpi-card" style="text-align:center">
+    <div class="kpi-card" style="text-align:center" data-kpi="etraf-other">
       <div class="kpi-label"><svg data-lucide="link" width="12" height="12" class="li" style="margin-right:4px;stroke:var(--text2)"></svg>Otros canales</div>
       <div class="kpi-value" id="etraf-other">—</div>
       <div class="kpi-sub" id="etraf-other-sub">directo, social, referral</div>
@@ -851,17 +851,17 @@ html,body{overflow-x:hidden;width:100%}
   <!-- Impacto económico — card estándar con 3 columnas -->
   <div class="section-label" style="margin-bottom:16px">Valor del tráfico orgánico</div>
   <div class="grid-3" id="exec-money" style="margin-bottom:28px">
-    <div class="kpi-card" style="text-align:center">
+    <div class="kpi-card" style="text-align:center" data-kpi="emoney-monthly">
       <div class="kpi-label">Valor mensual estimado</div>
       <div class="kpi-value" id="emoney-monthly" style="color:var(--green)">—</div>
       <div class="kpi-sub">equivalente en Google Ads</div>
     </div>
-    <div class="kpi-card" style="text-align:center">
+    <div class="kpi-card" style="text-align:center" data-kpi="emoney-annual">
       <div class="kpi-label">Proyección anual</div>
       <div class="kpi-value" id="emoney-annual" style="color:var(--green)">—</div>
       <div class="kpi-sub">si la tendencia se mantiene</div>
     </div>
-    <div class="kpi-card" style="text-align:center">
+    <div class="kpi-card" style="text-align:center" data-kpi="emoney-forecast">
       <div class="kpi-label">Forecast 90 días</div>
       <div class="kpi-value" id="emoney-forecast" style="color:var(--orange)">—</div>
       <div class="kpi-sub">clics orgánicos proyectados</div>
@@ -6424,86 +6424,57 @@ function renderExecutive(D) {
   if (el('etraf-bar-other'))   { el('etraf-bar-other').style.flex   = String(pctOth  || 1); el('etraf-bar-other').textContent   = pctOth  > 8 ? pctOth + '%'  : ''; }
 
   // ── Tooltips onclick para los KPI cards del Resumen Ejecutivo ────
-  const kpiDefs = [
-    {
-      id: 'ekpi-clicks',
-      card: el('ekpi-clicks')?.closest('.kpi-card'),
-      title: 'Clics orgánicos / mes',
-      fullVal: () => (clicksMo).toLocaleString('es-DO') + ' clics',
-      what: 'Número de veces que usuarios hicieron clic en nellyrac.do desde los resultados de búsqueda de Google en los últimos 30 días (estimado desde los 28 días reportados por GSC).',
-      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
-    },
-    {
-      id: 'ekpi-pos',
-      card: el('ekpi-pos')?.closest('.kpi-card'),
-      title: 'Posición media en Google',
-      fullVal: () => position ? position.toFixed(2) : '—',
-      what: 'Promedio de la posición en que aparece el sitio en los resultados de Google. Posición 1 es el primer resultado. Se calcula sobre todas las búsquedas donde el sitio apareció, ponderado por impresiones.',
-      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
-    },
-    {
-      id: 'ekpi-rating',
-      card: el('ekpi-rating')?.closest('.kpi-card'),
-      title: 'Calificación en Google',
-      fullVal: () => rating ? rating.toFixed(2) + ' / 5.00  (' + totalRev.toLocaleString('es-DO') + ' reseñas)' : '—',
-      what: 'Promedio de estrellas de todas las reseñas de las sucursales en Google Maps / Google Business Profile. Incluye las 5 sucursales: Independencia, Santiago, Puerto Plata, Punta Cana y Las Américas.',
-      source: 'Google Business Profile API · mybusinessreviews',
-    },
-    {
-      id: 'ekpi-sessions',
-      card: el('ekpi-sessions')?.closest('.kpi-card'),
-      title: 'Sesiones web / mes',
-      fullVal: () => (ga4?.summary?.sessions || 0).toLocaleString('es-DO') + ' sesiones',
-      what: 'Total de visitas al sitio nellyrac.do registradas por Google Analytics en los últimos 28 días. Una sesión es una visita completa de un usuario, sin importar cuántas páginas vea.',
-      source: 'Google Analytics 4 · Informe de resumen · últimos 28 días',
-    },
-    {
-      id: 'ekpi-ctr',
-      card: el('ekpi-ctr')?.closest('.kpi-card'),
-      title: 'CTR orgánico',
-      fullVal: () => ctr ? ctr.toFixed(2) + '%' : '—',
-      what: 'Click-Through Rate: porcentaje de veces que alguien hizo clic sobre el sitio al verlo en Google. Ejemplo: si el sitio aparece 1,000 veces y recibe 35 clics, el CTR es 3.5%. El promedio saludable para rent a car es 3–5%.',
-      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
-    },
-  ];
+  // ── Registro de popups para strip KPI cards ──────────────────────
+  registerKpiPopup('ekpi-clicks',
+    'Clics orgánicos / mes',
+    () => clicksMo.toLocaleString('es-DO') + ' clics',
+    'Número de veces que usuarios hicieron clic en nellyrac.do desde los resultados de búsqueda de Google en los últimos 30 días (estimado desde los 28 días reportados por GSC).',
+    'Google Search Console · Informe de rendimiento · últimos 28 días'
+  );
+  registerKpiPopup('ekpi-pos',
+    'Posición media en Google',
+    () => position ? position.toFixed(2) : '—',
+    'Promedio de la posición en que aparece el sitio en los resultados de Google. Posición 1 es el primer resultado. Se calcula sobre todas las búsquedas donde el sitio apareció, ponderado por impresiones.',
+    'Google Search Console · Informe de rendimiento · últimos 28 días'
+  );
+  registerKpiPopup('ekpi-rating',
+    'Calificación en Google',
+    () => rating ? rating.toFixed(2) + ' / 5.00  (' + totalRev.toLocaleString('es-DO') + ' reseñas)' : '—',
+    'Promedio de estrellas de todas las reseñas de las sucursales en Google Maps / Google Business Profile. Incluye las 5 sucursales: Independencia, Santiago, Puerto Plata, Punta Cana y Las Américas.',
+    'Google Business Profile API · mybusinessreviews'
+  );
+  registerKpiPopup('ekpi-sessions',
+    'Sesiones web / mes',
+    () => (ga4?.summary?.sessions || 0).toLocaleString('es-DO') + ' sesiones',
+    'Total de visitas al sitio nellyrac.do registradas por Google Analytics en los últimos 28 días. Una sesión es una visita completa de un usuario, sin importar cuántas páginas vea.',
+    'Google Analytics 4 · Informe de resumen · últimos 28 días'
+  );
+  registerKpiPopup('ekpi-ctr',
+    'CTR orgánico',
+    () => ctr ? ctr.toFixed(2) + '%' : '—',
+    'Click-Through Rate: porcentaje de veces que alguien hizo clic sobre el sitio al verlo en Google. Ejemplo: si el sitio aparece 1,000 veces y recibe 35 clics, el CTR es 3.5%. El promedio saludable para rent a car es 3–5%.',
+    'Google Search Console · Informe de rendimiento · últimos 28 días'
+  );
 
-  kpiDefs.forEach(({ card, title, fullVal, what, source }) => {
-    if (!card) return;
-    card.style.cursor = 'pointer';
-    card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
-  });
-
-  // Tooltips para la sección orgánico vs pagado
-  const trafDefs = [
-    {
-      cardId: 'etraf-organic',
-      title: 'Tráfico orgánico (Google / GSC)',
-      fullVal: () => sessOrganic.toLocaleString('es-DO') + ' sesiones  (' + pctOrg + '% del total)',
-      what: 'Visitas que llegaron al sitio desde resultados de búsqueda gratuitos de Google. Estas sesiones no cuestan dinero — son el resultado del trabajo de SEO (posicionamiento orgánico). Cuanto mayor este número, menos dependencia de publicidad pagada.',
-      source: 'Google Analytics 4 · Canal "Organic Search" · últimos 6 meses',
-    },
-    {
-      cardId: 'etraf-paid',
-      title: 'Tráfico pagado (Google Ads)',
-      fullVal: () => sessPaid > 0 ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)' : '0 sesiones · Sin campañas de Google Ads activas en este período',
-      what: 'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
-      source: 'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses',
-    },
-    {
-      cardId: 'etraf-other',
-      title: 'Otros canales',
-      fullVal: () => sessOther.toLocaleString('es-DO') + ' sesiones  (' + pctOth + '% del total)',
-      what: 'Visitas que no vienen de búsquedas en Google. Incluye: tráfico directo (personas que escriben nellyrac.do directamente), referrals (links desde otras webs), redes sociales orgánicas (Facebook, Instagram), y email.',
-      source: 'Google Analytics 4 · Todos los canales excepto Organic y Paid Search · últimos 6 meses',
-    },
-  ];
-
-  trafDefs.forEach(({ cardId, title, fullVal, what, source }) => {
-    const card = el(cardId)?.closest('.kpi-card');
-    if (!card) return;
-    card.style.cursor = 'pointer';
-    card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
-  });
+  // ── Registro de popups para tráfico orgánico vs pagado ───────────
+  registerKpiPopup('etraf-organic',
+    'Tráfico orgánico (Google / GSC)',
+    () => sessOrganic.toLocaleString('es-DO') + ' sesiones  (' + pctOrg + '% del total)',
+    'Visitas que llegaron al sitio desde resultados de búsqueda gratuitos de Google. Estas sesiones no cuestan dinero — son el resultado del trabajo de SEO (posicionamiento orgánico). Cuanto mayor este número, menos dependencia de publicidad pagada.',
+    'Google Analytics 4 · Canal "Organic Search" · últimos 6 meses'
+  );
+  registerKpiPopup('etraf-paid',
+    'Tráfico pagado (Google Ads)',
+    () => sessPaid > 0 ? sessPaid.toLocaleString('es-DO') + ' sesiones  (' + pctPaid + '% del total)' : '0 sesiones · Sin campañas de Google Ads activas en este período',
+    'Visitas que llegaron al sitio desde anuncios pagados en Google Ads, Display o Paid Social. Si este número es 0, significa que no hay inversión publicitaria activa actualmente y todo el tráfico llega de forma gratuita.',
+    'Google Analytics 4 · Canal "Paid Search" / "Display" / "Paid Social" · últimos 6 meses'
+  );
+  registerKpiPopup('etraf-other',
+    'Otros canales',
+    () => sessOther.toLocaleString('es-DO') + ' sesiones  (' + pctOth + '% del total)',
+    'Visitas que no vienen de búsquedas en Google. Incluye: tráfico directo (personas que escriben nellyrac.do directamente), referrals (links desde otras webs), redes sociales orgánicas (Facebook, Instagram), y email.',
+    'Google Analytics 4 · Todos los canales excepto Organic y Paid Search · últimos 6 meses'
+  );
 
   // Insight automático
   if (el('etraf-insight')) {
@@ -6603,44 +6574,62 @@ function renderExecutive(D) {
       label: 'Tráfico orgánico',
       val: fmt(clicksMo) + ' clics/mes',
       desc: clicksMo >= 1500 ? 'Volumen alto para el mercado dominicano' : clicksMo >= 500 ? 'Volumen moderado — hay margen de crecimiento' : 'Volumen bajo — acción urgente en SEO',
+      what: 'Total de clics recibidos desde Google Search en los últimos 30 días. Es el volumen de visitantes gratuitos que llegan al sitio por búsquedas orgánicas. Verde: más de 1,500/mes · Amarillo: 500–1,500 · Rojo: menos de 500.',
+      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
       status: semStatus(clicksMo, 1500, 500)
     },
     {
       label: 'Posición media Google',
       val: position ? position.toFixed(1) : '—',
       desc: position <= 3.5 ? 'Excelente visibilidad en página 1' : position <= 6 ? 'Buena posición, optimizable' : 'Posición baja — priorizar SEO técnico y contenido',
+      what: 'Promedio de la posición en que aparece nellyrac.do en los resultados de Google. Posición 1 es el primer resultado visible. Cuanto menor el número, mejor. Verde: por debajo de 3.5 · Amarillo: 3.5–6 · Rojo: más de 6.',
+      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
       status: position ? semStatus(position, 3.5, 6, true) : 'yellow'
     },
     {
       label: 'CTR en Google',
       val: ctr ? ctr.toFixed(1) + '%' : '—',
       desc: ctr >= 4 ? 'Snippets muy atractivos para los usuarios' : ctr >= 2 ? 'CTR aceptable — optimizar títulos y meta descriptions' : 'CTR bajo — los snippets no generan clics suficientes',
+      what: 'Porcentaje de personas que hacen clic cuando ven el sitio en Google. Si el sitio aparece 1,000 veces y recibe 35 clics, el CTR es 3.5%. Un CTR bajo indica que el título o descripción del sitio no es atractivo para el usuario. Verde: más de 4% · Amarillo: 2–4% · Rojo: menos de 2%.',
+      source: 'Google Search Console · Informe de rendimiento · últimos 28 días',
       status: ctr ? semStatus(ctr, 4, 2) : 'yellow'
     },
     {
       label: 'Reputación Google Maps',
       val: rating ? rating.toFixed(1) + ' / 5.0' : '—',
       desc: rating >= 4.6 ? 'Reputación excelente — activo diferencial ante la competencia' : rating >= 4.0 ? 'Buena reputación — responder reseñas para mejorar' : 'Reputación a mejorar — plan de reseñas urgente',
+      what: 'Promedio de calificación de las 5 sucursales en Google Maps. Una calificación alta mejora la posición en el Local Pack de Google y genera más confianza en clientes potenciales. Verde: 4.6 o más · Amarillo: 4.0–4.6 · Rojo: menos de 4.0.',
+      source: 'Google Business Profile · Rating promedio de 5 sucursales',
       status: rating ? semStatus(rating, 4.6, 4.0) : 'yellow'
     },
     {
       label: 'Engagement del sitio web',
       val: engRate ? (engRate*100).toFixed(0) + '%' : '—',
       desc: engRate >= 0.55 ? 'Los usuarios interactúan activamente con el sitio' : engRate >= 0.38 ? 'Engagement moderado — revisar velocidad y UX' : 'Engagement bajo — el sitio no retiene a los visitantes',
+      what: 'Porcentaje de sesiones donde el usuario interactuó activamente (scrolleó, hizo clic, estuvo más de 10 segundos). Un engagement bajo puede indicar que el sitio es lento, difícil de navegar, o que el contenido no responde a la intención del usuario. Verde: más de 55% · Amarillo: 38–55% · Rojo: menos de 38%.',
+      source: 'Google Analytics 4 · Engagement Rate · últimos 28 días',
       status: engRate ? semStatus(engRate, 0.55, 0.38) : 'yellow'
     },
     {
       label: 'Respuesta a reseñas',
       val: replyRate ? replyRate.toFixed(0) + '% respondidas' : '—',
       desc: replyRate >= 80 ? 'Excelente gestión de la reputación' : replyRate >= 50 ? 'Respuesta parcial — atender reseñas negativas primero' : 'Baja tasa de respuesta — riesgo reputacional',
+      what: 'Porcentaje de reseñas en Google Maps que tienen respuesta del negocio. Google favorece en el ranking local a negocios que responden activamente. También genera confianza en clientes que leen reseñas antes de reservar. Verde: más de 80% · Amarillo: 50–80% · Rojo: menos de 50%.',
+      source: 'Google Business Profile · Reseñas de las 5 sucursales',
       status: replyRate ? semStatus(replyRate, 80, 50) : 'yellow'
     },
   ];
 
   const semEl = el('exec-semaforos');
   if (semEl) {
-    semEl.innerHTML = semaforos.map(s => `
-      <div class="semaforo-card semaforo-${s.status}">
+    semEl.innerHTML = semaforos.map((s, i) => `
+      <div class="semaforo-card semaforo-${s.status}" style="cursor:pointer"
+           data-kpi="sem-${i}"
+           data-sem-title="${s.label.replace(/"/g,"'")}"
+           data-sem-val="${s.val.replace(/"/g,"'")}"
+           data-sem-desc="${s.desc.replace(/"/g,"'")}"
+           data-sem-what="${(s.what||s.desc).replace(/"/g,"'")}"
+           data-sem-source="${(s.source||'Google Search Console / Google Analytics 4').replace(/"/g,"'")}">
         <div class="semaforo-dot dot-${s.status}"></div>
         <div class="semaforo-body">
           <div class="semaforo-label">${s.label}</div>
@@ -6682,36 +6671,25 @@ function renderExecutive(D) {
   if (el('emoney-annual'))  el('emoney-annual').textContent  = annualValue  ? fmtD(annualValue)  : '—';
   if (el('emoney-forecast'))el('emoney-forecast').textContent= fc90 ? fmt(fc90) + ' clics' : '—';
 
-  // Popups para cards de valor económico
-  const moneyDefs = [
-    {
-      cardId: 'emoney-monthly',
-      title: 'Valor mensual estimado del tráfico',
-      fullVal: () => monthlyValue ? '$' + Math.round(monthlyValue).toLocaleString('es-DO') + ' USD' : 'Sin datos suficientes',
-      what: 'Cuánto costaría conseguir el mismo tráfico orgánico si se pagara con Google Ads. Se calcula multiplicando los clics de cada keyword por su CPC estimado en el mercado dominicano de rent a car. Es el ahorro mensual real que genera el SEO.',
-      source: 'Google Search Console · Queries · CPC estimado mercado RD rent a car',
-    },
-    {
-      cardId: 'emoney-annual',
-      title: 'Proyección anual del valor orgánico',
-      fullVal: () => annualValue ? '$' + Math.round(annualValue).toLocaleString('es-DO') + ' USD / año' : 'Sin datos suficientes',
-      what: 'Proyección del valor anual del tráfico orgánico, asumiendo que el volumen actual se mantiene constante durante 12 meses. Representa el ahorro total en publicidad que genera el posicionamiento en Google.',
-      source: 'Calculado: Valor mensual × 12 meses',
-    },
-    {
-      cardId: 'emoney-forecast',
-      title: 'Forecast de clics — próximos 90 días',
-      fullVal: () => fc90 ? fc90.toLocaleString('es-DO') + ' clics proyectados' : 'Datos insuficientes para proyectar',
-      what: 'Proyección de los clics orgánicos totales esperados en los próximos 90 días, calculada con regresión lineal sobre el historial de clics diarios de los últimos 6 meses. Si la tendencia es positiva, el número supera el promedio actual.',
-      source: 'Google Search Console · Historial diario 6 meses · Regresión lineal',
-    },
-  ];
-
-  moneyDefs.forEach(({ cardId, title, fullVal, what, source }) => {
-    const card = el(cardId)?.closest('.kpi-card');
-    if (!card) return;
-    card.onclick = (e) => { e.stopPropagation(); showKpiPopup(card, title, fullVal(), what, source); };
-  });
+  // ── Registro de popups para impacto económico ────────────────────
+  registerKpiPopup('emoney-monthly',
+    'Valor mensual estimado del tráfico',
+    () => monthlyValue ? '$' + Math.round(monthlyValue).toLocaleString('es-DO') + ' USD' : 'Sin datos suficientes',
+    'Cuánto costaría conseguir el mismo tráfico orgánico si se pagara con Google Ads. Se calcula multiplicando los clics de cada keyword por su CPC estimado en el mercado dominicano de rent a car. Es el ahorro mensual real que genera el SEO.',
+    'Google Search Console · Queries · CPC estimado mercado RD rent a car'
+  );
+  registerKpiPopup('emoney-annual',
+    'Proyección anual del valor orgánico',
+    () => annualValue ? '$' + Math.round(annualValue).toLocaleString('es-DO') + ' USD / año' : 'Sin datos suficientes',
+    'Proyección del valor anual del tráfico orgánico, asumiendo que el volumen actual se mantiene constante durante 12 meses. Representa el ahorro total en publicidad que genera el posicionamiento en Google.',
+    'Calculado: Valor mensual × 12 meses'
+  );
+  registerKpiPopup('emoney-forecast',
+    'Forecast de clics — próximos 90 días',
+    () => fc90 ? fc90.toLocaleString('es-DO') + ' clics proyectados' : 'Datos insuficientes para proyectar',
+    'Proyección de los clics orgánicos totales esperados en los próximos 90 días, calculada con regresión lineal sobre el historial de clics diarios de los últimos 6 meses. Si la tendencia es positiva, el número supera el promedio actual.',
+    'Google Search Console · Historial diario 6 meses · Regresión lineal'
+  );
 
   // ── 5. Acciones prioritarias ─────────────────────────────────────
   const actions = [];
@@ -6945,8 +6923,14 @@ function showKpiPopup(cardEl, title, fullValue, what, source) {
     popup.style.left = '0px';
     popup.classList.add('active');
 
-    // Render icono Lucide
-    if (typeof lucide !== 'undefined') lucide.createIcons({ el: popup });
+    // Render icono Lucide (compatible con todas las versiones del UMD)
+    try {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons({ el: popup });
+      }
+    } catch(_) {
+      try { if (typeof lucide !== 'undefined') lucide.createIcons(); } catch(__) {}
+    }
 
     // Posicionar inteligentemente
     const rect = cardEl.getBoundingClientRect();
@@ -6979,13 +6963,49 @@ function closeKpiPopup() {
   if (p) p.classList.remove('active');
 }
 
-// Cerrar al hacer click fuera
+// ── Popup KPI delegado — funciona para cards estáticos Y dinámicos ────────────
+// El registro de popups: id → { title, fullVal, what, source }
+window._kpiPopupRegistry = {};
+
+function registerKpiPopup(dataKpiId, title, fullValFn, what, source) {
+  window._kpiPopupRegistry[dataKpiId] = { title, fullValFn, what, source };
+}
+
 document.addEventListener('click', function(e) {
   const popup = document.getElementById('kpi-popup');
-  if (!popup || !popup.classList.contains('active')) return;
-  if (!popup.contains(e.target) && !e.target.closest('[data-kpi-popup]') && !e.target.closest('.kpi-card')) {
-    closeKpiPopup();
+
+  // Cerrar si clic fuera del popup y fuera de un card
+  if (popup && popup.classList.contains('active')) {
+    if (!popup.contains(e.target) && !e.target.closest('[data-kpi]')) {
+      closeKpiPopup(); return;
+    }
   }
+
+  // Detectar clic en un card con data-kpi
+  const card = e.target.closest('[data-kpi]');
+  if (!card) return;
+  e.stopPropagation();
+
+  const id = card.dataset.kpi;
+
+  // Semáforos: datos en data-* attributes directamente
+  if (id && id.startsWith('sem-')) {
+    const title    = card.dataset.semTitle || '';
+    const fullVal  = card.dataset.semVal   || '';
+    const what     = card.dataset.semWhat  || card.dataset.semDesc || '';
+    const source   = card.dataset.semSource|| 'Google Search Console / Google Analytics 4';
+    showKpiPopup(card, title, fullVal, what, source);
+    return;
+  }
+
+  // Cards de dinero: datos en el registry
+  const reg = window._kpiPopupRegistry[id];
+  if (reg) {
+    showKpiPopup(card, reg.title, reg.fullValFn(), reg.what, reg.source);
+    return;
+  }
+
+  // Cards del strip principal y tráfico: también en registry
 });
 
 // Cerrar con Escape
