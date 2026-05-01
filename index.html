@@ -4390,7 +4390,7 @@ function renderGMB(G) {
   // Best location KPI
   if (G.bestLocation) {
     el('gmb-kpi-best', G.bestLocation.name || '—');
-    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'} mejor calificada  ${licon('star',13,'#f39c12')} `);
+    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'}  ${licon('star',13,'#f39c12')}${G.bestLocation.name ? 'mejor calificada' : ''} } `);
     const cityEl = document.getElementById('gmb-kpi-best-city');
     const cityText = document.getElementById('gmb-kpi-best-city-text');
     if (cityEl && cityText) { cityText.textContent = G.bestLocation.name; cityEl.style.display = 'flex'; }
