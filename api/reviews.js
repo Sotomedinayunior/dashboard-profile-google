@@ -39,6 +39,22 @@ module.exports = async function handler(req, res) {
 
   const placeId = req.query.place_id;
 
+  // ── Verificar créditos ANTES de hacer llamadas reales ─────────────────────
+  let credits = null;
+  try { credits = await checkSerpCredits(apiKey); } catch (e) { /* non-fatal */ }
+
+  const callsNeeded = placeId ? MAX_PAGES : LOCATIONS.length * MAX_PAGES_ALL;
+  if (credits && credits.left < callsNeeded + 2) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json({
+      ok: false,
+      mode: placeId ? 'single' : 'all',
+      error: `Créditos SerpAPI insuficientes: ${credits.left} restantes de ${credits.total}/mes. Se necesitan ~${callsNeeded + 2}.`,
+      credits,
+      reviews: [], total: 0,
+    });
+  }
+
   try {
     // ── Modo: una sucursal específica ─────────────────────────────────────────
     if (placeId) {
@@ -51,6 +67,7 @@ module.exports = async function handler(req, res) {
         ok: true,
         mode: 'single',
         location: loc,
+        credits,
         ...buildStats(reviews),
       });
     }
@@ -63,7 +80,6 @@ module.exports = async function handler(req, res) {
           const reviews = await fetchAllPages(loc.placeId, apiKey, MAX_PAGES_ALL);
           return { ...loc, ...buildStats(reviews), ok: true };
         } catch (err) {
-          // 429 u otro error: devolver datos vacíos para esta sucursal
           const is429 = err.message.includes('429');
           return {
             ...loc,
@@ -83,7 +99,6 @@ module.exports = async function handler(req, res) {
     );
     const global = buildStats(allReviews);
 
-    // Solo cachear si al menos una sucursal respondió bien
     if (okCount > 0) {
       res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
     } else {
@@ -95,14 +110,14 @@ module.exports = async function handler(req, res) {
       mode: 'all',
       global,
       locations: results,
-      // Info para debugging
+      credits,
       _meta: { ok: okCount, failed: results.length - okCount, total: results.length },
     });
 
   } catch (err) {
     res.setHeader('Cache-Control', 'no-store');
     console.error('[Reviews]', err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message, credits });
   }
 };
 
@@ -161,6 +176,22 @@ async function fetchAllPages(placeId, apiKey, maxPages) {
   }
 
   return all;
+}
+
+// ── Check SerpAPI account credits ─────────────────────────────────────────────
+async function checkSerpCredits(apiKey) {
+  const r = await fetch(
+    `https://serpapi.com/account.json?api_key=${encodeURIComponent(apiKey)}`,
+    { signal: AbortSignal.timeout(5000) }
+  );
+  if (!r.ok) return null;
+  const d = await r.json();
+  return {
+    plan:  d.plan_name             || 'unknown',
+    total: d.searches_per_month    || 0,
+    left:  d.plan_searches_left    ?? d.total_searches_left ?? 0,
+    used:  d.this_month_usage      || 0,
+  };
 }
 
 // ── Build stats from a reviews array ──────────────────────────────────────────

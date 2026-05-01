@@ -1359,7 +1359,10 @@ html,body{overflow-x:hidden;width:100%}
   <div class="page-title">Reviews</div>
   <div class="page-sub" id="gmb-subtitle">Business Profile · Visibilidad, reseñas y acciones</div>
   </div>
-  <div id="gmb-status-badge" class="header-badge" style="display:none"></div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span id="serp-credits-badge" style="display:none;align-items:center;gap:4px;font-size:10px;color:var(--text3);font-family:var(--ff)"></span>
+    <div id="gmb-status-badge" class="header-badge" style="display:none"></div>
+  </div>
   </div>
 
   <!-- Not configured banner -->
@@ -2860,15 +2863,21 @@ function applyAllReviewFilters() {
     );
   }
 
-  // Filtro mes
+  // Filtro mes — usa _isoDate (ISO) si existe, de lo contrario intenta con date
   const mo = parseInt(_reviewsState.monthFilter, 10);
-  if (mo) base = base.filter(r => r.date && new Date(r.date).getMonth() + 1 === mo);
+  if (mo) base = base.filter(r => {
+    const d = new Date(r._isoDate || r.iso_date || r.date || '');
+    return !isNaN(d.getTime()) && d.getMonth() + 1 === mo;
+  });
 
-  // Filtro día de semana (0=Dom, 1=Lun…)
+  // Filtro día de semana (0=Dom, 1=Lun…) — misma lógica de fecha
   const dow = _reviewsState.dowFilter;
   if (dow !== '' && dow !== undefined && dow !== null) {
     const dowN = parseInt(dow, 10);
-    base = base.filter(r => r.date && new Date(r.date).getDay() === dowN);
+    base = base.filter(r => {
+      const d = new Date(r._isoDate || r.iso_date || r.date || '');
+      return !isNaN(d.getTime()) && d.getDay() === dowN;
+    });
   }
 
   // Actualizar conteos en star-tabs con el subconjunto filtrado
@@ -3256,9 +3265,89 @@ function pagePriority(ctr) {
   return ['Buena','pill-green'];
 }
 
-// Navigation 
+// Navigation
 // GMB data comes from native Google My Business API (loaded at boot via renderGMB)
-let _gmbDataLoaded = true; // always true — no lazy load needed
+let _gmbDataLoaded    = true;  // always true — no lazy load needed
+let _serpReviewsLoaded = false; // se pone true al cargar reseñas desde SerpAPI
+
+// ── Cargar reseñas individuales desde SerpAPI (lazy — solo al abrir el tab) ──
+async function loadSerpReviews() {
+  if (_serpReviewsLoaded) return;
+  _serpReviewsLoaded = true;
+
+  // Loading indicator
+  const list = document.getElementById('gmb-reviews-list');
+  if (list) {
+    list.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;padding:40px 20px;gap:10px;color:var(--text3);font-size:12px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        style="animation:spin 1s linear infinite;flex-shrink:0"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+      Cargando reseñas de Google Maps…
+    </div>`;
+  }
+
+  try {
+    const r    = await fetch('/api/reviews');
+    const data = await r.json();
+
+    // ── Mostrar badge de créditos ──────────────────────────────────────────
+    if (data.credits) {
+      const { left, total, plan } = data.credits;
+      const pct   = total > 0 ? Math.round(left / total * 100) : 0;
+      const color = pct > 30 ? 'var(--green)' : pct > 10 ? 'var(--orange)' : 'var(--red)';
+      const badge = document.getElementById('serp-credits-badge');
+      if (badge) {
+        badge.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>`
+          + ` ${left.toLocaleString()} / ${total.toLocaleString()} búsquedas`;
+        badge.style.color   = color;
+        badge.style.display = 'flex';
+        badge.title         = `Plan: ${plan} · Usadas: ${data.credits.used}`;
+      }
+    }
+
+    // ── Si no hay datos o créditos insuficientes ───────────────────────────
+    if (!data.ok || !(data.global?.reviews?.length)) {
+      if (list) {
+        list.innerHTML = `<div style="text-align:center;padding:36px 20px;color:var(--text3);font-size:12px;line-height:1.7">
+          ${data.error || 'No se encontraron reseñas en SerpAPI.'}
+          ${data.credits ? `<div style="margin-top:8px;font-size:10px">Créditos disponibles: ${data.credits.left} / ${data.credits.total}</div>` : ''}
+        </div>`;
+      }
+      return;
+    }
+
+    // ── Normalizar reviews ─────────────────────────────────────────────────
+    // date       = texto legible de SerpAPI ("hace 3 meses") — para mostrar
+    // _isoDate   = ISO date ("2024-11-20") — para filtrar por mes / día
+    // _locId     = id de sucursal para filtro de ubicación
+    const allRevs = (data.global.reviews || []).map(rev => ({
+      ...rev,
+      _locId:   rev._locationId   || '',
+      _locName: rev._locationName || '',
+      _isoDate: rev.iso_date      || '',
+    }));
+
+    // Inyectar en el estado GMB
+    const G = window._dashData?.gmb;
+    if (G) {
+      G.reviews         = allRevs;
+      G.serpApiFallback = true;
+    }
+    applyAllReviewFilters();
+
+    console.info(`[SerpReviews] ${allRevs.length} reseñas cargadas — ${data._meta?.ok || 0}/${data._meta?.total || 0} sucursales OK`);
+
+  } catch(e) {
+    console.warn('[loadSerpReviews]', e.message);
+    _serpReviewsLoaded = false; // permitir reintento
+    if (list) {
+      list.innerHTML = `<div style="text-align:center;padding:36px;color:var(--red);font-size:12px">
+        Error al cargar reseñas: ${e.message}
+        <div style="margin-top:8px"><button onclick="_serpReviewsLoaded=false;loadSerpReviews()"
+          style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:none;cursor:pointer;font-family:var(--ff)">Reintentar</button></div>
+      </div>`;
+    }
+  }
+}
 
 function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3273,8 +3362,10 @@ function showPage(name, el) {
   });
   window.scrollTo(0, 0);
 
-  // GMB usa datos nativos de Google My Business cargados al inicio (renderGMB)
-  // No requiere lazy-load adicional
+  // Reviews: cargar de SerpAPI la primera vez que el usuario abre este tab
+  if (name === 'gmb' && !_serpReviewsLoaded) {
+    setTimeout(loadSerpReviews, 300);
+  }
 
   // Re-render Google Charts cuando se abre Analytics (el mapa necesita ancho real)
   if (name === 'analytics' && window._ga4FullData) {
