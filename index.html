@@ -1481,6 +1481,32 @@ html,body{overflow-x:hidden;width:100%}
   <button class="rf-tab" onclick="filterByStars(2,this)" style="color:var(--orange)">2 <span class="rf-count" id="sfc-2"></span></button>
   <button class="rf-tab" onclick="filterByStars(1,this)" style="color:var(--red)">1 <span class="rf-count" id="sfc-1"></span></button>
   </div>
+
+  <!-- Filtros avanzados: empleado + mes -->
+  <div id="rev-advanced-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;padding:8px 10px;background:var(--surface2);border-radius:8px;border:1px solid var(--border)">
+    <select id="rev-filter-employee" onchange="onReviewFilterChange()" style="font-size:11px;font-family:var(--ff);background:var(--surface);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;cursor:pointer;max-width:160px">
+      <option value="">👤 Todos los empleados</option>
+    </select>
+    <select id="rev-filter-month" onchange="onReviewFilterChange()" style="font-size:11px;font-family:var(--ff);background:var(--surface);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;cursor:pointer">
+      <option value="">📅 Todos los meses</option>
+      <option value="1">Enero</option><option value="2">Febrero</option>
+      <option value="3">Marzo</option><option value="4">Abril</option>
+      <option value="5">Mayo</option><option value="6">Junio</option>
+      <option value="7">Julio</option><option value="8">Agosto</option>
+      <option value="9">Septiembre</option><option value="10">Octubre</option>
+      <option value="11">Noviembre</option><option value="12">Diciembre</option>
+    </select>
+    <select id="rev-filter-dow" onchange="onReviewFilterChange()" style="font-size:11px;font-family:var(--ff);background:var(--surface);color:var(--text2);border:1px solid var(--border2);border-radius:6px;padding:4px 8px;cursor:pointer">
+      <option value="">📆 Todos los días</option>
+      <option value="1">Lunes</option><option value="2">Martes</option>
+      <option value="3">Miércoles</option><option value="4">Jueves</option>
+      <option value="5">Viernes</option><option value="6">Sábado</option>
+      <option value="0">Domingo</option>
+    </select>
+    <span id="rev-filter-count" style="font-size:11px;color:var(--text3);margin-left:4px"></span>
+    <button onclick="clearReviewFilters()" id="rev-filter-clear" style="display:none;font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer;font-family:var(--ff)" onmouseover="this.style.color='var(--orange)'" onmouseout="this.style.color='var(--text3)'">✕ Limpiar</button>
+  </div>
+
   <div id="gmb-reviews-list" style="max-height:520px;overflow-y:auto;padding-right:4px">
   <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;gap:14px;text-align:center">
     <div style="width:56px;height:56px;border-radius:50%;background:rgba(232,97,10,0.1);display:flex;align-items:center;justify-content:center">
@@ -2781,31 +2807,98 @@ const REVIEW_LOCATIONS = [
 ];
 // URL del panel de reseñas en Google Business (general — muestra todas las sucursales)
 const GMB_REVIEWS_URL = 'https://business.google.com/reviews';
+
+// Lista de empleados para filtro de reseñas
+const STAFF_NAMES = [
+  'Elias','Rayniel','Ariel','Oscar','Luis Joel','AILA','Bryan lalondriz',
+  'Bryan Lopez','Miguel','Máximo','Manuel Heredia','Robinson','Juan Carlos',
+  'Paola','Antony','Keidy','PUJ','Ledwin','Carlos','Josely','Delouis',
+  'Brandor','Harold','Deyson','AIC','Braylin',
+];
+
+const MONTH_NAMES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
 let _reviewsState = {
-  currentLocId: 'all', // 'all' | location id
-  allData: null, // full response from /api/reviews (mode=all)
-  cache: {}, // placeId → full location data
-  visibleReviews: [], // currently displayed (before star filter)
-  starFilter: 'all', // 'all' | 1..5
+  currentLocId:   'all',   // 'all' | location id
+  allData:        null,
+  cache:          {},
+  visibleReviews: [],      // base after location filter (before star/employee/month)
+  starFilter:     'all',   // 'all' | 1..5
+  employeeFilter: '',      // '' | employee name
+  monthFilter:    '',      // '' | '1'..'12'
 };
 
-// Switch location tab 
+// ── Inicializar select de empleados (se llama una vez al cargar GMB) ──────────
+function initStaffSelect() {
+  const sel = document.getElementById('rev-filter-employee');
+  if (!sel || sel.options.length > 1) return; // ya inicializado
+  STAFF_NAMES.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Master filter: aplica ubicación + estrellas + empleado + mes + día ────────
+function applyAllReviewFilters() {
+  const G = window._dashData?.gmb;
+  if (!G) return;
+
+  const locId = _reviewsState.currentLocId;
+  let base = locId === 'all'
+    ? (G.reviews || [])
+    : (G.reviews || []).filter(r => r._locId === locId);
+
+  // Filtro empleado — busca nombre en el comentario o en el nombre del reviewer
+  const emp = _reviewsState.employeeFilter;
+  if (emp) {
+    const empLow = emp.toLowerCase();
+    base = base.filter(r =>
+      (r.comment  || '').toLowerCase().includes(empLow) ||
+      (r.reviewer || '').toLowerCase().includes(empLow)
+    );
+  }
+
+  // Filtro mes
+  const mo = parseInt(_reviewsState.monthFilter, 10);
+  if (mo) base = base.filter(r => r.date && new Date(r.date).getMonth() + 1 === mo);
+
+  // Filtro día de semana (0=Dom, 1=Lun…)
+  const dow = _reviewsState.dowFilter;
+  if (dow !== '' && dow !== undefined && dow !== null) {
+    const dowN = parseInt(dow, 10);
+    base = base.filter(r => r.date && new Date(r.date).getDay() === dowN);
+  }
+
+  // Actualizar conteos en star-tabs con el subconjunto filtrado
+  const setfc = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n || ''; };
+  setfc('sfc-all', base.length);
+  [1,2,3,4,5].forEach(s => setfc(`sfc-${s}`, base.filter(r => r.stars === s).length));
+
+  // Aplicar filtro de estrellas sobre el subconjunto
+  const stars = _reviewsState.starFilter;
+  const final = (stars === 'all') ? base : base.filter(r => r.stars === stars);
+
+  // Mostrar contador y botón limpiar
+  const hasAdv = !!(emp || mo || (dow !== '' && dow !== null && dow !== undefined));
+  const countEl = document.getElementById('rev-filter-count');
+  const clearBtn = document.getElementById('rev-filter-clear');
+  if (countEl) countEl.textContent = hasAdv ? final.length + ' reseña' + (final.length !== 1 ? 's' : '') : '';
+  if (clearBtn) clearBtn.style.display = hasAdv ? 'inline-block' : 'none';
+
+  renderReviewsList(final);
+}
+
+// ── Switch location tab ───────────────────────────────────────────────────────
 function switchLocation(locId, btn) {
   document.querySelectorAll('.loc-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   _reviewsState.currentLocId = locId;
-  _reviewsState.starFilter = 'all';
+  _reviewsState.starFilter    = 'all';
   document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
   document.querySelector('#star-filter-tabs .rf-tab')?.classList.add('active');
-
-  const G = window._dashData?.gmb;
-  const allRevs = (G?.reviews || []);
-
-  const filtered = (locId === 'all')
-    ? allRevs
-    : allRevs.filter(r => r._locId === locId);
-
-  setVisibleReviews(filtered);
+  applyAllReviewFilters();
   hideLoadMore();
 }
 
@@ -2828,27 +2921,46 @@ function reloadCurrentLocation() {
   if (G) renderGMB(G);
 }
 
-// Star filter 
+// ── Star filter ───────────────────────────────────────────────────────────────
 function filterByStars(stars, btn) {
   document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
   _reviewsState.starFilter = stars;
-  const base = _reviewsState.visibleReviews;
-  const filtered = stars === 'all' ? base : base.filter(r => r.stars === stars);
-  renderReviewsList(filtered);
+  applyAllReviewFilters();
 }
 
+// ── Advanced filter change (employee / month / day selects) ──────────────────
+function onReviewFilterChange() {
+  _reviewsState.employeeFilter = document.getElementById('rev-filter-employee')?.value || '';
+  _reviewsState.monthFilter    = document.getElementById('rev-filter-month')?.value    || '';
+  _reviewsState.dowFilter      = document.getElementById('rev-filter-dow')?.value;
+  // Reset star filter to "all" when changing advanced filters
+  _reviewsState.starFilter = 'all';
+  document.querySelectorAll('#star-filter-tabs .rf-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector('#star-filter-tabs .rf-tab')?.classList.add('active');
+  applyAllReviewFilters();
+}
+
+// ── Clear all advanced filters ────────────────────────────────────────────────
+function clearReviewFilters() {
+  _reviewsState.employeeFilter = '';
+  _reviewsState.monthFilter    = '';
+  _reviewsState.dowFilter      = '';
+  const empSel = document.getElementById('rev-filter-employee');
+  const moSel  = document.getElementById('rev-filter-month');
+  const dowSel = document.getElementById('rev-filter-dow');
+  if (empSel) empSel.value = '';
+  if (moSel)  moSel.value  = '';
+  if (dowSel) dowSel.value = '';
+  applyAllReviewFilters();
+}
+
+// ── setVisibleReviews (mantiene compatibilidad con código existente) ──────────
 function setVisibleReviews(reviews) {
   _reviewsState.visibleReviews = reviews;
-  _reviewsState.starFilter = 'all';
-
-  // Update star filter counts
-  const safe = n => { const el = document.getElementById(n); if (el) el.textContent = ''; };
-  const setfc = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n || ''; };
-  setfc('sfc-all', reviews.length);
-  [1,2,3,4,5].forEach(s => setfc(`sfc-${s}`, reviews.filter(r => r.stars === s).length));
-
-  renderReviewsList(reviews);
+  _reviewsState.starFilter     = 'all';
+  // Delegate to master filter so counts stay accurate
+  applyAllReviewFilters();
 }
 
 function showLoadMore() { const w = document.getElementById('reviews-load-more-wrap'); if (w) w.style.display = 'block'; }
@@ -4252,6 +4364,9 @@ function renderForecast(D) {
 // Render GMB
 function renderGMB(G) {
   if (!G) return;
+
+  // Inicializar select de empleados (solo la primera vez)
+  initStaffSelect();
 
   // Show/hide not-configured banner
   const notConf = document.getElementById('gmb-not-configured');
