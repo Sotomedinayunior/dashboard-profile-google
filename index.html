@@ -1405,8 +1405,8 @@ html,body{overflow-x:hidden;width:100%}
   </div>
   </div>
 
-  <!-- REVIEWS SECTION — oculta temporalmente hasta aprobación GBP API -->
-  <div class="card" style="margin-top:4px;display:none">
+  <!-- REVIEWS SECTION -->
+  <div class="card" id="gmb-reviews-card" style="margin-top:4px;display:none">
   <div class="card-header-flex" style="margin-bottom:12px">
   <div class="card-title">Reseñas por Sucursal</div>
   <button onclick="reloadCurrentLocation()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--ff)"> Actualizar</button>
@@ -4368,6 +4368,10 @@ function renderGMB(G) {
   // Inicializar select de empleados (solo la primera vez)
   initStaffSelect();
 
+  // Show reviews card (was hidden pending GBP API approval)
+  const revCard = document.getElementById('gmb-reviews-card');
+  if (revCard) revCard.style.display = 'block';
+
   // Show/hide not-configured banner
   const notConf = document.getElementById('gmb-not-configured');
   if (notConf) notConf.style.display = G.configured ? 'none' : 'block';
@@ -4386,7 +4390,7 @@ function renderGMB(G) {
   // Best location KPI
   if (G.bestLocation) {
     el('gmb-kpi-best', G.bestLocation.name || '—');
-    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'} ${licon('star',13,'#f39c12')} mejor calificada`);
+    el('gmb-kpi-best-rating', `${G.bestLocation.rating?.toFixed(1) || '—'} mejor calificada  ${licon('star',13,'#f39c12')} `);
     const cityEl = document.getElementById('gmb-kpi-best-city');
     const cityText = document.getElementById('gmb-kpi-best-city-text');
     if (cityEl && cityText) { cityText.textContent = G.bestLocation.name; cityEl.style.display = 'flex'; }
